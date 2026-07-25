@@ -93,7 +93,7 @@ function NewProject() {
               </div>
               <div>
                 <Label>Orçamento (R$)</Label>
-                <Input type="number" step="100" {...form.register("budget")} />
+                <Input type="number" step="100" {...form.register("budget", { valueAsNumber: true })} />
               </div>
             </div>
             <div>
