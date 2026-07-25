@@ -29,7 +29,7 @@ const schema = z.object({
   type: z.enum(["IA", "Trafego", "Sites"]),
   description: z.string().min(10, "Descreva o escopo (mínimo 10 caracteres)"),
   deadline: z.string().min(1, "Informe o prazo"),
-  budget: z.coerce.number().min(0),
+  budget: z.number().min(0),
   referenceLink: z.string().url("URL inválida").optional().or(z.literal("")),
 });
 
