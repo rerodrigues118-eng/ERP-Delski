@@ -37,6 +37,7 @@ function ProjectDetail() {
   const addFile = useStore((s) => s.addFile);
   const removeFile = useStore((s) => s.removeFile);
   const genToken = useStore((s) => s.generatePublicToken);
+  const genClientToken = useStore((s) => s.generateClientToken);
   const fileRef = useRef<HTMLInputElement>(null);
 
   if (!project) {
@@ -63,6 +64,8 @@ function ProjectDetail() {
   };
 
   const publicUrl = project.publicToken ? `${typeof window !== "undefined" ? window.location.origin : ""}/p/${project.publicToken}` : "";
+  const clientUrl = project.clientToken ? `${typeof window !== "undefined" ? window.location.origin : ""}/c/${project.clientToken}` : "";
+
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
@@ -149,6 +152,19 @@ function ProjectDetail() {
                     <Button variant="outline" onClick={() => { genToken(project.id); toast.success("Link gerado!"); }}><Link2 className="h-4 w-4" /> Gerar link compartilhável</Button>
                   )}
                   <p className="text-xs text-muted-foreground mt-2">Permite que o freelancer visualize as especificações sem precisar de login.</p>
+                </div>
+
+                <div className="pt-2 border-t">
+                  <Label className="mb-2 block">Portal do cliente (link white-label)</Label>
+                  {project.clientToken ? (
+                    <div className="flex items-center gap-2">
+                      <Input readOnly value={clientUrl} />
+                      <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(clientUrl); toast.success("Link copiado!"); }}><Copy className="h-4 w-4" /></Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" onClick={() => { genClientToken(project.id); toast.success("Portal do cliente ativado!"); }}><Link2 className="h-4 w-4" /> Gerar portal do cliente</Button>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">O cliente vê progresso e entregas, sem acesso aos dados internos ou freelancers.</p>
                 </div>
 
                 {freelancer && (

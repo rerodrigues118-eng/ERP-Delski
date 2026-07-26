@@ -66,9 +66,12 @@ export interface Project {
   freelancerId?: string;
   driveLink?: string;
   publicToken?: string;
+  clientToken?: string;
+  clientFeedback?: ClientFeedback[];
   files: ProjectFile[];
   history: HistoryEntry[];
   createdAt: string;
+  lastStatusChangeAt?: string;
 }
 
 export type Role = "gestor" | "freelancer";
@@ -79,4 +82,57 @@ export interface AuthUser {
   email: string;
   role: Role;
   freelancerId?: string;
+}
+
+export type LeadStage = "Prospeccao" | "Reuniao" | "Proposta" | "Fechado" | "Perdido";
+export const LEAD_STAGES: LeadStage[] = ["Prospeccao", "Reuniao", "Proposta", "Fechado", "Perdido"];
+export const LEAD_STAGE_LABEL: Record<LeadStage, string> = {
+  Prospeccao: "Prospecção",
+  Reuniao: "Reunião agendada",
+  Proposta: "Proposta enviada",
+  Fechado: "Fechado",
+  Perdido: "Perdido",
+};
+
+export interface Lead {
+  id: string;
+  name: string;
+  contact: string;
+  service: ServiceType;
+  estimatedValue: number;
+  stage: LeadStage;
+  notes?: string;
+  createdAt: string;
+  convertedProjectId?: string;
+}
+
+export type ExpenseCategory = "freelancer" | "ads" | "ferramentas" | "outros";
+export type ExpenseStatus = "Pendente" | "Aprovado" | "Pago";
+
+export interface Expense {
+  id: string;
+  projectId: string;
+  description: string;
+  amount: number;
+  category: ExpenseCategory;
+  status: ExpenseStatus;
+  freelancerId?: string;
+  createdAt: string;
+}
+
+export type ClientDecision = "aprovado" | "ajuste";
+
+export interface ClientFeedback {
+  id: string;
+  decision: ClientDecision;
+  message?: string;
+  at: string;
+}
+
+export interface WikiArticle {
+  id: string;
+  title: string;
+  category: "IA" | "Trafego" | "Sites" | "Geral";
+  content: string;
+  updatedAt: string;
 }
