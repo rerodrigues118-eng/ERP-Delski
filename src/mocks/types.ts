@@ -66,9 +66,12 @@ export interface Project {
   freelancerId?: string;
   driveLink?: string;
   publicToken?: string;
+  clientToken?: string;
+  clientFeedback?: ClientFeedback[];
   files: ProjectFile[];
   history: HistoryEntry[];
   createdAt: string;
+  lastStatusChangeAt?: string;
 }
 
 export type Role = "gestor" | "freelancer";
