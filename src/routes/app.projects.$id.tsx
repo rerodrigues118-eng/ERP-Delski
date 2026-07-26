@@ -64,6 +64,8 @@ function ProjectDetail() {
   };
 
   const publicUrl = project.publicToken ? `${typeof window !== "undefined" ? window.location.origin : ""}/p/${project.publicToken}` : "";
+  const clientUrl = project.clientToken ? `${typeof window !== "undefined" ? window.location.origin : ""}/c/${project.clientToken}` : "";
+
 
   return (
     <div className="max-w-5xl mx-auto space-y-4">
