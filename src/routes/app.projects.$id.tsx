@@ -154,6 +154,19 @@ function ProjectDetail() {
                   <p className="text-xs text-muted-foreground mt-2">Permite que o freelancer visualize as especificações sem precisar de login.</p>
                 </div>
 
+                <div className="pt-2 border-t">
+                  <Label className="mb-2 block">Portal do cliente (link white-label)</Label>
+                  {project.clientToken ? (
+                    <div className="flex items-center gap-2">
+                      <Input readOnly value={clientUrl} />
+                      <Button variant="outline" size="icon" onClick={() => { navigator.clipboard.writeText(clientUrl); toast.success("Link copiado!"); }}><Copy className="h-4 w-4" /></Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" onClick={() => { genClientToken(project.id); toast.success("Portal do cliente ativado!"); }}><Link2 className="h-4 w-4" /> Gerar portal do cliente</Button>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">O cliente vê progresso e entregas, sem acesso aos dados internos ou freelancers.</p>
+                </div>
+
                 {freelancer && (
                   <div className="pt-2 border-t flex items-center justify-between">
                     <div className="text-sm text-muted-foreground">Reenviar notificação por e-mail</div>
