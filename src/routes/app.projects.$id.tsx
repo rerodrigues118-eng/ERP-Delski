@@ -37,6 +37,7 @@ function ProjectDetail() {
   const addFile = useStore((s) => s.addFile);
   const removeFile = useStore((s) => s.removeFile);
   const genToken = useStore((s) => s.generatePublicToken);
+  const genClientToken = useStore((s) => s.generateClientToken);
   const fileRef = useRef<HTMLInputElement>(null);
 
   if (!project) {
