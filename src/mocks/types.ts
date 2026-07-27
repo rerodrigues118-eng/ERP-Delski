@@ -54,11 +54,44 @@ export interface HistoryEntry {
   message: string;
 }
 
+export type TaskStatus = "Pendente" | "Em andamento" | "Concluida" | "Bloqueada";
+export const TASK_STATUSES: TaskStatus[] = ["Pendente", "Em andamento", "Concluida", "Bloqueada"];
+
+export interface ProjectTask {
+  id: string;
+  projectId: string;
+  title: string;
+  status: TaskStatus;
+  startDate: string; // ISO yyyy-mm-dd
+  dueDate: string;
+  predecessorId?: string;
+  createdAt: string;
+}
+
+export type ApplicationStatus = "Pendente" | "Respondida" | "Selecionada" | "Recusada";
+
+export interface ProjectApplication {
+  id: string;
+  projectId: string;
+  freelancerId: string;
+  token: string;
+  status: ApplicationStatus;
+  invitedAt: string;
+  respondedAt?: string;
+  // respostas de triagem
+  capacity?: string;         // capacidade (horas/semana)
+  availability?: string;     // disponibilidade (data de início)
+  proposedDeadline?: string; // proposta de prazo (ISO)
+  proposedValue?: number;    // proposta de valor
+  notes?: string;
+}
+
 export interface Project {
   id: string;
   client: string;
   type: ServiceType;
   description: string;
+  briefing?: string; // markdown / rich text
   deadline: string;
   budget: number;
   referenceLink?: string;
