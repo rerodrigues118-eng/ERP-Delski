@@ -29,3 +29,12 @@ export async function sendStatusChangeEmail(args: {
   log("status-change", args);
   toast.success(`Notificação de status enviada para ${args.to.email} (mock)`);
 }
+
+export async function sendTriageInviteEmail(args: {
+  to: { name: string; email: string };
+  projectClient: string;
+  triageLink: string;
+}) {
+  log("triage-invite", args);
+  toast.success(`Convite de triagem enviado para ${args.to.email} (mock)`);
+}

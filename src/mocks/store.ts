@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type {
+  ApplicationStatus,
   AuthUser,
   ClientDecision,
   Expense,
@@ -9,15 +10,25 @@ import type {
   Lead,
   LeadStage,
   Project,
+  ProjectApplication,
   ProjectFile,
   ProjectStatus,
+  ProjectTask,
   Role,
+  TaskStatus,
   WikiArticle,
 } from "./types";
 
 const uid = () => Math.random().toString(36).slice(2, 10);
+const uuid = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : uid() + uid() + uid();
 const now = () => new Date().toISOString();
 const daysAgo = (n: number) => new Date(Date.now() - n * 864e5).toISOString();
+const daysFromNow = (n: number) =>
+  new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+const today = () => new Date().toISOString().slice(0, 10);
 
 const seedFreelancers: Freelancer[] = [
   { id: "f1", name: "Ana Ribeiro", email: "ana@delski.co", skills: ["IA", "Sites"], active: true, createdAt: now() },
@@ -30,6 +41,7 @@ const seedProjects: Project[] = [
   {
     id: "p1", client: "Café Aurora", type: "Sites",
     description: "Novo site institucional com blog e integração com Instagram.",
+    briefing: "## Objetivo\nRelançar o site com foco em conversão de reservas.\n\n## Escopo\n- 5 páginas\n- Blog com CMS\n- Feed do Instagram embutido\n\n## Restrições\nManter identidade visual atual (cores marrom/creme).",
     deadline: "2026-08-30", budget: 8500, referenceLink: "https://cafeaurora.com",
     status: "Em Producao", freelancerId: "f1",
     driveLink: "https://drive.google.com/drive/folders/exemplo1",
@@ -100,6 +112,28 @@ const seedWiki: WikiArticle[] = [
   { id: uid(), title: "Onboarding do freelancer", category: "Geral", content: "1. Acesso ao Drive da Delski.\n2. Ler SOPs da vertical dele.\n3. Reunião de kickoff com o gestor.", updatedAt: daysAgo(1) },
 ];
 
+const seedTasks: ProjectTask[] = [
+  { id: "t1", projectId: "p1", title: "Wireframes das 5 páginas", status: "Concluida", startDate: daysAgo(20).slice(0, 10), dueDate: daysAgo(15).slice(0, 10), createdAt: daysAgo(20) },
+  { id: "t2", projectId: "p1", title: "Design de alta fidelidade", status: "Concluida", startDate: daysAgo(15).slice(0, 10), dueDate: daysAgo(10).slice(0, 10), predecessorId: "t1", createdAt: daysAgo(15) },
+  { id: "t3", projectId: "p1", title: "Desenvolvimento front-end", status: "Em andamento", startDate: daysAgo(10).slice(0, 10), dueDate: daysFromNow(5), predecessorId: "t2", createdAt: daysAgo(10) },
+  { id: "t4", projectId: "p1", title: "Integração blog + Instagram", status: "Pendente", startDate: daysFromNow(5), dueDate: daysFromNow(12), predecessorId: "t3", createdAt: daysAgo(10) },
+  { id: "t5", projectId: "p1", title: "Deploy e QA final", status: "Pendente", startDate: daysFromNow(12), dueDate: daysFromNow(18), predecessorId: "t4", createdAt: daysAgo(10) },
+];
+
+const seedApplications: ProjectApplication[] = [
+  {
+    id: "a1", projectId: "p6", freelancerId: "f2", token: uuid(),
+    status: "Respondida", invitedAt: daysAgo(1), respondedAt: daysAgo(0),
+    capacity: "20h/semana", availability: today(),
+    proposedDeadline: daysFromNow(30), proposedValue: 4200,
+    notes: "Tenho experiência com lançamento SaaS B2B, posso começar já.",
+  },
+  {
+    id: "a2", projectId: "p6", freelancerId: "f3", token: uuid(),
+    status: "Pendente", invitedAt: daysAgo(1),
+  },
+];
+
 interface State {
   user: AuthUser | null;
   projects: Project[];
@@ -107,11 +141,14 @@ interface State {
   expenses: Expense[];
   leads: Lead[];
   wiki: WikiArticle[];
+  tasks: ProjectTask[];
+  applications: ProjectApplication[];
   login: (email: string, name?: string, role?: Role) => void;
   logout: () => void;
   setRole: (role: Role) => void;
   addProject: (p: Omit<Project, "id" | "status" | "files" | "history" | "createdAt" | "clientFeedback">) => Project;
   updateProjectStatus: (id: string, status: ProjectStatus) => void;
+  updateProjectBriefing: (id: string, briefing: string) => void;
   assignFreelancer: (id: string, freelancerId: string | undefined) => void;
   setDriveLink: (id: string, link: string) => void;
   addFile: (id: string, f: Omit<ProjectFile, "id" | "uploadedAt">) => void;
@@ -131,6 +168,17 @@ interface State {
   convertLeadToProject: (id: string, deadline: string) => string | null;
   saveWiki: (w: Omit<WikiArticle, "id" | "updatedAt"> & { id?: string }) => void;
   removeWiki: (id: string) => void;
+  // Tarefas
+  addTask: (t: Omit<ProjectTask, "id" | "createdAt">) => ProjectTask;
+  updateTask: (id: string, patch: Partial<Omit<ProjectTask, "id" | "projectId" | "createdAt">>) => void;
+  updateTaskStatus: (id: string, status: TaskStatus) => void;
+  removeTask: (id: string) => void;
+  // Aplicações / Triagem
+  inviteFreelancerToProject: (projectId: string, freelancerId: string) => ProjectApplication | null;
+  submitApplication: (token: string, data: Omit<Partial<ProjectApplication>, "id" | "token" | "projectId" | "freelancerId" | "status" | "invitedAt">) => void;
+  updateApplicationStatus: (id: string, status: ApplicationStatus) => void;
+  selectApplication: (id: string) => void;
+  removeApplication: (id: string) => void;
 }
 
 export const useStore = create<State>()(
@@ -142,6 +190,8 @@ export const useStore = create<State>()(
       expenses: seedExpenses,
       leads: seedLeads,
       wiki: seedWiki,
+      tasks: seedTasks,
+      applications: seedApplications,
       login: (email, name, role = "gestor") => {
         const freelancer = get().freelancers.find((f) => f.email === email);
         const resolvedRole: Role = freelancer ? "freelancer" : role;
@@ -181,6 +231,9 @@ export const useStore = create<State>()(
               : p,
           ),
         });
+      },
+      updateProjectBriefing: (id, briefing) => {
+        set({ projects: get().projects.map((p) => (p.id === id ? { ...p, briefing } : p)) });
       },
       assignFreelancer: (id, freelancerId) => {
         const f = get().freelancers.find((x) => x.id === freelancerId);
@@ -280,8 +333,61 @@ export const useStore = create<State>()(
       removeWiki: (id) => {
         set({ wiki: get().wiki.filter((a) => a.id !== id) });
       },
+      addTask: (t) => {
+        const task: ProjectTask = { ...t, id: uid(), createdAt: now() };
+        set({ tasks: [...get().tasks, task] });
+        return task;
+      },
+      updateTask: (id, patch) => {
+        set({ tasks: get().tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) });
+      },
+      updateTaskStatus: (id, status) => {
+        set({ tasks: get().tasks.map((t) => (t.id === id ? { ...t, status } : t)) });
+      },
+      removeTask: (id) => {
+        set({ tasks: get().tasks.filter((t) => t.id !== id && t.predecessorId !== id) });
+      },
+      inviteFreelancerToProject: (projectId, freelancerId) => {
+        const exists = get().applications.find((a) => a.projectId === projectId && a.freelancerId === freelancerId);
+        if (exists) return exists;
+        const app: ProjectApplication = {
+          id: uid(), projectId, freelancerId, token: uuid(),
+          status: "Pendente", invitedAt: now(),
+        };
+        set({ applications: [app, ...get().applications] });
+        return app;
+      },
+      submitApplication: (token, data) => {
+        set({
+          applications: get().applications.map((a) =>
+            a.token === token
+              ? { ...a, ...data, status: "Respondida", respondedAt: now() }
+              : a,
+          ),
+        });
+      },
+      updateApplicationStatus: (id, status) => {
+        set({ applications: get().applications.map((a) => (a.id === id ? { ...a, status } : a)) });
+      },
+      selectApplication: (id) => {
+        const app = get().applications.find((a) => a.id === id);
+        if (!app) return;
+        get().assignFreelancer(app.projectId, app.freelancerId);
+        set({
+          applications: get().applications.map((a) => {
+            if (a.projectId !== app.projectId) return a;
+            if (a.id === id) return { ...a, status: "Selecionada" };
+            return a.status === "Respondida" || a.status === "Pendente"
+              ? { ...a, status: "Recusada" }
+              : a;
+          }),
+        });
+      },
+      removeApplication: (id) => {
+        set({ applications: get().applications.filter((a) => a.id !== id) });
+      },
     }),
-    { name: "delski-store-v2" },
+    { name: "delski-store-v3" },
   ),
 );
 
@@ -290,3 +396,6 @@ export const useProjectByToken = (token: string) =>
 
 export const useProjectByClientToken = (token: string) =>
   useStore((s) => s.projects.find((p) => p.clientToken === token));
+
+export const useApplicationByToken = (token: string) =>
+  useStore((s) => s.applications.find((a) => a.token === token));
