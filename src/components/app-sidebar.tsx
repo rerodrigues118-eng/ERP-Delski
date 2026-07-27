@@ -5,7 +5,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, Kanban, Users, Settings, LogOut, PlusCircle,
-  DollarSign, Target, AlertTriangle, BookOpen,
+  DollarSign, Target, AlertTriangle, BookOpen, FileSpreadsheet,
 } from "lucide-react";
 import { useStore } from "@/mocks/store";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ const operacao = [
 const negocio = [
   { title: "CRM / Funil", url: "/app/crm", icon: Target, gestor: true },
   { title: "Financeiro", url: "/app/finance", icon: DollarSign, gestor: true },
+  { title: "Relatórios", url: "/app/reports", icon: FileSpreadsheet, gestor: true },
 ];
 
 const conhecimento = [
