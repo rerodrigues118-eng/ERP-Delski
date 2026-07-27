@@ -13,11 +13,13 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as TriagemTokenRouteImport } from './routes/triagem.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as AppWikiRouteImport } from './routes/app.wiki'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppRisksRouteImport } from './routes/app.risks'
+import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppFreelancersRouteImport } from './routes/app.freelancers'
 import { Route as AppFinanceRouteImport } from './routes/app.finance'
 import { Route as AppCrmRouteImport } from './routes/app.crm'
@@ -45,6 +47,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const TriagemTokenRoute = TriagemTokenRouteImport.update({
+  id: '/triagem/$token',
+  path: '/triagem/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PTokenRoute = PTokenRouteImport.update({
   id: '/p/$token',
   path: '/p/$token',
@@ -68,6 +75,11 @@ const AppSettingsRoute = AppSettingsRouteImport.update({
 const AppRisksRoute = AppRisksRouteImport.update({
   id: '/risks',
   path: '/risks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFreelancersRoute = AppFreelancersRouteImport.update({
@@ -108,11 +120,13 @@ export interface FileRoutesByFullPath {
   '/app/crm': typeof AppCrmRoute
   '/app/finance': typeof AppFinanceRoute
   '/app/freelancers': typeof AppFreelancersRoute
+  '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/wiki': typeof AppWikiRoute
   '/c/$token': typeof CTokenRoute
   '/p/$token': typeof PTokenRoute
+  '/triagem/$token': typeof TriagemTokenRoute
   '/app/': typeof AppIndexRoute
   '/app/projects/$id': typeof AppProjectsIdRoute
   '/app/projects/new': typeof AppProjectsNewRoute
@@ -124,11 +138,13 @@ export interface FileRoutesByTo {
   '/app/crm': typeof AppCrmRoute
   '/app/finance': typeof AppFinanceRoute
   '/app/freelancers': typeof AppFreelancersRoute
+  '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/wiki': typeof AppWikiRoute
   '/c/$token': typeof CTokenRoute
   '/p/$token': typeof PTokenRoute
+  '/triagem/$token': typeof TriagemTokenRoute
   '/app': typeof AppIndexRoute
   '/app/projects/$id': typeof AppProjectsIdRoute
   '/app/projects/new': typeof AppProjectsNewRoute
@@ -142,11 +158,13 @@ export interface FileRoutesById {
   '/app/crm': typeof AppCrmRoute
   '/app/finance': typeof AppFinanceRoute
   '/app/freelancers': typeof AppFreelancersRoute
+  '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/wiki': typeof AppWikiRoute
   '/c/$token': typeof CTokenRoute
   '/p/$token': typeof PTokenRoute
+  '/triagem/$token': typeof TriagemTokenRoute
   '/app/': typeof AppIndexRoute
   '/app/projects/$id': typeof AppProjectsIdRoute
   '/app/projects/new': typeof AppProjectsNewRoute
@@ -161,11 +179,13 @@ export interface FileRouteTypes {
     | '/app/crm'
     | '/app/finance'
     | '/app/freelancers'
+    | '/app/reports'
     | '/app/risks'
     | '/app/settings'
     | '/app/wiki'
     | '/c/$token'
     | '/p/$token'
+    | '/triagem/$token'
     | '/app/'
     | '/app/projects/$id'
     | '/app/projects/new'
@@ -177,11 +197,13 @@ export interface FileRouteTypes {
     | '/app/crm'
     | '/app/finance'
     | '/app/freelancers'
+    | '/app/reports'
     | '/app/risks'
     | '/app/settings'
     | '/app/wiki'
     | '/c/$token'
     | '/p/$token'
+    | '/triagem/$token'
     | '/app'
     | '/app/projects/$id'
     | '/app/projects/new'
@@ -194,11 +216,13 @@ export interface FileRouteTypes {
     | '/app/crm'
     | '/app/finance'
     | '/app/freelancers'
+    | '/app/reports'
     | '/app/risks'
     | '/app/settings'
     | '/app/wiki'
     | '/c/$token'
     | '/p/$token'
+    | '/triagem/$token'
     | '/app/'
     | '/app/projects/$id'
     | '/app/projects/new'
@@ -211,6 +235,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CTokenRoute: typeof CTokenRoute
   PTokenRoute: typeof PTokenRoute
+  TriagemTokenRoute: typeof TriagemTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -242,6 +267,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/triagem/$token': {
+      id: '/triagem/$token'
+      path: '/triagem/$token'
+      fullPath: '/triagem/$token'
+      preLoaderRoute: typeof TriagemTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/p/$token': {
       id: '/p/$token'
@@ -276,6 +308,13 @@ declare module '@tanstack/react-router' {
       path: '/risks'
       fullPath: '/app/risks'
       preLoaderRoute: typeof AppRisksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/reports': {
+      id: '/app/reports'
+      path: '/reports'
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/freelancers': {
@@ -327,6 +366,7 @@ interface AppRouteChildren {
   AppCrmRoute: typeof AppCrmRoute
   AppFinanceRoute: typeof AppFinanceRoute
   AppFreelancersRoute: typeof AppFreelancersRoute
+  AppReportsRoute: typeof AppReportsRoute
   AppRisksRoute: typeof AppRisksRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppWikiRoute: typeof AppWikiRoute
@@ -340,6 +380,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCrmRoute: AppCrmRoute,
   AppFinanceRoute: AppFinanceRoute,
   AppFreelancersRoute: AppFreelancersRoute,
+  AppReportsRoute: AppReportsRoute,
   AppRisksRoute: AppRisksRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppWikiRoute: AppWikiRoute,
@@ -357,6 +398,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CTokenRoute: CTokenRoute,
   PTokenRoute: PTokenRoute,
+  TriagemTokenRoute: TriagemTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
