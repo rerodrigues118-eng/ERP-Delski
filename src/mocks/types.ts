@@ -64,6 +64,8 @@ export interface ProjectTask {
   status: TaskStatus;
   startDate: string; // ISO yyyy-mm-dd
   dueDate: string;
+  baselineStart?: string; // referência original (para calcular atraso)
+  baselineDue?: string;
   predecessorId?: string;
   createdAt: string;
 }

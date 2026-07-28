@@ -6,6 +6,7 @@ import {
 import {
   LayoutDashboard, Kanban, Users, Settings, LogOut, PlusCircle,
   DollarSign, Target, AlertTriangle, BookOpen, FileSpreadsheet,
+  Bell, FileSignature,
 } from "lucide-react";
 import { useStore } from "@/mocks/store";
 import { Button } from "@/components/ui/button";
@@ -16,12 +17,14 @@ import type { Role } from "@/mocks/types";
 const operacao = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, gestor: true },
   { title: "Projetos", url: "/app/projects", icon: Kanban, gestor: false },
+  { title: "Notificações", url: "/app/notifications", icon: Bell, gestor: false },
   { title: "Riscos", url: "/app/risks", icon: AlertTriangle, gestor: true },
   { title: "Freelancers", url: "/app/freelancers", icon: Users, gestor: true },
 ];
 
 const negocio = [
   { title: "CRM / Funil", url: "/app/crm", icon: Target, gestor: true },
+  { title: "Propostas", url: "/app/proposals", icon: FileSignature, gestor: true },
   { title: "Financeiro", url: "/app/finance", icon: DollarSign, gestor: true },
   { title: "Relatórios", url: "/app/reports", icon: FileSpreadsheet, gestor: true },
 ];

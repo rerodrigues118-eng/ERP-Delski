@@ -112,12 +112,15 @@ const seedWiki: WikiArticle[] = [
   { id: uid(), title: "Onboarding do freelancer", category: "Geral", content: "1. Acesso ao Drive da Delski.\n2. Ler SOPs da vertical dele.\n3. Reunião de kickoff com o gestor.", updatedAt: daysAgo(1) },
 ];
 
+const withBaseline = (t: Omit<ProjectTask, "baselineStart" | "baselineDue">): ProjectTask =>
+  ({ ...t, baselineStart: t.startDate, baselineDue: t.dueDate });
+
 const seedTasks: ProjectTask[] = [
-  { id: "t1", projectId: "p1", title: "Wireframes das 5 páginas", status: "Concluida", startDate: daysAgo(20).slice(0, 10), dueDate: daysAgo(15).slice(0, 10), createdAt: daysAgo(20) },
-  { id: "t2", projectId: "p1", title: "Design de alta fidelidade", status: "Concluida", startDate: daysAgo(15).slice(0, 10), dueDate: daysAgo(10).slice(0, 10), predecessorId: "t1", createdAt: daysAgo(15) },
-  { id: "t3", projectId: "p1", title: "Desenvolvimento front-end", status: "Em andamento", startDate: daysAgo(10).slice(0, 10), dueDate: daysFromNow(5), predecessorId: "t2", createdAt: daysAgo(10) },
-  { id: "t4", projectId: "p1", title: "Integração blog + Instagram", status: "Pendente", startDate: daysFromNow(5), dueDate: daysFromNow(12), predecessorId: "t3", createdAt: daysAgo(10) },
-  { id: "t5", projectId: "p1", title: "Deploy e QA final", status: "Pendente", startDate: daysFromNow(12), dueDate: daysFromNow(18), predecessorId: "t4", createdAt: daysAgo(10) },
+  withBaseline({ id: "t1", projectId: "p1", title: "Wireframes das 5 páginas", status: "Concluida", startDate: daysAgo(20).slice(0, 10), dueDate: daysAgo(15).slice(0, 10), createdAt: daysAgo(20) }),
+  withBaseline({ id: "t2", projectId: "p1", title: "Design de alta fidelidade", status: "Concluida", startDate: daysAgo(15).slice(0, 10), dueDate: daysAgo(10).slice(0, 10), predecessorId: "t1", createdAt: daysAgo(15) }),
+  withBaseline({ id: "t3", projectId: "p1", title: "Desenvolvimento front-end", status: "Em andamento", startDate: daysAgo(10).slice(0, 10), dueDate: daysFromNow(5), predecessorId: "t2", createdAt: daysAgo(10) }),
+  withBaseline({ id: "t4", projectId: "p1", title: "Integração blog + Instagram", status: "Pendente", startDate: daysFromNow(5), dueDate: daysFromNow(12), predecessorId: "t3", createdAt: daysAgo(10) }),
+  withBaseline({ id: "t5", projectId: "p1", title: "Deploy e QA final", status: "Pendente", startDate: daysFromNow(12), dueDate: daysFromNow(18), predecessorId: "t4", createdAt: daysAgo(10) }),
 ];
 
 const seedApplications: ProjectApplication[] = [
@@ -169,10 +172,12 @@ interface State {
   saveWiki: (w: Omit<WikiArticle, "id" | "updatedAt"> & { id?: string }) => void;
   removeWiki: (id: string) => void;
   // Tarefas
-  addTask: (t: Omit<ProjectTask, "id" | "createdAt">) => ProjectTask;
+  addTask: (t: Omit<ProjectTask, "id" | "createdAt" | "baselineStart" | "baselineDue">) => ProjectTask;
   updateTask: (id: string, patch: Partial<Omit<ProjectTask, "id" | "projectId" | "createdAt">>) => void;
   updateTaskStatus: (id: string, status: TaskStatus) => void;
   removeTask: (id: string) => void;
+  shiftTaskCascade: (id: string, startIso: string, dueIso: string) => void;
+  rebaselineTasks: (projectId: string) => void;
   // Aplicações / Triagem
   inviteFreelancerToProject: (projectId: string, freelancerId: string) => ProjectApplication | null;
   submitApplication: (token: string, data: Omit<Partial<ProjectApplication>, "id" | "token" | "projectId" | "freelancerId" | "status" | "invitedAt">) => void;
@@ -334,7 +339,7 @@ export const useStore = create<State>()(
         set({ wiki: get().wiki.filter((a) => a.id !== id) });
       },
       addTask: (t) => {
-        const task: ProjectTask = { ...t, id: uid(), createdAt: now() };
+        const task: ProjectTask = { ...t, id: uid(), createdAt: now(), baselineStart: t.startDate, baselineDue: t.dueDate };
         set({ tasks: [...get().tasks, task] });
         return task;
       },
@@ -346,6 +351,44 @@ export const useStore = create<State>()(
       },
       removeTask: (id) => {
         set({ tasks: get().tasks.filter((t) => t.id !== id && t.predecessorId !== id) });
+      },
+      shiftTaskCascade: (id, startIso, dueIso) => {
+        const all = [...get().tasks];
+        const map = new Map(all.map((t) => [t.id, { ...t }]));
+        const target = map.get(id);
+        if (!target) return;
+        target.startDate = startIso;
+        target.dueDate = dueIso;
+        // Propagação: filhos (predecessorId === id) devem começar em due+1, preservando duração
+        const queue: string[] = [id];
+        const visited = new Set<string>();
+        while (queue.length) {
+          const currentId = queue.shift()!;
+          if (visited.has(currentId)) continue;
+          visited.add(currentId);
+          const current = map.get(currentId)!;
+          for (const child of Array.from(map.values())) {
+            if (child.predecessorId !== currentId) continue;
+            const minStartMs = new Date(current.dueDate).getTime() + 864e5;
+            const childStartMs = new Date(child.startDate).getTime();
+            if (childStartMs < minStartMs) {
+              const duration = Math.max(0, Math.round((new Date(child.dueDate).getTime() - childStartMs) / 864e5));
+              const newStart = new Date(minStartMs).toISOString().slice(0, 10);
+              const newDue = new Date(minStartMs + duration * 864e5).toISOString().slice(0, 10);
+              child.startDate = newStart;
+              child.dueDate = newDue;
+              queue.push(child.id);
+            }
+          }
+        }
+        set({ tasks: Array.from(map.values()) });
+      },
+      rebaselineTasks: (projectId) => {
+        set({
+          tasks: get().tasks.map((t) =>
+            t.projectId === projectId ? { ...t, baselineStart: t.startDate, baselineDue: t.dueDate } : t,
+          ),
+        });
       },
       inviteFreelancerToProject: (projectId, freelancerId) => {
         const exists = get().applications.find((a) => a.projectId === projectId && a.freelancerId === freelancerId);
@@ -387,7 +430,7 @@ export const useStore = create<State>()(
         set({ applications: get().applications.filter((a) => a.id !== id) });
       },
     }),
-    { name: "delski-store-v3" },
+    { name: "delski-store-v4" },
   ),
 );
 
