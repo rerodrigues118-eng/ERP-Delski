@@ -172,10 +172,12 @@ interface State {
   saveWiki: (w: Omit<WikiArticle, "id" | "updatedAt"> & { id?: string }) => void;
   removeWiki: (id: string) => void;
   // Tarefas
-  addTask: (t: Omit<ProjectTask, "id" | "createdAt">) => ProjectTask;
+  addTask: (t: Omit<ProjectTask, "id" | "createdAt" | "baselineStart" | "baselineDue">) => ProjectTask;
   updateTask: (id: string, patch: Partial<Omit<ProjectTask, "id" | "projectId" | "createdAt">>) => void;
   updateTaskStatus: (id: string, status: TaskStatus) => void;
   removeTask: (id: string) => void;
+  shiftTaskCascade: (id: string, startIso: string, dueIso: string) => void;
+  rebaselineTasks: (projectId: string) => void;
   // Aplicações / Triagem
   inviteFreelancerToProject: (projectId: string, freelancerId: string) => ProjectApplication | null;
   submitApplication: (token: string, data: Omit<Partial<ProjectApplication>, "id" | "token" | "projectId" | "freelancerId" | "status" | "invitedAt">) => void;
