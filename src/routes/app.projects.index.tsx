@@ -130,13 +130,23 @@ function ProjectsListPage() {
                 </p>
 
                 <div className="space-y-3 pt-3 border-t border-border">
-                  <div className="flex justify-between text-xs text-muted-foreground">
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
                       <Calendar className="h-3.5 w-3.5" /> Prazo: {project.deadline ? new Date(project.deadline).toLocaleDateString("pt-BR") : "N/A"}
                     </span>
-                    {!isCliente && (
-                      <span className="font-semibold text-foreground">
+                    {isGestor && (
+                      <span className="font-semibold text-emerald-400">
                         R$ {Number(project.budget || 0).toLocaleString("pt-BR")}
+                      </span>
+                    )}
+                    {isFreelancer && (
+                      <span className="font-semibold text-indigo-400" title="Sua remuneração alocada">
+                        Repasse: R$ {Number(project.freelancer_cost || 0).toLocaleString("pt-BR")}
+                      </span>
+                    )}
+                    {isCliente && (
+                      <span className="font-semibold text-emerald-400" title="Valor do seu contrato">
+                        Contrato: R$ {Number(project.budget || 0).toLocaleString("pt-BR")}
                       </span>
                     )}
                   </div>

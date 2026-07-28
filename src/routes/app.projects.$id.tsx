@@ -296,7 +296,7 @@ function ProjectDetailPage() {
       </div>
 
       {/* Top Details & Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-card">
           <CardContent className="p-4">
             <div className="text-xs text-muted-foreground font-medium">Prazo Final</div>
@@ -307,13 +307,13 @@ function ProjectDetailPage() {
           </CardContent>
         </Card>
 
-        {!isCliente && (
+        {isGestor && (
           <>
             <Card className="bg-card">
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground font-medium">Orçamento Bruto</div>
                 <div className="text-lg font-bold mt-1 text-emerald-400">
-                  R$ {Number(project.budget || 0).toLocaleString("pt-BR")}
+                  R$ {Number(project.budget || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </div>
               </CardContent>
             </Card>
@@ -322,11 +322,35 @@ function ProjectDetailPage() {
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground font-medium">Custo Freelancer</div>
                 <div className="text-lg font-bold mt-1 text-rose-400">
-                  R$ {Number(project.freelancer_cost || 0).toLocaleString("pt-BR")}
+                  R$ {Number(project.freelancer_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                 </div>
               </CardContent>
             </Card>
           </>
+        )}
+
+        {isFreelancer && (
+          <Card className="bg-card border-indigo-500/20 bg-indigo-500/5">
+            <CardContent className="p-4">
+              <div className="text-xs text-indigo-300 font-medium">Seu Repasse / Remuneração</div>
+              <div className="text-lg font-bold mt-1 text-indigo-400 flex items-center gap-1">
+                <DollarSign className="h-4 w-4" />
+                R$ {Number(project.freelancer_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {isCliente && (
+          <Card className="bg-card border-emerald-500/20 bg-emerald-500/5">
+            <CardContent className="p-4">
+              <div className="text-xs text-emerald-300 font-medium">Valor do Contrato</div>
+              <div className="text-lg font-bold mt-1 text-emerald-400 flex items-center gap-1">
+                <DollarSign className="h-4 w-4" />
+                R$ {Number(project.budget || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         <Card className="bg-card">
