@@ -2,27 +2,23 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useStore } from "@/mocks/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { toast } from "sonner";
-import { ArrowLeft, Sparkles, FolderPlus } from "lucide-react";
-import type { ServiceType } from "@/mocks/types";
+import { ArrowLeft, FolderPlus, Loader2 } from "lucide-react";
+import { useCreateProject, type ServiceType } from "@/hooks/useProjects";
 
 const newProjectSchema = z.object({
-  client: z.string().min(2, "Nome do cliente ou empresa é obrigatório"),
-  type: z.enum(["IA", "Trafego", "Sites"]),
-  description: z.string().min(10, "Descreva brevemente o projeto (mín. 10 caracteres)"),
+  title: z.string().min(2, "Título do projeto / cliente é obrigatório"),
+  service_type: z.enum(["IA", "Trafego", "Sites"]),
+  briefing_content: z.string().min(10, "Descreva brevemente o projeto (mín. 10 caracteres)"),
   budget: z.coerce.number().min(100, "Orçamento deve ser no mínimo R$ 100"),
-  freelancerCost: z.coerce.number().min(0, "Custo do freelancer deve ser válido"),
+  freelancer_cost: z.coerce.number().min(0, "Custo do freelancer deve ser válido"),
   deadline: z.string().min(1, "Selecione o prazo de entrega"),
-  driveLink: z.string().url("Informe uma URL válida do Google Drive").or(z.literal("")),
-  overview: z.string().optional(),
-  technicalSpecs: z.string().optional(),
+  google_drive_link: z.string().url("Informe uma URL válida do Google Drive").or(z.literal("")),
 });
 
 type NewProjectFormData = z.infer<typeof newProjectSchema>;
@@ -38,8 +34,7 @@ export const Route = createFileRoute("/app/projects/new")({
 
 function NewProjectPage() {
   const navigate = useNavigate();
-  const addProject = useStore((s) => s.addProject);
-  const user = useStore((s) => s.user);
+  const createProject = useCreateProject();
 
   const {
     register,
@@ -50,38 +45,35 @@ function NewProjectPage() {
   } = useForm<NewProjectFormData>({
     resolver: zodResolver(newProjectSchema),
     defaultValues: {
-      client: "",
-      type: "IA",
-      description: "",
+      title: "",
+      service_type: "IA",
+      briefing_content: "",
       budget: 5000,
-      freelancerCost: 1800,
+      freelancer_cost: 1800,
       deadline: new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
-      driveLink: "",
-      overview: "",
-      technicalSpecs: "",
+      google_drive_link: "",
     },
   });
 
-  const selectedType = watch("type");
+  const selectedType = watch("service_type");
 
   const onSubmit = (data: NewProjectFormData) => {
-    const project = addProject({
-      client: data.client,
-      type: data.type as ServiceType,
-      description: data.description,
-      budget: data.budget,
-      freelancerCost: data.freelancerCost,
-      deadline: data.deadline,
-      driveLink: data.driveLink || undefined,
-      briefingSections: {
-        overview: data.overview || data.description,
-        technicalSpecs: data.technicalSpecs || `Stack e especificações para ${data.type}`,
-        repositoryNotes: data.driveLink ? `Drive: ${data.driveLink}` : "Anexos e documentos",
+    createProject.mutate(
+      {
+        title: data.title,
+        service_type: data.service_type as ServiceType,
+        briefing_content: data.briefing_content,
+        budget: data.budget,
+        freelancer_cost: data.freelancer_cost,
+        deadline: data.deadline,
+        status: "Solicitado",
       },
-    });
-
-    toast.success(`Projeto ${project.client} cadastrado com sucesso!`);
-    navigate({ to: "/app/projects/$id", params: { id: project.id } });
+      {
+        onSuccess: (newProj) => {
+          navigate({ to: "/app/projects/$id", params: { id: newProj.id } });
+        },
+      }
+    );
   };
 
   return (
@@ -96,24 +88,24 @@ function NewProjectPage() {
         <CardHeader>
           <CardTitle className="text-xl font-bold flex items-center gap-2">
             <FolderPlus className="h-5 w-5 text-indigo-500" />
-            Cadastrar Novo Projeto
+            Cadastrar Novo Projeto no Banco Supabase
           </CardTitle>
           <CardDescription>
-            Preencha os detalhes do cliente, escopo inicial, restrições financeiras e links de arquivos.
+            Preencha os detalhes do cliente, escopo inicial, restrições financeiras e valores do contrato.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Cliente ou Empresa</Label>
-                <Input placeholder="Ex: Studio Lumina" {...register("client")} />
-                {errors.client && <p className="text-xs text-destructive">{errors.client.message}</p>}
+                <Label>Título / Nome do Cliente</Label>
+                <Input placeholder="Ex: Studio Lumina — Automação LeadGen" {...register("title")} />
+                {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label>Vertical de Serviço</Label>
-                <Select value={selectedType} onValueChange={(val) => setValue("type", val as ServiceType)}>
+                <Select value={selectedType} onValueChange={(val) => setValue("service_type", val as ServiceType)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -123,17 +115,18 @@ function NewProjectPage() {
                     <SelectItem value="Sites">Desenvolvimento de Sites</SelectItem>
                   </SelectContent>
                 </Select>
-                {errors.type && <p className="text-xs text-destructive">{errors.type.message}</p>}
+                {errors.service_type && <p className="text-xs text-destructive">{errors.service_type.message}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label>Descrição Curta do Escopo</Label>
+              <Label>Descrição / Briefing do Escopo</Label>
               <Textarea
-                placeholder="Ex: Desenvolvimento de agente IA para agendamento via WhatsApp..."
-                {...register("description")}
+                rows={4}
+                placeholder="Ex: Desenvolvimento de agente IA para atendimento e agendamento via WhatsApp..."
+                {...register("briefing_content")}
               />
-              {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
+              {errors.briefing_content && <p className="text-xs text-destructive">{errors.briefing_content.message}</p>}
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -145,8 +138,8 @@ function NewProjectPage() {
 
               <div className="space-y-2">
                 <Label>Custo Freelancer (R$)</Label>
-                <Input type="number" placeholder="1800" {...register("freelancerCost")} />
-                {errors.freelancerCost && <p className="text-xs text-destructive">{errors.freelancerCost.message}</p>}
+                <Input type="number" placeholder="1800" {...register("freelancer_cost")} />
+                {errors.freelancer_cost && <p className="text-xs text-destructive">{errors.freelancer_cost.message}</p>}
               </div>
 
               <div className="space-y-2">
@@ -158,24 +151,17 @@ function NewProjectPage() {
 
             <div className="space-y-2">
               <Label>Link da Pasta do Google Drive (Opcional)</Label>
-              <Input placeholder="https://drive.google.com/drive/folders/..." {...register("driveLink")} />
-              {errors.driveLink && <p className="text-xs text-destructive">{errors.driveLink.message}</p>}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Briefing — Visão Geral Inicial (Opcional)</Label>
-              <Textarea
-                placeholder="Detalhes adicionais de escopo, público-alvo e restrições do cliente..."
-                {...register("overview")}
-              />
+              <Input placeholder="https://drive.google.com/drive/folders/..." {...register("google_drive_link")} />
+              {errors.google_drive_link && <p className="text-xs text-destructive">{errors.google_drive_link.message}</p>}
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => navigate({ to: "/app/projects" })}>
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium">
-                Criar Projeto & Abrir Painel
+              <Button type="submit" disabled={createProject.isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2">
+                {createProject.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                Salvar no Banco & Abrir Projeto
               </Button>
             </div>
           </form>

@@ -14,10 +14,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { Role } from "@/mocks/types";
 
+import { useAuth } from "@/hooks/useAuth";
+
 const operacao = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, gestor: false, freelancer: true, cliente: true },
   { title: "Projetos", url: "/app/projects", icon: Kanban, gestor: false, freelancer: true, cliente: true },
-  { title: "Notificações", url: "/app/notifications", icon: Bell, gestor: false, freelancer: true, cliente: false },
+  { title: "Notificações", url: "/app/notifications", icon: Bell, gestor: true, freelancer: true, cliente: false },
   { title: "Riscos", url: "/app/risks", icon: AlertTriangle, gestor: true, freelancer: false, cliente: false },
   { title: "Freelancers", url: "/app/freelancers", icon: Users, gestor: true, freelancer: false, cliente: false },
 ];
@@ -36,12 +38,9 @@ const conhecimento = [
 
 export function AppSidebar() {
   const path = useRouterState({ select: (r) => r.location.pathname });
-  const user = useStore((s) => s.user);
-  const setRole = useStore((s) => s.setRole);
-  const logout = useStore((s) => s.logout);
+  const { user, profile, role, logout, isGestor } = useAuth();
   
-  const currentRole = user?.role || "gestor";
-  const isGestor = currentRole === "gestor";
+  const currentRole = role || "gestor";
 
   const renderGroup = (label: string, items: typeof operacao) => {
     const visible = items.filter((i) => {
@@ -110,31 +109,14 @@ export function AppSidebar() {
 
       <SidebarFooter>
         <div className="px-2 pb-3 space-y-3 group-data-[collapsible=icon]:hidden">
-          <div className="space-y-1">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center justify-between">
-              <span>Seletor de Perfil</span>
-              <Shield className="h-3 w-3 text-indigo-400" />
-            </div>
-            <Select value={currentRole} onValueChange={(v) => setRole(v as Role)}>
-              <SelectTrigger className="h-8 text-xs bg-muted border-border">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="gestor">Gestor (Acesso Total)</SelectItem>
-                <SelectItem value="freelancer">Freelancer (Alocado)</SelectItem>
-                <SelectItem value="cliente">Cliente (Progresso)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
           <div className="flex items-center gap-2 rounded-xl border border-sidebar-border bg-card p-2">
             <Avatar className="h-8 w-8">
               <AvatarFallback className="bg-indigo-600/20 text-indigo-400 font-bold">
-                {user?.name?.[0]?.toUpperCase() || "D"}
+                {profile?.full_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || "D"}
               </AvatarFallback>
             </Avatar>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-semibold text-foreground">{user?.name}</div>
+              <div className="truncate text-xs font-semibold text-foreground">{profile?.full_name || user?.email}</div>
               <div className="truncate text-[10px] text-muted-foreground uppercase tracking-wider">{currentRole}</div>
             </div>
             <Button size="icon" variant="ghost" className="h-7 w-7" onClick={logout} title="Sair">

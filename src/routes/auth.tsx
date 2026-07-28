@@ -6,10 +6,10 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useStore } from "@/mocks/store";
 import { toast } from "sonner";
-import { ShieldCheck, Lock, Sparkles, Mail, UserCheck } from "lucide-react";
+import { ShieldCheck, Lock, Sparkles, Mail, UserCheck, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const loginSchema = z.object({
   email: z.string().email("Insira um endereço de e-mail válido."),
@@ -29,9 +29,8 @@ export const Route = createFileRoute("/auth")({
 });
 
 function AuthPage() {
-  const login = useStore((s) => s.login);
-  const user = useStore((s) => s.user);
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const {
@@ -47,7 +46,7 @@ function AuthPage() {
     },
   });
 
-  // Direct redirection if already logged in
+  // Direct redirection if already logged in via Supabase
   if (user) {
     navigate({ to: "/app", replace: true });
   }
@@ -55,19 +54,20 @@ function AuthPage() {
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     try {
-      // Attempt Supabase Auth login if configured
-      const { error } = await supabase.auth.signInWithPassword({
+      // Attempt Supabase Auth login
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       });
 
       if (error) {
-        console.info("[Supabase Auth Notice]", error.message);
+        toast.error(`Falha no Supabase Auth: ${error.message}. Redirecionando para demonstração...`);
+        // Redireciona para o painel
+        setTimeout(() => navigate({ to: "/app", replace: true }), 1200);
+        return;
       }
 
-      // Sync/Fallback local user state
-      login(data.email);
-      toast.success("Autenticação realizada com sucesso!");
+      toast.success("Autenticação no Supabase realizada com sucesso!");
       navigate({ to: "/app", replace: true });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao efetuar login";
@@ -79,7 +79,7 @@ function AuthPage() {
 
   const setDemoUser = (email: string) => {
     setValue("email", email);
-    setValue("password", "demo");
+    setValue("password", "demo123456");
   };
 
   return (
@@ -113,7 +113,7 @@ function AuthPage() {
           <div className="flex items-center gap-6 pt-2">
             <div className="flex items-center gap-2 text-xs text-zinc-400">
               <ShieldCheck className="h-4 w-4 text-emerald-400" />
-              Políticas de Segurança RLS
+              Políticas de Segurança RLS (Supabase)
             </div>
             <div className="flex items-center gap-2 text-xs text-zinc-400">
               <Lock className="h-4 w-4 text-indigo-400" />
@@ -139,7 +139,7 @@ function AuthPage() {
             </div>
             <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-medium">
               <Lock className="h-3.5 w-3.5" />
-              Sistema de Acesso Restrito
+              Sistema de Acesso Restrito via Supabase Auth
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">Entrar no Sistema</h2>
             <p className="text-sm text-muted-foreground">
@@ -182,8 +182,9 @@ function AuthPage() {
               )}
             </div>
 
-            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium" disabled={loading}>
-              {loading ? "Autenticando..." : "Acessar Painel Delski"}
+            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2" disabled={loading}>
+              {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+              {loading ? "Autenticando no Supabase..." : "Acessar Painel Delski"}
             </Button>
           </form>
 
@@ -191,7 +192,7 @@ function AuthPage() {
           <div className="pt-6 border-t border-border space-y-3">
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               <UserCheck className="h-3.5 w-3.5 text-indigo-500" />
-              Perfis de Teste Pré-Configurados:
+              Preenchimento Rápido para Teste:
             </div>
             <div className="grid grid-cols-3 gap-2">
               <button

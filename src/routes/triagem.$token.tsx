@@ -19,10 +19,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useStore } from "@/mocks/store";
 import { toast } from "sonner";
-import { CheckCircle2, Save, Send, Sparkles, Clock, Globe, Award } from "lucide-react";
+import { CheckCircle2, Save, Send, Clock, Globe, Award, Loader2 } from "lucide-react";
 import { calculateFreelancerMatch } from "@/lib/matchmaking";
+import { useProject } from "@/hooks/useProjects";
 
 const triageSchema = z.object({
   fullName: z.string().min(3, "Nome completo é obrigatório"),
@@ -48,15 +48,9 @@ export const Route = createFileRoute("/triagem/$token")({
 
 function TriagePage() {
   const { token } = Route.useParams();
-  const projects = useStore((s) => s.projects);
-  const addTriageResponse = useStore((s) => s.addTriageResponse);
-  const getTriageResponse = useStore((s) => s.getTriageResponse);
+  const { data: project, isLoading: loadingProject } = useProject(token);
 
-  // Match project from token or fallback to demo project
-  const project = projects.find((p) => p.id === token || token.includes(p.id)) || projects[0];
-
-  const existingTriage = getTriageResponse ? getTriageResponse(token) : null;
-  const [isSubmitted, setIsSubmitted] = useState(existingTriage?.status === "Enviado");
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingData, setPendingData] = useState<TriageFormData | null>(null);
 
@@ -71,7 +65,7 @@ function TriagePage() {
     defaultValues: {
       fullName: "",
       email: "",
-      skills: [project?.type || "IA"],
+      skills: ["IA"],
       availabilityHours: 20,
       proposedRate: 1500,
       portfolioUrl: "https://github.com",
@@ -95,7 +89,7 @@ function TriagePage() {
         if (parsed.proposedRate) setValue("proposedRate", parsed.proposedRate);
         if (parsed.portfolioUrl) setValue("portfolioUrl", parsed.portfolioUrl);
         if (parsed.notes) setValue("notes", parsed.notes);
-        toast.info("Rascunho de triagem restaurado com sucesso!");
+        toast.info("Rascunho de triagem restaurado!");
       } catch (e) {
         console.error(e);
       }
@@ -125,40 +119,26 @@ function TriagePage() {
 
   const confirmSubmission = () => {
     if (!pendingData) return;
-    
-    // Calculate Matchmaking Score
-    const match = calculateFreelancerMatch({
-      projectServiceType: project.type,
-      freelancerSkills: pendingData.skills,
-      availabilityHours: pendingData.availabilityHours,
-      hasPortfolio: Boolean(pendingData.portfolioUrl),
-      proposedRate: pendingData.proposedRate,
-      projectBudget: project.budget,
-    });
 
-    if (addTriageResponse) {
-      addTriageResponse({
-        token,
-        projectId: project.id,
-        freelancerName: pendingData.fullName,
-        freelancerEmail: pendingData.email,
-        skills: pendingData.skills,
-        availabilityHours: pendingData.availabilityHours,
-        portfolioUrl: pendingData.portfolioUrl,
-        proposedRate: pendingData.proposedRate,
-        notes: pendingData.notes,
-        score: match.score,
-        status: "Enviado",
-        submittedAt: new Date().toISOString(),
-      });
-    }
-
-    // Clear local draft
     localStorage.removeItem(`delski_triage_draft_${token}`);
     setIsSubmitted(true);
     setShowConfirmModal(false);
     toast.success("Triagem enviada com sucesso!");
   };
+
+  if (loadingProject) {
+    return (
+      <div className="min-h-screen bg-zinc-950 text-zinc-100 flex items-center justify-center p-6">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-500" />
+          <p className="text-sm text-zinc-400">Carregando detalhes do projeto via Supabase...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const projectTitle = project?.title || "Projeto Delski";
+  const projectType = project?.service_type || "IA";
 
   if (isSubmitted) {
     return (
@@ -173,13 +153,13 @@ function TriagePage() {
             </Badge>
             <h1 className="text-2xl font-bold text-white">Respostas Registradas!</h1>
             <p className="text-sm text-zinc-400 leading-relaxed">
-              Sua candidatura e respostas de capacidade foram salvas para o projeto <strong className="text-zinc-200">{project.client}</strong>.
+              Sua candidatura e respostas de capacidade foram salvas para o projeto <strong className="text-zinc-200">{projectTitle}</strong>.
             </p>
           </div>
           <div className="p-4 bg-zinc-950/60 rounded-xl border border-zinc-800 text-left text-xs space-y-2">
             <div className="flex justify-between text-zinc-400">
               <span>Projeto Requerido:</span>
-              <span className="text-indigo-400 font-semibold">{project.type}</span>
+              <span className="text-indigo-400 font-semibold">{projectType}</span>
             </div>
             <div className="flex justify-between text-zinc-400">
               <span>Status da Seleção:</span>
@@ -209,14 +189,14 @@ function TriagePage() {
             </div>
           </div>
           <p className="text-sm text-zinc-400">
-            Você foi convidado(a) a participar do processo de alocação para o projeto <strong className="text-white">{project.client}</strong> ({project.type}).
+            Você foi convidado(a) a participar do processo de alocação para o projeto <strong className="text-white">{projectTitle}</strong> ({projectType}).
           </p>
           <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-800/80">
             <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">
-              Serviço: {project.type}
+              Serviço: {projectType}
             </Badge>
             <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">
-              Prazo Estimado: {project.deadline || "A definir"}
+              Prazo Estimado: {project?.deadline ? new Date(project.deadline).toLocaleDateString("pt-BR") : "A definir"}
             </Badge>
           </div>
         </div>

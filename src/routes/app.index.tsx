@@ -1,6 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { useStore } from "@/mocks/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { STATUSES, SERVICE_LABEL, STATUS_LABEL, type ServiceType } from "@/mocks/types";
@@ -9,6 +7,9 @@ import {
 } from "recharts";
 import { Activity, CheckCircle2, Users, TrendingUp, ArrowRight, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/hooks/useAuth";
+import { useProjects } from "@/hooks/useProjects";
+import { useFreelancers } from "@/hooks/useProfiles";
 
 export const Route = createFileRoute("/app/")({
   head: () => ({
@@ -23,50 +24,41 @@ export const Route = createFileRoute("/app/")({
 const CHART_COLORS = ["#6366f1", "#10b981", "#f59e0b", "#ec4899", "#8b5cf6"];
 
 function Dashboard() {
-  const projects = useStore((s) => s.projects);
-  const freelancers = useStore((s) => s.freelancers);
-  const user = useStore((s) => s.user);
+  const { profile, user, isCliente, isFreelancer } = useAuth();
+  const { data: projects = [], isLoading: loadingProjects } = useProjects();
+  const { data: freelancers = [] } = useFreelancers();
 
-  const isCliente = user?.role === "cliente";
-  const isFreelancer = user?.role === "freelancer";
-
-  const visible = useMemo(() => {
-    if (isCliente) {
-      return projects.filter((p) => !p.clientId || p.clientId === user?.clientId);
-    }
-    if (isFreelancer) {
-      return projects.filter((p) => p.freelancerId === user?.freelancerId);
-    }
-    return projects;
-  }, [projects, user, isCliente, isFreelancer]);
+  const visible = projects;
 
   const active = visible.filter((p) => p.status !== "Concluido").length;
   const done = visible.filter((p) => p.status === "Concluido").length;
   const rate = visible.length ? Math.round((done / visible.length) * 100) : 0;
 
   const byType = (["IA", "Trafego", "Sites"] as ServiceType[]).map((t) => ({
-    name: SERVICE_LABEL[t].split(" ")[0],
-    total: visible.filter((p) => p.type === t).length,
+    name: SERVICE_LABEL[t]?.split(" ")[0] || t,
+    total: visible.filter((p) => p.service_type === t).length,
   }));
   
   const byStatus = STATUSES.map((s) => ({
-    name: STATUS_LABEL[s],
+    name: STATUS_LABEL[s] || s,
     value: visible.filter((p) => p.status === s).length,
   })).filter((d) => d.value > 0);
 
   const kpis = [
     { label: "Projetos Ativos", value: active, icon: Activity, color: "text-indigo-400" },
     { label: "Entregas Concluídas", value: done, icon: CheckCircle2, color: "text-emerald-400" },
-    { label: isCliente ? "Plano de Serviço" : "Freelancers Ativos", value: isCliente ? "Enterprise" : freelancers.filter((f) => f.active).length, icon: isCliente ? ShieldCheck : Users, color: "text-amber-400" },
+    { label: isCliente ? "Plano de Serviço" : "Freelancers Cadastrados", value: isCliente ? "Enterprise" : freelancers.length, icon: isCliente ? ShieldCheck : Users, color: "text-amber-400" },
     { label: "Taxa de Conclusão", value: `${rate}%`, icon: TrendingUp, color: "text-rose-400" },
   ];
+
+  const userName = profile?.full_name || user?.email || "Usuário";
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-5">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Olá, {user?.name} 👋
+            Olá, {userName} 👋
           </h1>
           <p className="text-sm text-muted-foreground">
             {isCliente
@@ -156,7 +148,10 @@ function Dashboard() {
           <CardTitle className="text-base font-bold">Projetos em Destaque</CardTitle>
         </CardHeader>
         <CardContent className="divide-y divide-border">
-          {visible.slice(0, 5).map((p) => (
+          {loadingProjects && (
+            <div className="py-8 text-center text-sm text-muted-foreground">Carregando projetos do Supabase...</div>
+          )}
+          {!loadingProjects && visible.slice(0, 5).map((p) => (
             <Link
               key={p.id}
               to="/app/projects/$id"
@@ -164,19 +159,19 @@ function Dashboard() {
               className="flex items-center justify-between py-3.5 hover:bg-muted/50 -mx-2 px-3 rounded-lg transition-colors"
             >
               <div>
-                <div className="font-semibold text-foreground">{p.client}</div>
+                <div className="font-semibold text-foreground">{p.title}</div>
                 <div className="text-xs text-muted-foreground">
-                  {SERVICE_LABEL[p.type]} • Prazo: {p.deadline}
+                  {SERVICE_LABEL[p.service_type]} • Cliente: {p.client?.full_name || "N/A"} • Prazo: {p.deadline ? new Date(p.deadline).toLocaleDateString("pt-BR") : "N/A"}
                 </div>
               </div>
               <Badge className="bg-zinc-800 text-zinc-300 text-xs">
-                {STATUS_LABEL[p.status]}
+                {STATUS_LABEL[p.status] || p.status}
               </Badge>
             </Link>
           ))}
-          {visible.length === 0 && (
+          {!loadingProjects && visible.length === 0 && (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              Nenhum projeto encontrado.
+              Nenhum projeto cadastrado no banco de dados.
             </div>
           )}
         </CardContent>

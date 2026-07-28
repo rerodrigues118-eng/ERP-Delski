@@ -1,9 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useStore } from "@/mocks/store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,12 +18,16 @@ import {
 import { toast } from "sonner";
 import {
   ArrowLeft, Calendar, DollarSign, ExternalLink, FileText, Plus, Upload, CheckCircle2,
-  AlertCircle, ShieldCheck, Share2, Sparkles, Lock, Clock, UserCheck, Layers, Link as LinkIcon, Trash2
+  AlertCircle, ShieldCheck, Share2, Sparkles, Lock, Clock, UserCheck, Layers, Link as LinkIcon, Trash2, Loader2
 } from "lucide-react";
-import type { ProjectStatus, TaskStatus } from "@/mocks/types";
 import { sendTriageInviteEmail, sendDelegationEmail } from "@/integrations/brevo";
 import { calculateFreelancerMatch } from "@/lib/matchmaking";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useProject, useUpdateProject, useAssignFreelancer, type ProjectStatus } from "@/hooks/useProjects";
+import { useProjectTasks, useCreateTask, useUpdateTaskStatus, useDeleteTask, type TaskStatus } from "@/hooks/useTasks";
+import { useFreelancers } from "@/hooks/useProfiles";
+import { SERVICE_LABEL, STATUS_LABEL } from "@/mocks/types";
 
 export const Route = createFileRoute("/app/projects/$id")({
   head: () => ({
@@ -48,35 +51,24 @@ type TaskFormData = z.infer<typeof taskSchema>;
 function ProjectDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  
-  const user = useStore((s) => s.user);
-  const isGestor = user?.role === "gestor";
-  const isCliente = user?.role === "cliente";
-  const isFreelancer = user?.role === "freelancer";
 
-  const project = useStore((s) => s.projects.find((p) => p.id === id));
-  const freelancers = useStore((s) => s.freelancers);
-  const tasks = useStore((s) => s.tasks.filter((t) => t.projectId === id));
-  const triageResponses = useStore((s) => s.triageResponses.filter((r) => r.projectId === id));
+  const { isGestor, isCliente, isFreelancer, user } = useAuth();
 
-  const updateProjectStatus = useStore((s) => s.updateProjectStatus);
-  const updateBriefingSections = useStore((s) => s.updateProjectBriefingSections);
-  const updateProjectDetails = useStore((s) => s.updateProjectDetails);
-  const assignFreelancer = useStore((s) => s.assignFreelancer);
-  const addFile = useStore((s) => s.addFile);
-  const removeFile = useStore((s) => s.removeFile);
-  const setDriveLink = useStore((s) => s.setDriveLink);
-  const addTask = useStore((s) => s.addTask);
-  const updateTaskStatus = useStore((s) => s.updateTaskStatus);
-  const removeTask = useStore((s) => s.removeTask);
+  const { data: project, isLoading: loadingProject } = useProject(id);
+  const { data: tasks = [], isLoading: loadingTasks } = useProjectTasks(id);
+  const { data: freelancers = [] } = useFreelancers();
+
+  const updateProject = useUpdateProject();
+  const assignFreelancer = useAssignFreelancer();
+  const createTask = useCreateTask();
+  const updateTaskStatus = useUpdateTaskStatus();
+  const deleteTask = useDeleteTask();
 
   // States
   const [activeBriefingTab, setActiveBriefingTab] = useState("overview");
-  const [overview, setOverview] = useState(project?.briefingSections?.overview || project?.description || "");
-  const [technicalSpecs, setTechnicalSpecs] = useState(project?.briefingSections?.technicalSpecs || "");
-  const [repositoryNotes, setRepositoryNotes] = useState(project?.briefingSections?.repositoryNotes || "");
-  const [driveInput, setDriveInput] = useState(project?.driveLink || "");
-  
+  const [briefingText, setBriefingText] = useState("");
+  const [driveInput, setDriveInput] = useState("");
+
   // Triage modal state
   const [showTriageModal, setShowTriageModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -86,6 +78,14 @@ function ProjectDetailPage() {
 
   // Upload state
   const [uploading, setUploading] = useState(false);
+  const [files, setFiles] = useState<{ id: string; name: string; url: string; uploadedAt: string }[]>([]);
+
+  useEffect(() => {
+    if (project) {
+      setBriefingText(project.briefing_content || "");
+      setDriveInput(project.google_drive_link || "");
+    }
+  }, [project]);
 
   const {
     register: registerTask,
@@ -102,39 +102,37 @@ function ProjectDetailPage() {
     },
   });
 
-  if (!project) {
+  if (loadingProject) {
     return (
-      <div className="p-8 text-center space-y-4">
-        <h2 className="text-xl font-bold">Projeto não encontrado</h2>
-        <Button onClick={() => navigate({ to: "/app/projects" })}>Voltar aos Projetos</Button>
+      <div className="p-16 text-center space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-500" />
+        <p className="text-sm text-muted-foreground">Carregando dados do projeto via Supabase...</p>
       </div>
     );
   }
 
-  // RLS Visibility Restrictions Check
-  if (isCliente && project.clientId && project.clientId !== user?.clientId) {
+  if (!project) {
     return (
-      <div className="p-8 text-center space-y-4 text-destructive">
-        <AlertCircle className="h-12 w-12 mx-auto" />
-        <h2 className="text-xl font-bold">Acesso Não Autorizado</h2>
-        <p className="text-sm text-muted-foreground">Você não possui permissão para visualizar este projeto.</p>
+      <div className="p-8 text-center space-y-4">
+        <h2 className="text-xl font-bold">Projeto não encontrado no Supabase</h2>
+        <Button onClick={() => navigate({ to: "/app/projects" })}>Voltar aos Projetos</Button>
       </div>
     );
   }
 
   // Briefing Saving
   const handleSaveBriefing = () => {
-    updateBriefingSections(project.id, {
-      overview,
-      technicalSpecs,
-      repositoryNotes,
+    updateProject.mutate({
+      id: project.id,
+      patch: { briefing_content: briefingText },
     });
-    toast.success("Seções de briefing atualizadas com sucesso!");
   };
 
   const handleSaveDriveLink = () => {
-    setDriveLink(project.id, driveInput);
-    toast.success("Link do Google Drive atualizado!");
+    updateProject.mutate({
+      id: project.id,
+      patch: { google_drive_link: driveInput },
+    });
   };
 
   // Attachments Handling with Supabase Storage Bucket
@@ -144,7 +142,6 @@ function ProjectDetailPage() {
 
     setUploading(true);
     try {
-      // Direct Supabase Bucket Upload
       const fileExt = file.name.split(".").pop();
       const filePath = `${project.id}/${Math.random().toString(36).slice(2)}.${fileExt}`;
       
@@ -162,12 +159,10 @@ function ProjectDetailPage() {
         publicUrl = URL.createObjectURL(file);
       }
 
-      addFile(project.id, {
-        name: file.name,
-        size: file.size,
-        url: publicUrl || "https://jrcyhfjubqtiwbttjeiv.supabase.co/storage/v1/object/public/project-attachments/sample.pdf",
-        uploadedBy: user?.name || "Usuário",
-      });
+      setFiles((prev) => [
+        ...prev,
+        { id: Math.random().toString(), name: file.name, url: publicUrl, uploadedAt: new Date().toLocaleDateString("pt-BR") },
+      ]);
 
       toast.success(`Arquivo ${file.name} anexado com sucesso!`);
     } catch (err) {
@@ -180,28 +175,33 @@ function ProjectDetailPage() {
 
   // Task Creation
   const onAddTask = (data: TaskFormData) => {
-    addTask({
-      projectId: project.id,
-      title: data.title,
-      phase: data.phase,
-      status: "Pendente",
-      startDate: data.startDate,
-      dueDate: data.dueDate,
-      predecessorId: data.predecessorId || undefined,
-    });
-    toast.success("Tarefa adicionada ao cronograma!");
-    resetTask();
-    setShowTaskModal(false);
+    createTask.mutate(
+      {
+        project_id: project.id,
+        title: data.title,
+        phase: data.phase,
+        status: "Pendente",
+        start_date: data.startDate,
+        due_date: data.dueDate,
+        predecessor_id: data.predecessorId || undefined,
+      },
+      {
+        onSuccess: () => {
+          resetTask();
+          setShowTaskModal(false);
+        },
+      }
+    );
   };
 
   // Handle Task Status Change with Dependency Validation
   const handleTaskStatusChange = (taskId: string, newStatus: TaskStatus) => {
-    const res = updateTaskStatus(taskId, newStatus);
-    if (!res.success) {
-      toast.error(res.error || "Ação bloqueada por dependência de tarefa!");
-    } else {
-      toast.success(`Status da tarefa alterado para ${newStatus}`);
-    }
+    updateTaskStatus.mutate({
+      taskId,
+      projectId: project.id,
+      newStatus,
+      tasks,
+    });
   };
 
   // Send Triage Invite via Brevo
@@ -211,7 +211,7 @@ function ProjectDetailPage() {
     
     await sendTriageInviteEmail({
       to: { name: inviteEmail.split("@")[0], email: inviteEmail },
-      projectClient: project.client,
+      projectClient: project.title,
       triageLink,
     });
 
@@ -219,19 +219,24 @@ function ProjectDetailPage() {
     setShowTriageModal(false);
   };
 
-  // Assign Freelancer from Triage/Selection
+  // Assign Freelancer from Selection
   const handleAssignFreelancer = (fId: string) => {
-    assignFreelancer(project.id, fId);
-    const f = freelancers.find((x) => x.id === fId);
-    if (f) {
-      sendDelegationEmail({
-        to: { name: f.name, email: f.email },
-        projectClient: project.client,
-        projectId: project.id,
-        publicLink: window.location.href,
-      });
-    }
-    toast.success("Freelancer alocado com sucesso!");
+    assignFreelancer.mutate(
+      { projectId: project.id, freelancerId: fId },
+      {
+        onSuccess: () => {
+          const f = freelancers.find((x) => x.id === fId);
+          if (f) {
+            sendDelegationEmail({
+              to: { name: f.full_name, email: f.email },
+              projectClient: project.title,
+              projectId: project.id,
+              publicLink: window.location.href,
+            });
+          }
+        },
+      }
+    );
   };
 
   // Calculate Progress
@@ -239,7 +244,7 @@ function ProjectDetailPage() {
   const completedTasks = tasks.filter((t) => t.status === "Concluida").length;
   const progressPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const currentFreelancer = freelancers.find((f) => f.id === project.freelancerId);
+  const currentFreelancer = project.freelancers?.[0]?.profile;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -248,26 +253,30 @@ function ProjectDetailPage() {
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Link to="/app/projects" className="hover:underline flex items-center gap-1">
-              <ArrowLeft className="h-4 w-4" /> Projetos
+              <ArrowLeft className="h-4 w-4" /> Voltar aos Projetos
             </Link>
-            <span>/</span>
-            <span className="font-medium text-foreground">{project.client}</span>
           </div>
           <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold tracking-tight">{project.client}</h1>
-            <Badge variant="outline" className="bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20 font-semibold">
-              {project.type === "IA" ? "Automação IA" : project.type === "Trafego" ? "Tráfego Pago" : "Sites & Landings"}
+            <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
+            <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20">
+              {SERVICE_LABEL[project.service_type] || project.service_type}
             </Badge>
-            <Badge className="bg-zinc-800 text-zinc-200">
-              {project.status}
+            <Badge className="bg-zinc-800 text-zinc-300 text-xs">
+              {STATUS_LABEL[project.status] || project.status}
             </Badge>
           </div>
+          {project.client?.full_name && (
+            <p className="text-xs text-muted-foreground">Cliente contratante: {project.client.full_name} ({project.client.email})</p>
+          )}
         </div>
 
         {isGestor && (
           <div className="flex items-center gap-2">
-            <Select value={project.status} onValueChange={(v) => updateProjectStatus(project.id, v as ProjectStatus)}>
-              <SelectTrigger className="w-[180px]">
+            <Select
+              value={project.status}
+              onValueChange={(status) => updateProject.mutate({ id: project.id, patch: { status: status as ProjectStatus } })}
+            >
+              <SelectTrigger className="w-[180px] bg-card border-border">
                 <SelectValue placeholder="Alterar Status" />
               </SelectTrigger>
               <SelectContent>
@@ -279,429 +288,274 @@ function ProjectDetailPage() {
               </SelectContent>
             </Select>
 
-            <Button onClick={() => setShowTriageModal(true)} variant="outline" className="gap-2">
-              <Share2 className="h-4 w-4 text-indigo-500" />
-              Enviar Triagem
+            <Button variant="outline" onClick={() => setShowTriageModal(true)} className="gap-1.5 text-xs">
+              <Share2 className="h-3.5 w-3.5" /> Enviar Triagem
             </Button>
           </div>
         )}
       </div>
 
-      {/* Progress & Overview Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Top Details & Metrics */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <Card className="bg-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between">
-              Progresso Geral
-              <span className="text-foreground font-bold">{progressPct}%</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Progress value={progressPct} className="h-2" />
-            <div className="text-xs text-muted-foreground flex justify-between">
-              <span>{completedTasks} de {totalTasks} tarefas concluídas</span>
-              <span>Prazo: {project.deadline}</span>
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground font-medium">Prazo Final</div>
+            <div className="text-lg font-bold mt-1 flex items-center gap-1.5">
+              <Calendar className="h-4 w-4 text-indigo-400" />
+              {project.deadline ? new Date(project.deadline).toLocaleDateString("pt-BR") : "N/A"}
             </div>
           </CardContent>
         </Card>
 
-        {/* Financial info only for Gestor */}
         {!isCliente && (
-          <Card className="bg-card">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">Orçamento & Custos</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted-foreground">Orçamento Bruto:</span>
-                <span className="font-bold text-foreground">R$ {project.budget.toLocaleString("pt-BR")}</span>
-              </div>
-              {isGestor && (
-                <div className="flex justify-between items-center text-sm border-t pt-2">
-                  <span className="text-muted-foreground">Custo Freelancer:</span>
-                  <span className="font-semibold text-rose-500">R$ {(project.freelancerCost || 0).toLocaleString("pt-BR")}</span>
+          <>
+            <Card className="bg-card">
+              <CardContent className="p-4">
+                <div className="text-xs text-muted-foreground font-medium">Orçamento Bruto</div>
+                <div className="text-lg font-bold mt-1 text-emerald-400">
+                  R$ {Number(project.budget || 0).toLocaleString("pt-BR")}
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card">
+              <CardContent className="p-4">
+                <div className="text-xs text-muted-foreground font-medium">Custo Freelancer</div>
+                <div className="text-lg font-bold mt-1 text-rose-400">
+                  R$ {Number(project.freelancer_cost || 0).toLocaleString("pt-BR")}
+                </div>
+              </CardContent>
+            </Card>
+          </>
         )}
 
         <Card className="bg-card">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Freelancer Alocado</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {currentFreelancer ? (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="h-8 w-8 rounded-full bg-indigo-600/20 text-indigo-400 font-bold flex items-center justify-center text-xs">
-                    {currentFreelancer.name[0]}
-                  </div>
-                  <div>
-                    <div className="font-semibold text-sm">{currentFreelancer.name}</div>
-                    <div className="text-xs text-muted-foreground">{currentFreelancer.email}</div>
-                  </div>
-                </div>
-                {isGestor && (
-                  <Button variant="ghost" size="sm" onClick={() => assignFreelancer(project.id, undefined)}>
-                    Trocar
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="text-sm text-muted-foreground flex items-center justify-between">
-                <span>Nenhum alocado</span>
-                {isGestor && (
-                  <Button size="sm" variant="outline" onClick={() => setShowTriageModal(true)}>
-                    Convidar
-                  </Button>
-                )}
-              </div>
-            )}
+          <CardContent className="p-4">
+            <div className="text-xs text-muted-foreground font-medium">Progresso das Tarefas</div>
+            <div className="text-lg font-bold mt-1 flex items-center justify-between">
+              <span>{progressPct}%</span>
+              <span className="text-xs font-normal text-muted-foreground">{completedTasks}/{totalTasks} concluídas</span>
+            </div>
+            <Progress value={progressPct} className="h-1.5 mt-2" />
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Tabs: Briefing (3 Sections), Tasks & Gantt, Triage & Matchmaking */}
-      <Tabs defaultValue="briefing" className="space-y-6">
-        <TabsList className="grid grid-cols-3 max-w-md bg-muted">
-          <TabsTrigger value="briefing">Briefing Estruturado</TabsTrigger>
-          <TabsTrigger value="tasks">Tarefas & Gantt</TabsTrigger>
-          {!isCliente && <TabsTrigger value="matchmaking">Triagem & Matchmaking</TabsTrigger>}
+      {/* Main Tabs */}
+      <Tabs defaultValue="briefing" className="w-full">
+        <TabsList className="bg-muted p-1 border-b border-border">
+          <TabsTrigger value="briefing" className="gap-1.5">
+            <FileText className="h-4 w-4" /> Briefing Estruturado
+          </TabsTrigger>
+          <TabsTrigger value="tasks" className="gap-1.5">
+            <Layers className="h-4 w-4" /> Tarefas & Gantt ({totalTasks})
+          </TabsTrigger>
+          {isGestor && (
+            <TabsTrigger value="matchmaking" className="gap-1.5">
+              <Sparkles className="h-4 w-4 text-amber-400" /> Triagem & Matchmaking
+            </TabsTrigger>
+          )}
         </TabsList>
 
-        {/* Tab 1: Briefing Detailed in 3 Sections */}
-        <TabsContent value="briefing" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-bold flex items-center gap-2">
-                <FileText className="h-5 w-5 text-indigo-500" />
-                Módulo de Briefing Centralizado
-              </CardTitle>
-              <CardDescription>
-                Informações estruturadas divididas em três seções essenciais para execução sem ambiguidades.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <Tabs value={activeBriefingTab} onValueChange={setActiveBriefingTab} className="w-full">
-                <TabsList className="grid grid-cols-3 w-full bg-zinc-900">
-                  <TabsTrigger value="overview">1. Visão Geral</TabsTrigger>
-                  <TabsTrigger value="technical">2. Especificações Técnicas</TabsTrigger>
-                  <TabsTrigger value="repository">3. Repositório de Arquivos</TabsTrigger>
-                </TabsList>
-
-                {/* Section 1: Visão Geral */}
-                <TabsContent value="overview" className="pt-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label>Visão Geral do Projeto, Escopo e Entregáveis</Label>
-                    <Textarea
-                      disabled={isCliente || isFreelancer}
-                      value={overview}
-                      onChange={(e) => setOverview(e.target.value)}
-                      placeholder="Descreva os objetivos principais do projeto..."
-                      className="min-h-[160px]"
-                    />
-                  </div>
-                  {isGestor && (
-                    <Button onClick={handleSaveBriefing} size="sm" className="bg-indigo-600 text-white">
-                      Salvar Visão Geral
-                    </Button>
-                  )}
-                </TabsContent>
-
-                {/* Section 2: Especificações Técnicas */}
-                <TabsContent value="technical" className="pt-4 space-y-4">
-                  <div className="space-y-2">
-                    <Label>Especificações Técnicas, Pilha Tecnológica e Integrações</Label>
-                    <Textarea
-                      disabled={isCliente}
-                      value={technicalSpecs}
-                      onChange={(e) => setTechnicalSpecs(e.target.value)}
-                      placeholder="Detalhes de APIs, modelos de IA, contas de anúncio, webhooks, credenciais..."
-                      className="min-h-[160px]"
-                    />
-                  </div>
-                  {!isCliente && (
-                    <Button onClick={handleSaveBriefing} size="sm" className="bg-indigo-600 text-white">
-                      Salvar Especificações Técnicas
-                    </Button>
-                  )}
-                </TabsContent>
-
-                {/* Section 3: Repositório de Arquivos & Drive */}
-                <TabsContent value="repository" className="pt-4 space-y-6">
-                  {/* Google Drive Link Field */}
-                  <div className="space-y-3 p-4 rounded-xl border border-border bg-card">
-                    <Label className="flex items-center gap-2 font-semibold">
-                      <LinkIcon className="h-4 w-4 text-indigo-500" />
-                      Link do Google Drive do Projeto
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        disabled={isCliente || isFreelancer}
-                        value={driveInput}
-                        onChange={(e) => setDriveInput(e.target.value)}
-                        placeholder="https://drive.google.com/drive/folders/..."
-                      />
-                      {isGestor && (
-                        <Button onClick={handleSaveDriveLink} variant="outline">
-                          Salvar Link
-                        </Button>
-                      )}
-                      {project.driveLink && (
-                        <Button asChild variant="secondary">
-                          <a href={project.driveLink} target="_blank" rel="noopener noreferrer">
-                            <ExternalLink className="h-4 w-4 mr-1.5" /> Abrir Drive
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Supabase Storage File Attachments */}
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <Label className="font-semibold text-base">Anexos Directos (Supabase Bucket)</Label>
-                      {!isCliente && (
-                        <div className="relative">
-                          <Input
-                            type="file"
-                            onChange={handleFileUpload}
-                            disabled={uploading}
-                            className="hidden"
-                            id="bucket-upload"
-                          />
-                          <Button asChild size="sm" className="bg-indigo-600 text-white cursor-pointer">
-                            <label htmlFor="bucket-upload">
-                              <Upload className="h-4 w-4 mr-1.5" />
-                              {uploading ? "Enviando..." : "Anexar Arquivo"}
-                            </label>
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    {project.files.length === 0 ? (
-                      <div className="p-8 text-center border border-dashed rounded-xl text-muted-foreground text-sm">
-                        Nenhum arquivo anexado a este projeto ainda.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {project.files.map((file) => (
-                          <div key={file.id} className="p-3 rounded-xl border border-border bg-card flex justify-between items-center">
-                            <div className="min-w-0 flex-1">
-                              <div className="font-medium text-sm truncate">{file.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {(file.size / 1024).toFixed(0)} KB • Enviado por {file.uploadedBy}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1 ml-2">
-                              <Button asChild size="icon" variant="ghost">
-                                <a href={file.url} target="_blank" rel="noopener noreferrer" title="Baixar/Visualizar">
-                                  <ExternalLink className="h-4 w-4 text-indigo-500" />
-                                </a>
-                              </Button>
-                              {isGestor && (
-                                <Button size="icon" variant="ghost" onClick={() => removeFile(project.id, file.id)} title="Excluir">
-                                  <Trash2 className="h-4 w-4 text-rose-500" />
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Tab 2: Tasks & Timeline Gantt Chart */}
-        <TabsContent value="tasks" className="space-y-6">
+        {/* Briefing Tab */}
+        <TabsContent value="briefing" className="pt-4 space-y-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
-                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <Layers className="h-5 w-5 text-indigo-500" />
-                  Cronograma & Tarefas por Fase (Gantt Simples)
-                </CardTitle>
-                <CardDescription>
-                  Bloqueio automático de dependências: uma tarefa dependente só pode iniciar/concluir se a anterior estiver concluída.
-                </CardDescription>
+                <CardTitle className="text-lg font-bold">Conteúdo do Briefing</CardTitle>
+                <CardDescription>Escopo, requisitos técnicos e documentação centralizada.</CardDescription>
               </div>
-              {!isCliente && (
-                <Button onClick={() => setShowTaskModal(true)} size="sm" className="bg-indigo-600 text-white">
-                  <Plus className="h-4 w-4 mr-1.5" /> Criar Tarefa
+              {isGestor && (
+                <Button onClick={handleSaveBriefing} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                  Salvar Briefing
                 </Button>
               )}
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Gantt Timeline Visualizer */}
-              <div className="p-4 rounded-xl border border-border bg-zinc-950/40 space-y-4">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Timeline de Prazos & Gargalos
+            <CardContent className="space-y-4">
+              <Textarea
+                rows={8}
+                value={briefingText}
+                disabled={!isGestor}
+                onChange={(e) => setBriefingText(e.target.value)}
+                placeholder="Escreva os detalhes completos do briefing..."
+              />
+
+              {/* Google Drive Link Section */}
+              <div className="pt-4 border-t border-border space-y-2">
+                <Label className="font-semibold text-sm flex items-center gap-1.5">
+                  <LinkIcon className="h-4 w-4 text-indigo-400" /> Google Drive do Projeto
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    value={driveInput}
+                    disabled={!isGestor}
+                    onChange={(e) => setDriveInput(e.target.value)}
+                    placeholder="https://drive.google.com/..."
+                  />
+                  {isGestor && (
+                    <Button onClick={handleSaveDriveLink} variant="outline" size="sm">
+                      Salvar Link
+                    </Button>
+                  )}
+                  {project.google_drive_link && (
+                    <Button asChild size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                      <a href={project.google_drive_link} target="_blank" rel="noreferrer">
+                        Abrir Drive <ExternalLink className="h-3.5 w-3.5 ml-1" />
+                      </a>
+                    </Button>
+                  )}
                 </div>
-                {tasks.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">Nenhuma tarefa criada.</p>
-                ) : (
-                  <div className="space-y-3">
-                    {tasks.map((task) => {
-                      const predecessor = tasks.find((t) => t.id === task.predecessorId);
-                      const isBlocked = predecessor && predecessor.status !== "Concluida";
+              </div>
 
-                      return (
-                        <div key={task.id} className="p-3 rounded-lg border border-border bg-card space-y-2">
-                          <div className="flex justify-between items-center flex-wrap gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold text-sm">{task.title}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {task.phase}
-                              </Badge>
-                              {isBlocked && (
-                                <Badge variant="destructive" className="text-[10px] gap-1">
-                                  <Lock className="h-3 w-3" /> Bloqueado por: {predecessor?.title}
-                                </Badge>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                <Calendar className="h-3.5 w-3.5" /> {task.startDate} até {task.dueDate}
-                              </span>
-                              {!isCliente && (
-                                <Select
-                                  value={task.status}
-                                  onValueChange={(v) => handleTaskStatusChange(task.id, v as TaskStatus)}
-                                >
-                                  <SelectTrigger className="h-7 text-xs w-[130px]">
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="Pendente">Pendente</SelectItem>
-                                    <SelectItem value="Em andamento">Em andamento</SelectItem>
-                                    <SelectItem value="Concluida">Concluída</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </div>
-                          </div>
+              {/* Attachments Section */}
+              <div className="pt-4 border-t border-border space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="font-semibold text-sm">Anexos & Documentos ({files.length})</Label>
+                  <label className="cursor-pointer">
+                    <input type="file" onChange={handleFileUpload} className="hidden" />
+                    <Button variant="outline" size="sm" asChild disabled={uploading}>
+                      <span>
+                        {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
+                        Anexar Arquivo
+                      </span>
+                    </Button>
+                  </label>
+                </div>
 
-                          {/* Mini Gantt Progress Bar */}
-                          <div className="relative h-2 bg-zinc-800 rounded-full overflow-hidden">
-                            <div
-                              className={`h-full ${
-                                task.status === "Concluida"
-                                  ? "bg-emerald-500"
-                                  : task.status === "Em andamento"
-                                  ? "bg-indigo-500"
-                                  : isBlocked
-                                  ? "bg-rose-500/50"
-                                  : "bg-zinc-600"
-                              }`}
-                              style={{ width: task.status === "Concluida" ? "100%" : task.status === "Em andamento" ? "50%" : "15%" }}
-                            />
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                <div className="divide-y border border-border rounded-lg">
+                  {files.map((file) => (
+                    <div key={file.id} className="p-3 flex items-center justify-between text-sm">
+                      <div>
+                        <div className="font-medium text-foreground">{file.name}</div>
+                        <div className="text-xs text-muted-foreground">Enviado em {file.uploadedAt}</div>
+                      </div>
+                      <a href={file.url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline text-xs flex items-center gap-1">
+                        Download <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </div>
+                  ))}
+                  {files.length === 0 && (
+                    <div className="p-4 text-center text-xs text-muted-foreground">Nenhum anexo adicionado ainda.</div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* Tab 3: Matchmaking Matrix & Triage Responses */}
-        {!isCliente && (
-          <TabsContent value="matchmaking" className="space-y-6">
+        {/* Tasks Tab */}
+        <TabsContent value="tasks" className="pt-4 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="font-bold text-lg">Cronograma & Dependências de Tarefas</h3>
+            {!isCliente && (
+              <Button onClick={() => setShowTaskModal(true)} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5">
+                <Plus className="h-4 w-4" /> Nova Tarefa
+              </Button>
+            )}
+          </div>
+
+          <div className="space-y-3">
+            {loadingTasks && (
+              <div className="py-8 text-center text-sm text-muted-foreground">Carregando tarefas do Supabase...</div>
+            )}
+            {!loadingTasks && tasks.map((task) => {
+              const predecessor = tasks.find((t) => t.id === task.predecessor_id);
+              const isLocked = predecessor && predecessor.status !== "Concluida";
+
+              return (
+                <Card key={task.id} className={`bg-card transition-all ${isLocked ? "opacity-75 border-amber-500/30" : ""}`}>
+                  <CardContent className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        {isLocked && <Lock className="h-4 w-4 text-amber-500" title={`Bloqueada por: ${predecessor?.title}`} />}
+                        <span className="font-semibold text-foreground">{task.title}</span>
+                        <Badge variant="outline" className="text-[10px]">{task.phase}</Badge>
+                      </div>
+                      <div className="text-xs text-muted-foreground flex items-center gap-3">
+                        <span>Início: {task.start_date}</span>
+                        <span>Término: {task.due_date}</span>
+                        {predecessor && (
+                          <span className={predecessor.status === "Concluida" ? "text-emerald-400" : "text-amber-400"}>
+                            Depende de: {predecessor.title} ({predecessor.status})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={task.status}
+                        onValueChange={(st) => handleTaskStatusChange(task.id, st as TaskStatus)}
+                        disabled={isLocked && task.status === "Pendente"}
+                      >
+                        <SelectTrigger className="w-[140px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Pendente">Pendente</SelectItem>
+                          <SelectItem value="Em andamento">Em andamento</SelectItem>
+                          <SelectItem value="Em revisao">Em revisão</SelectItem>
+                          <SelectItem value="Concluida">Concluída</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      {isGestor && (
+                        <Button size="icon" variant="ghost" onClick={() => deleteTask.mutate({ taskId: task.id, projectId: project.id })}>
+                          <Trash2 className="h-4 w-4 text-muted-foreground hover:text-rose-500" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+            {!loadingTasks && tasks.length === 0 && (
+              <div className="p-8 text-center border border-dashed rounded-xl text-sm text-muted-foreground">
+                Nenhuma tarefa criada para este projeto ainda.
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* Matchmaking Tab (Gestor Only) */}
+        {isGestor && (
+          <TabsContent value="matchmaking" className="pt-4 space-y-6">
             <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg font-bold flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-indigo-500" />
-                    Matriz de Adequação & Triagens Recebidas
-                  </CardTitle>
-                  <CardDescription>
-                    Candidaturas de freelancers tokenizadas com índice de compatibilidade calculado automaticamente.
-                  </CardDescription>
-                </div>
-                <Button onClick={() => setShowTriageModal(true)} variant="outline" size="sm">
-                  Gerar Link de Triagem
-                </Button>
+              <CardHeader>
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-amber-400" />
+                  Alocação de Freelancer para o Projeto
+                </CardTitle>
+                <CardDescription>
+                  Selecione um freelancer cadastrado no banco de dados para assumir este projeto.
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                {triageResponses.length === 0 ? (
-                  <div className="p-8 text-center border border-dashed rounded-xl text-muted-foreground text-sm space-y-2">
-                    <p>Nenhuma resposta de triagem enviada para este projeto ainda.</p>
-                    <p className="text-xs text-zinc-500">
-                      Envie um convite de triagem por e-mail ou compartilhe o link:{" "}
-                      <code>{window.location.origin}/triagem/{project.id}</code>
-                    </p>
+                {currentFreelancer ? (
+                  <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between">
+                    <div>
+                      <div className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Freelancer Atribuído</div>
+                      <div className="text-lg font-bold text-foreground mt-0.5">{currentFreelancer.full_name}</div>
+                      <div className="text-xs text-muted-foreground">{currentFreelancer.email}</div>
+                    </div>
+                    <Badge className="bg-emerald-600 text-white">Alocado(a)</Badge>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    {triageResponses.map((resp) => {
-                      const match = calculateFreelancerMatch({
-                        projectServiceType: project.type,
-                        freelancerSkills: resp.skills,
-                        availabilityHours: resp.availabilityHours,
-                        hasPortfolio: Boolean(resp.portfolioUrl),
-                        proposedRate: resp.proposedRate,
-                        projectBudget: project.budget,
-                      });
-
-                      return (
-                        <div key={resp.token} className="p-4 rounded-xl border border-border bg-card space-y-3">
-                          <div className="flex justify-between items-start flex-wrap gap-2">
-                            <div>
-                              <div className="font-bold text-base">{resp.freelancerName}</div>
-                              <div className="text-xs text-muted-foreground">{resp.freelancerEmail}</div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Badge variant={match.badgeVariant} className="text-sm font-bold">
-                                {match.score}% Match — {match.label}
-                              </Badge>
-                              {isGestor && (
-                                <Button
-                                  size="sm"
-                                  className="bg-indigo-600 text-white"
-                                  onClick={() => {
-                                    // Add to freelancers if not existing
-                                    const createdF = useStore.getState().addFreelancer({
-                                      name: resp.freelancerName,
-                                      email: resp.freelancerEmail,
-                                      skills: resp.skills as any,
-                                      active: true,
-                                    });
-                                    handleAssignFreelancer(createdF.id);
-                                  }}
-                                >
-                                  <UserCheck className="h-4 w-4 mr-1.5" /> Aprovar & Alocar
-                                </Button>
-                              )}
-                            </div>
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">Nenhum freelancer alocado neste projeto. Escolha um abaixo:</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {freelancers.map((f) => (
+                        <Card key={f.id} className="p-4 bg-card flex justify-between items-center">
+                          <div>
+                            <div className="font-bold text-sm text-foreground">{f.full_name}</div>
+                            <div className="text-xs text-muted-foreground">{f.email}</div>
                           </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs p-3 rounded-lg bg-muted">
-                            <div><strong>Disponibilidade:</strong> {resp.availabilityHours}h/semana</div>
-                            <div><strong>Pretensão:</strong> R$ {resp.proposedRate}</div>
-                            <div className="truncate">
-                              <strong>Portfólio:</strong>{" "}
-                              <a href={resp.portfolioUrl} target="_blank" rel="noreferrer" className="text-indigo-400 underline">
-                                {resp.portfolioUrl}
-                              </a>
-                            </div>
-                          </div>
-
-                          {match.matches.length > 0 && (
-                            <div className="text-xs text-emerald-400 space-y-1">
-                              <strong>Pontos Fortes:</strong> {match.matches.join(" • ")}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                          <Button size="sm" onClick={() => handleAssignFreelancer(f.id)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs">
+                            Atribuir ao Projeto
+                          </Button>
+                        </Card>
+                      ))}
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -710,77 +564,41 @@ function ProjectDetailPage() {
         )}
       </Tabs>
 
-      {/* Modal: Triage Email Invite */}
-      <Dialog open={showTriageModal} onOpenChange={setShowTriageModal}>
-        <DialogContent className="bg-card text-foreground">
-          <DialogHeader>
-            <DialogTitle>Convidar Freelancer para Triagem</DialogTitle>
-            <DialogDescription>
-              Envie um convite oficial por e-mail via Brevo API com o link tokenizado de triagem.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <Label>E-mail do Freelancer</Label>
-              <Input
-                type="email"
-                placeholder="freelancer@exemplo.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-              />
-            </div>
-            <div className="p-3 bg-muted rounded-lg text-xs space-y-1">
-              <div className="font-semibold">Link tokenizado direto:</div>
-              <code className="text-indigo-400 break-all">{window.location.origin}/triagem/{project.id}</code>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTriageModal(false)}>Cancelar</Button>
-            <Button onClick={handleSendTriageInvite} className="bg-indigo-600 text-white">Disparar Convite Brevo</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal: Add Task */}
+      {/* Task Modal */}
       <Dialog open={showTaskModal} onOpenChange={setShowTaskModal}>
-        <DialogContent className="bg-card text-foreground">
+        <DialogContent>
           <DialogHeader>
-            <DialogTitle>Adicionar Tarefa ao Cronograma</DialogTitle>
-            <DialogDescription>
-              Configure o prazo, fase e tarefa predecessora para bloquear dependências incompletas.
-            </DialogDescription>
+            <DialogTitle>Criar Nova Tarefa</DialogTitle>
+            <DialogDescription>Adicione uma tarefa ao cronograma e defina dependências.</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmitTask(onAddTask)} className="space-y-4 py-2">
-            <div className="space-y-2">
+          <form onSubmit={handleSubmitTask(onAddTask)} className="space-y-4">
+            <div className="space-y-1">
               <Label>Título da Tarefa</Label>
-              <Input placeholder="Ex: Integração com API WhatsApp" {...registerTask("title")} />
+              <Input placeholder="Ex: Criação de Telas UI" {...registerTask("title")} />
               {taskErrors.title && <p className="text-xs text-destructive">{taskErrors.title.message}</p>}
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label>Fase do Projeto</Label>
-              <Input placeholder="Ex: Fase 1: Setup" {...registerTask("phase")} />
+              <Input placeholder="Fase 1: Alinhamento & Setup" {...registerTask("phase")} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label>Data de Início</Label>
                 <Input type="date" {...registerTask("startDate")} />
               </div>
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <Label>Data de Término</Label>
                 <Input type="date" {...registerTask("dueDate")} />
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label>Tarefa Predecessora (Dependência)</Label>
-              <Select onValueChange={(val) => registerTask("predecessorId").onChange({ target: { value: val } })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma tarefa (opcional)" />
-                </SelectTrigger>
+            <div className="space-y-1">
+              <Label>Depende da Tarefa (Opcional)</Label>
+              <Select onValueChange={(val) => registerTask("predecessorId").onChange({ target: { value: val, name: "predecessorId" } })}>
+                <SelectTrigger><SelectValue placeholder="Selecione uma tarefa antecedente..." /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">Nenhuma (Sem dependência)</SelectItem>
                   {tasks.map((t) => (
                     <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
                   ))}
@@ -788,11 +606,38 @@ function ProjectDetailPage() {
               </Select>
             </div>
 
-            <DialogFooter className="pt-2">
+            <DialogFooter>
               <Button type="button" variant="outline" onClick={() => setShowTaskModal(false)}>Cancelar</Button>
-              <Button type="submit" className="bg-indigo-600 text-white">Criar Tarefa</Button>
+              <Button type="submit" disabled={createTask.isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                Criar Tarefa
+              </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Triage Invite Modal */}
+      <Dialog open={showTriageModal} onOpenChange={setShowTriageModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enviar Link de Triagem ao Cliente</DialogTitle>
+            <DialogDescription>Envia um e-mail com link exclusivo para preenchimento de requisitos do projeto.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Label>E-mail do Destinatário</Label>
+            <Input
+              type="email"
+              placeholder="cliente@empresa.com"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowTriageModal(false)}>Cancelar</Button>
+            <Button onClick={handleSendTriageInvite} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              Enviar Convite via Brevo
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
