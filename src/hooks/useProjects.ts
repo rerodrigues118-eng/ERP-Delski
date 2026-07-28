@@ -94,7 +94,13 @@ export function useCreateProject() {
       qc.invalidateQueries({ queryKey: ["projects"] });
       toast.success("Projeto criado com sucesso!");
     },
-    onError: (e: Error) => toast.error(`Erro ao criar projeto: ${e.message}`),
+    onError: (e: Error) => {
+      if (e.message.includes("infinite recursion")) {
+        toast.error("Erro RLS do Supabase (recursão infinita). Por favor, execute o arquivo supabase/schema.sql atualizado no SQL Editor do Supabase!");
+      } else {
+        toast.error(`Erro ao criar projeto: ${e.message}`);
+      }
+    },
   });
 }
 

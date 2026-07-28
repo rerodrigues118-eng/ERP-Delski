@@ -1,5 +1,6 @@
 -- ==========================================================
 -- ESTRUTURA DE BANCO DE DADOS - DELSKI ERP (SUPABASE SQL)
+-- CORREÇÃO DE RLS: Função Security Definer evita recursão infinita
 -- ==========================================================
 
 -- 1. Tabela de Perfis de Usuários (Gestor, Freelancer, Cliente)
@@ -42,7 +43,7 @@ create table if not exists public.project_tasks (
   project_id uuid references public.projects(id) on delete cascade,
   title text not null,
   phase text not null,
-  status text check (status in ('Pendente', 'Em Andamento', 'Concluida')) default 'Pendente',
+  status text check (status in ('Pendente', 'Em andamento', 'Em revisao', 'Concluida')) default 'Pendente',
   predecessor_id uuid references public.project_tasks(id) on delete set null,
   start_date date,
   due_date date,
@@ -66,6 +67,21 @@ create table if not exists public.project_triage (
 );
 
 -- ==========================================================
+-- FUNÇÃO AUXILIAR SECURITY DEFINER (EVITA RECURSÃO INFINITA)
+-- ==========================================================
+create or replace function public.is_gestor(user_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.profiles
+    where id = user_id and role = 'gestor'
+  );
+$$;
+
+-- ==========================================================
 -- SEGURANÇA E POLÍTICAS RLS (Row Level Security)
 -- ==========================================================
 
@@ -75,43 +91,60 @@ alter table public.project_freelancers enable row level security;
 alter table public.project_tasks enable row level security;
 alter table public.project_triage enable row level security;
 
--- Políticas para Profiles
+-- Limpa políticas antigas
 drop policy if exists "Gestores acesso total a profiles" on public.profiles;
-create policy "Gestores acesso total a profiles" on public.profiles for all using (
-  auth.uid() in (select id from public.profiles where role = 'gestor')
-);
-
 drop policy if exists "Usuarios leem proprio perfil" on public.profiles;
-create policy "Usuarios leem proprio perfil" on public.profiles for select using (auth.uid() = id);
-
--- Políticas para Projects
+drop policy if exists "Perfis leitura e gestor total" on public.profiles;
 drop policy if exists "Gestores acesso total a projects" on public.projects;
-create policy "Gestores acesso total a projects" on public.projects for all using (
-  auth.uid() in (select id from public.profiles where role = 'gestor')
-);
-
 drop policy if exists "Clientes veem apenas seus projetos" on public.projects;
-create policy "Clientes veem apenas seus projetos" on public.projects for select using (client_id = auth.uid());
-
 drop policy if exists "Freelancers veem projetos atribuídos" on public.projects;
-create policy "Freelancers veem projetos atribuídos" on public.projects for select using (
-  id in (select project_id from public.project_freelancers where freelancer_id = auth.uid())
-);
-
--- Políticas para Project Tasks
 drop policy if exists "Gestores acesso total a tasks" on public.project_tasks;
-create policy "Gestores acesso total a tasks" on public.project_tasks for all using (
-  auth.uid() in (select id from public.profiles where role = 'gestor')
-);
-
 drop policy if exists "Usuarios vinculados veem tarefas" on public.project_tasks;
-create policy "Usuarios vinculados veem tarefas" on public.project_tasks for select using (
-  project_id in (
-    select id from public.projects where client_id = auth.uid()
-    union
-    select project_id from public.project_freelancers where freelancer_id = auth.uid()
-  )
-);
+drop policy if exists "Project freelancers gestor total" on public.project_freelancers;
+drop policy if exists "Project freelancers leitura alocados" on public.project_freelancers;
+
+-- 1. Políticas para Profiles (Sem recursão infinita)
+create policy "Leitura de perfis autenticados" on public.profiles
+  for select using (auth.role() = 'authenticated');
+
+create policy "Escrita no proprio perfil ou gestor" on public.profiles
+  for all using (auth.uid() = id or public.is_gestor(auth.uid()));
+
+-- 2. Políticas para Projects
+create policy "Gestores acesso total a projects" on public.projects
+  for all using (public.is_gestor(auth.uid()));
+
+create policy "Clientes veem apenas seus projetos" on public.projects
+  for select using (client_id = auth.uid());
+
+create policy "Freelancers veem projetos atribuídos" on public.projects
+  for select using (
+    id in (select project_id from public.project_freelancers where freelancer_id = auth.uid())
+  );
+
+-- 3. Políticas para Project Freelancers
+create policy "Gestores acesso total a project_freelancers" on public.project_freelancers
+  for all using (public.is_gestor(auth.uid()));
+
+create policy "Freelancers veem suas atribuicoes" on public.project_freelancers
+  for select using (freelancer_id = auth.uid());
+
+-- 4. Políticas para Project Tasks
+create policy "Gestores acesso total a tasks" on public.project_tasks
+  for all using (public.is_gestor(auth.uid()));
+
+create policy "Usuarios vinculados veem tarefas" on public.project_tasks
+  for select using (
+    project_id in (
+      select id from public.projects where client_id = auth.uid()
+      union
+      select project_id from public.project_freelancers where freelancer_id = auth.uid()
+    )
+  );
+
+-- 5. Políticas para Project Triage
+create policy "Acesso livre para leitura e inserção de triagem" on public.project_triage
+  for all using (true);
 
 -- ==========================================================
 -- STORAGE BUCKET PARA ANEXOS DE PROJETOS
@@ -119,6 +152,9 @@ create policy "Usuarios vinculados veem tarefas" on public.project_tasks for sel
 insert into storage.buckets (id, name, public)
 values ('project-attachments', 'project-attachments', true)
 on conflict (id) do nothing;
+
+drop policy if exists "Uploads permitidos para usuarios autenticados" on storage.objects;
+drop policy if exists "Leitura publica de anexos" on storage.objects;
 
 create policy "Uploads permitidos para usuarios autenticados" on storage.objects
   for insert with check (bucket_id = 'project-attachments' and auth.role() = 'authenticated');

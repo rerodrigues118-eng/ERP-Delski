@@ -33,7 +33,6 @@ const negocio = [
 
 const conhecimento = [
   { title: "Wiki / SOPs", url: "/app/wiki", icon: BookOpen, gestor: false, freelancer: true, cliente: false },
-  { title: "Configurações", url: "/app/settings", icon: Settings, gestor: false, freelancer: true, cliente: false },
 ];
 
 export function AppSidebar() {

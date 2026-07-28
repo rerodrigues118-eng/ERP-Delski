@@ -20,7 +20,6 @@ import { Route as AppNotificationsRouteImport } from './routes/app.notifications
 import { Route as AppProposalsRouteImport } from './routes/app.proposals'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppRisksRouteImport } from './routes/app.risks'
-import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppWikiRouteImport } from './routes/app.wiki'
 import { Route as CTokenRouteImport } from './routes/c.$token'
 import { Route as PTokenRouteImport } from './routes/p.$token'
@@ -84,11 +83,6 @@ const AppRisksRoute = AppRisksRouteImport.update({
   path: '/risks',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppWikiRoute = AppWikiRouteImport.update({
   id: '/wiki',
   path: '/wiki',
@@ -136,7 +130,6 @@ export interface FileRoutesByFullPath {
   '/app/proposals': typeof AppProposalsRoute
   '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
-  '/app/settings': typeof AppSettingsRoute
   '/app/wiki': typeof AppWikiRoute
   '/c/$token': typeof CTokenRoute
   '/p/$token': typeof PTokenRoute
@@ -156,7 +149,6 @@ export interface FileRoutesByTo {
   '/app/proposals': typeof AppProposalsRoute
   '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
-  '/app/settings': typeof AppSettingsRoute
   '/app/wiki': typeof AppWikiRoute
   '/c/$token': typeof CTokenRoute
   '/p/$token': typeof PTokenRoute
@@ -178,7 +170,6 @@ export interface FileRoutesById {
   '/app/proposals': typeof AppProposalsRoute
   '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
-  '/app/settings': typeof AppSettingsRoute
   '/app/wiki': typeof AppWikiRoute
   '/c/$token': typeof CTokenRoute
   '/p/$token': typeof PTokenRoute
@@ -201,7 +192,6 @@ export interface FileRouteTypes {
     | '/app/proposals'
     | '/app/reports'
     | '/app/risks'
-    | '/app/settings'
     | '/app/wiki'
     | '/c/$token'
     | '/p/$token'
@@ -221,7 +211,6 @@ export interface FileRouteTypes {
     | '/app/proposals'
     | '/app/reports'
     | '/app/risks'
-    | '/app/settings'
     | '/app/wiki'
     | '/c/$token'
     | '/p/$token'
@@ -242,7 +231,6 @@ export interface FileRouteTypes {
     | '/app/proposals'
     | '/app/reports'
     | '/app/risks'
-    | '/app/settings'
     | '/app/wiki'
     | '/c/$token'
     | '/p/$token'
@@ -341,13 +329,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRisksRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/settings': {
-      id: '/app/settings'
-      path: '/settings'
-      fullPath: '/app/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/wiki': {
       id: '/app/wiki'
       path: '/wiki'
@@ -408,7 +389,6 @@ interface AppRouteChildren {
   AppProposalsRoute: typeof AppProposalsRoute
   AppReportsRoute: typeof AppReportsRoute
   AppRisksRoute: typeof AppRisksRoute
-  AppSettingsRoute: typeof AppSettingsRoute
   AppWikiRoute: typeof AppWikiRoute
   AppIndexRoute: typeof AppIndexRoute
   AppProjectsIdRoute: typeof AppProjectsIdRoute
@@ -424,7 +404,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppProposalsRoute: AppProposalsRoute,
   AppReportsRoute: AppReportsRoute,
   AppRisksRoute: AppRisksRoute,
-  AppSettingsRoute: AppSettingsRoute,
   AppWikiRoute: AppWikiRoute,
   AppIndexRoute: AppIndexRoute,
   AppProjectsIdRoute: AppProjectsIdRoute,
