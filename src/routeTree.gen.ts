@@ -20,6 +20,8 @@ import { Route as AppWikiRouteImport } from './routes/app.wiki'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppRisksRouteImport } from './routes/app.risks'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppProposalsRouteImport } from './routes/app.proposals'
+import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
 import { Route as AppFreelancersRouteImport } from './routes/app.freelancers'
 import { Route as AppFinanceRouteImport } from './routes/app.finance'
 import { Route as AppCrmRouteImport } from './routes/app.crm'
@@ -82,6 +84,16 @@ const AppReportsRoute = AppReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProposalsRoute = AppProposalsRouteImport.update({
+  id: '/proposals',
+  path: '/proposals',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFreelancersRoute = AppFreelancersRouteImport.update({
   id: '/freelancers',
   path: '/freelancers',
@@ -120,6 +132,8 @@ export interface FileRoutesByFullPath {
   '/app/crm': typeof AppCrmRoute
   '/app/finance': typeof AppFinanceRoute
   '/app/freelancers': typeof AppFreelancersRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/proposals': typeof AppProposalsRoute
   '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
   '/app/settings': typeof AppSettingsRoute
@@ -138,6 +152,8 @@ export interface FileRoutesByTo {
   '/app/crm': typeof AppCrmRoute
   '/app/finance': typeof AppFinanceRoute
   '/app/freelancers': typeof AppFreelancersRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/proposals': typeof AppProposalsRoute
   '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
   '/app/settings': typeof AppSettingsRoute
@@ -158,6 +174,8 @@ export interface FileRoutesById {
   '/app/crm': typeof AppCrmRoute
   '/app/finance': typeof AppFinanceRoute
   '/app/freelancers': typeof AppFreelancersRoute
+  '/app/notifications': typeof AppNotificationsRoute
+  '/app/proposals': typeof AppProposalsRoute
   '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
   '/app/settings': typeof AppSettingsRoute
@@ -179,6 +197,8 @@ export interface FileRouteTypes {
     | '/app/crm'
     | '/app/finance'
     | '/app/freelancers'
+    | '/app/notifications'
+    | '/app/proposals'
     | '/app/reports'
     | '/app/risks'
     | '/app/settings'
@@ -197,6 +217,8 @@ export interface FileRouteTypes {
     | '/app/crm'
     | '/app/finance'
     | '/app/freelancers'
+    | '/app/notifications'
+    | '/app/proposals'
     | '/app/reports'
     | '/app/risks'
     | '/app/settings'
@@ -216,6 +238,8 @@ export interface FileRouteTypes {
     | '/app/crm'
     | '/app/finance'
     | '/app/freelancers'
+    | '/app/notifications'
+    | '/app/proposals'
     | '/app/reports'
     | '/app/risks'
     | '/app/settings'
@@ -317,6 +341,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/proposals': {
+      id: '/app/proposals'
+      path: '/proposals'
+      fullPath: '/app/proposals'
+      preLoaderRoute: typeof AppProposalsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/notifications': {
+      id: '/app/notifications'
+      path: '/notifications'
+      fullPath: '/app/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/freelancers': {
       id: '/app/freelancers'
       path: '/freelancers'
@@ -366,6 +404,8 @@ interface AppRouteChildren {
   AppCrmRoute: typeof AppCrmRoute
   AppFinanceRoute: typeof AppFinanceRoute
   AppFreelancersRoute: typeof AppFreelancersRoute
+  AppNotificationsRoute: typeof AppNotificationsRoute
+  AppProposalsRoute: typeof AppProposalsRoute
   AppReportsRoute: typeof AppReportsRoute
   AppRisksRoute: typeof AppRisksRoute
   AppSettingsRoute: typeof AppSettingsRoute
@@ -380,6 +420,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppCrmRoute: AppCrmRoute,
   AppFinanceRoute: AppFinanceRoute,
   AppFreelancersRoute: AppFreelancersRoute,
+  AppNotificationsRoute: AppNotificationsRoute,
+  AppProposalsRoute: AppProposalsRoute,
   AppReportsRoute: AppReportsRoute,
   AppRisksRoute: AppRisksRoute,
   AppSettingsRoute: AppSettingsRoute,
