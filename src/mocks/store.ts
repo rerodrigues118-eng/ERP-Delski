@@ -112,12 +112,15 @@ const seedWiki: WikiArticle[] = [
   { id: uid(), title: "Onboarding do freelancer", category: "Geral", content: "1. Acesso ao Drive da Delski.\n2. Ler SOPs da vertical dele.\n3. Reunião de kickoff com o gestor.", updatedAt: daysAgo(1) },
 ];
 
+const withBaseline = (t: Omit<ProjectTask, "baselineStart" | "baselineDue">): ProjectTask =>
+  ({ ...t, baselineStart: t.startDate, baselineDue: t.dueDate });
+
 const seedTasks: ProjectTask[] = [
-  { id: "t1", projectId: "p1", title: "Wireframes das 5 páginas", status: "Concluida", startDate: daysAgo(20).slice(0, 10), dueDate: daysAgo(15).slice(0, 10), createdAt: daysAgo(20) },
-  { id: "t2", projectId: "p1", title: "Design de alta fidelidade", status: "Concluida", startDate: daysAgo(15).slice(0, 10), dueDate: daysAgo(10).slice(0, 10), predecessorId: "t1", createdAt: daysAgo(15) },
-  { id: "t3", projectId: "p1", title: "Desenvolvimento front-end", status: "Em andamento", startDate: daysAgo(10).slice(0, 10), dueDate: daysFromNow(5), predecessorId: "t2", createdAt: daysAgo(10) },
-  { id: "t4", projectId: "p1", title: "Integração blog + Instagram", status: "Pendente", startDate: daysFromNow(5), dueDate: daysFromNow(12), predecessorId: "t3", createdAt: daysAgo(10) },
-  { id: "t5", projectId: "p1", title: "Deploy e QA final", status: "Pendente", startDate: daysFromNow(12), dueDate: daysFromNow(18), predecessorId: "t4", createdAt: daysAgo(10) },
+  withBaseline({ id: "t1", projectId: "p1", title: "Wireframes das 5 páginas", status: "Concluida", startDate: daysAgo(20).slice(0, 10), dueDate: daysAgo(15).slice(0, 10), createdAt: daysAgo(20) }),
+  withBaseline({ id: "t2", projectId: "p1", title: "Design de alta fidelidade", status: "Concluida", startDate: daysAgo(15).slice(0, 10), dueDate: daysAgo(10).slice(0, 10), predecessorId: "t1", createdAt: daysAgo(15) }),
+  withBaseline({ id: "t3", projectId: "p1", title: "Desenvolvimento front-end", status: "Em andamento", startDate: daysAgo(10).slice(0, 10), dueDate: daysFromNow(5), predecessorId: "t2", createdAt: daysAgo(10) }),
+  withBaseline({ id: "t4", projectId: "p1", title: "Integração blog + Instagram", status: "Pendente", startDate: daysFromNow(5), dueDate: daysFromNow(12), predecessorId: "t3", createdAt: daysAgo(10) }),
+  withBaseline({ id: "t5", projectId: "p1", title: "Deploy e QA final", status: "Pendente", startDate: daysFromNow(12), dueDate: daysFromNow(18), predecessorId: "t4", createdAt: daysAgo(10) }),
 ];
 
 const seedApplications: ProjectApplication[] = [
