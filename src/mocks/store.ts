@@ -339,7 +339,7 @@ export const useStore = create<State>()(
         set({ wiki: get().wiki.filter((a) => a.id !== id) });
       },
       addTask: (t) => {
-        const task: ProjectTask = { ...t, id: uid(), createdAt: now() };
+        const task: ProjectTask = { ...t, id: uid(), createdAt: now(), baselineStart: t.startDate, baselineDue: t.dueDate };
         set({ tasks: [...get().tasks, task] });
         return task;
       },
@@ -351,6 +351,44 @@ export const useStore = create<State>()(
       },
       removeTask: (id) => {
         set({ tasks: get().tasks.filter((t) => t.id !== id && t.predecessorId !== id) });
+      },
+      shiftTaskCascade: (id, startIso, dueIso) => {
+        const all = [...get().tasks];
+        const map = new Map(all.map((t) => [t.id, { ...t }]));
+        const target = map.get(id);
+        if (!target) return;
+        target.startDate = startIso;
+        target.dueDate = dueIso;
+        // Propagação: filhos (predecessorId === id) devem começar em due+1, preservando duração
+        const queue: string[] = [id];
+        const visited = new Set<string>();
+        while (queue.length) {
+          const currentId = queue.shift()!;
+          if (visited.has(currentId)) continue;
+          visited.add(currentId);
+          const current = map.get(currentId)!;
+          for (const child of Array.from(map.values())) {
+            if (child.predecessorId !== currentId) continue;
+            const minStartMs = new Date(current.dueDate).getTime() + 864e5;
+            const childStartMs = new Date(child.startDate).getTime();
+            if (childStartMs < minStartMs) {
+              const duration = Math.max(0, Math.round((new Date(child.dueDate).getTime() - childStartMs) / 864e5));
+              const newStart = new Date(minStartMs).toISOString().slice(0, 10);
+              const newDue = new Date(minStartMs + duration * 864e5).toISOString().slice(0, 10);
+              child.startDate = newStart;
+              child.dueDate = newDue;
+              queue.push(child.id);
+            }
+          }
+        }
+        set({ tasks: Array.from(map.values()) });
+      },
+      rebaselineTasks: (projectId) => {
+        set({
+          tasks: get().tasks.map((t) =>
+            t.projectId === projectId ? { ...t, baselineStart: t.startDate, baselineDue: t.dueDate } : t,
+          ),
+        });
       },
       inviteFreelancerToProject: (projectId, freelancerId) => {
         const exists = get().applications.find((a) => a.projectId === projectId && a.freelancerId === freelancerId);
