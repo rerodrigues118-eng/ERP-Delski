@@ -430,7 +430,7 @@ export const useStore = create<State>()(
         set({ applications: get().applications.filter((a) => a.id !== id) });
       },
     }),
-    { name: "delski-store-v3" },
+    { name: "delski-store-v4" },
   ),
 );
 
