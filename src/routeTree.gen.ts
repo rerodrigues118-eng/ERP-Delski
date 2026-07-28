@@ -9,29 +9,29 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppRouteImport } from './routes/app'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AppIndexRouteImport } from './routes/app.index'
-import { Route as TriagemTokenRouteImport } from './routes/triagem.$token'
-import { Route as PTokenRouteImport } from './routes/p.$token'
-import { Route as CTokenRouteImport } from './routes/c.$token'
-import { Route as AppWikiRouteImport } from './routes/app.wiki'
-import { Route as AppSettingsRouteImport } from './routes/app.settings'
-import { Route as AppRisksRouteImport } from './routes/app.risks'
-import { Route as AppReportsRouteImport } from './routes/app.reports'
-import { Route as AppProposalsRouteImport } from './routes/app.proposals'
-import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
-import { Route as AppFreelancersRouteImport } from './routes/app.freelancers'
-import { Route as AppFinanceRouteImport } from './routes/app.finance'
 import { Route as AppCrmRouteImport } from './routes/app.crm'
+import { Route as AppFinanceRouteImport } from './routes/app.finance'
+import { Route as AppFreelancersRouteImport } from './routes/app.freelancers'
+import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
+import { Route as AppProposalsRouteImport } from './routes/app.proposals'
+import { Route as AppReportsRouteImport } from './routes/app.reports'
+import { Route as AppRisksRouteImport } from './routes/app.risks'
+import { Route as AppSettingsRouteImport } from './routes/app.settings'
+import { Route as AppWikiRouteImport } from './routes/app.wiki'
+import { Route as CTokenRouteImport } from './routes/c.$token'
+import { Route as PTokenRouteImport } from './routes/p.$token'
+import { Route as TriagemTokenRouteImport } from './routes/triagem.$token'
 import { Route as AppProjectsIndexRouteImport } from './routes/app.projects.index'
-import { Route as AppProjectsNewRouteImport } from './routes/app.projects.new'
 import { Route as AppProjectsIdRouteImport } from './routes/app.projects.$id'
+import { Route as AppProjectsNewRouteImport } from './routes/app.projects.new'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -39,9 +39,9 @@ const AppRoute = AppRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -49,54 +49,9 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const TriagemTokenRoute = TriagemTokenRouteImport.update({
-  id: '/triagem/$token',
-  path: '/triagem/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PTokenRoute = PTokenRouteImport.update({
-  id: '/p/$token',
-  path: '/p/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CTokenRoute = CTokenRouteImport.update({
-  id: '/c/$token',
-  path: '/c/$token',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppWikiRoute = AppWikiRouteImport.update({
-  id: '/wiki',
-  path: '/wiki',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppRisksRoute = AppRisksRouteImport.update({
-  id: '/risks',
-  path: '/risks',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppReportsRoute = AppReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppProposalsRoute = AppProposalsRouteImport.update({
-  id: '/proposals',
-  path: '/proposals',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppNotificationsRoute = AppNotificationsRouteImport.update({
-  id: '/notifications',
-  path: '/notifications',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppFreelancersRoute = AppFreelancersRouteImport.update({
-  id: '/freelancers',
-  path: '/freelancers',
+const AppCrmRoute = AppCrmRouteImport.update({
+  id: '/crm',
+  path: '/crm',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFinanceRoute = AppFinanceRouteImport.update({
@@ -104,24 +59,69 @@ const AppFinanceRoute = AppFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => AppRoute,
 } as any)
-const AppCrmRoute = AppCrmRouteImport.update({
-  id: '/crm',
-  path: '/crm',
+const AppFreelancersRoute = AppFreelancersRouteImport.update({
+  id: '/freelancers',
+  path: '/freelancers',
   getParentRoute: () => AppRoute,
+} as any)
+const AppNotificationsRoute = AppNotificationsRouteImport.update({
+  id: '/notifications',
+  path: '/notifications',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProposalsRoute = AppProposalsRouteImport.update({
+  id: '/proposals',
+  path: '/proposals',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRisksRoute = AppRisksRouteImport.update({
+  id: '/risks',
+  path: '/risks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppWikiRoute = AppWikiRouteImport.update({
+  id: '/wiki',
+  path: '/wiki',
+  getParentRoute: () => AppRoute,
+} as any)
+const CTokenRoute = CTokenRouteImport.update({
+  id: '/c/$token',
+  path: '/c/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PTokenRoute = PTokenRouteImport.update({
+  id: '/p/$token',
+  path: '/p/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TriagemTokenRoute = TriagemTokenRouteImport.update({
+  id: '/triagem/$token',
+  path: '/triagem/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppProjectsIndexRoute = AppProjectsIndexRouteImport.update({
   id: '/projects/',
   path: '/projects/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppProjectsNewRoute = AppProjectsNewRouteImport.update({
-  id: '/projects/new',
-  path: '/projects/new',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppProjectsIdRoute = AppProjectsIdRouteImport.update({
   id: '/projects/$id',
   path: '/projects/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProjectsNewRoute = AppProjectsNewRouteImport.update({
+  id: '/projects/new',
+  path: '/projects/new',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -264,11 +264,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -278,11 +278,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/': {
@@ -292,74 +292,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/triagem/$token': {
-      id: '/triagem/$token'
-      path: '/triagem/$token'
-      fullPath: '/triagem/$token'
-      preLoaderRoute: typeof TriagemTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/p/$token': {
-      id: '/p/$token'
-      path: '/p/$token'
-      fullPath: '/p/$token'
-      preLoaderRoute: typeof PTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/c/$token': {
-      id: '/c/$token'
-      path: '/c/$token'
-      fullPath: '/c/$token'
-      preLoaderRoute: typeof CTokenRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/wiki': {
-      id: '/app/wiki'
-      path: '/wiki'
-      fullPath: '/app/wiki'
-      preLoaderRoute: typeof AppWikiRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/settings': {
-      id: '/app/settings'
-      path: '/settings'
-      fullPath: '/app/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/risks': {
-      id: '/app/risks'
-      path: '/risks'
-      fullPath: '/app/risks'
-      preLoaderRoute: typeof AppRisksRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/reports': {
-      id: '/app/reports'
-      path: '/reports'
-      fullPath: '/app/reports'
-      preLoaderRoute: typeof AppReportsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/proposals': {
-      id: '/app/proposals'
-      path: '/proposals'
-      fullPath: '/app/proposals'
-      preLoaderRoute: typeof AppProposalsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/notifications': {
-      id: '/app/notifications'
-      path: '/notifications'
-      fullPath: '/app/notifications'
-      preLoaderRoute: typeof AppNotificationsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/freelancers': {
-      id: '/app/freelancers'
-      path: '/freelancers'
-      fullPath: '/app/freelancers'
-      preLoaderRoute: typeof AppFreelancersRouteImport
+    '/app/crm': {
+      id: '/app/crm'
+      path: '/crm'
+      fullPath: '/app/crm'
+      preLoaderRoute: typeof AppCrmRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/finance': {
@@ -369,12 +306,75 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFinanceRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/crm': {
-      id: '/app/crm'
-      path: '/crm'
-      fullPath: '/app/crm'
-      preLoaderRoute: typeof AppCrmRouteImport
+    '/app/freelancers': {
+      id: '/app/freelancers'
+      path: '/freelancers'
+      fullPath: '/app/freelancers'
+      preLoaderRoute: typeof AppFreelancersRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/app/notifications': {
+      id: '/app/notifications'
+      path: '/notifications'
+      fullPath: '/app/notifications'
+      preLoaderRoute: typeof AppNotificationsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/proposals': {
+      id: '/app/proposals'
+      path: '/proposals'
+      fullPath: '/app/proposals'
+      preLoaderRoute: typeof AppProposalsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/reports': {
+      id: '/app/reports'
+      path: '/reports'
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/risks': {
+      id: '/app/risks'
+      path: '/risks'
+      fullPath: '/app/risks'
+      preLoaderRoute: typeof AppRisksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/settings': {
+      id: '/app/settings'
+      path: '/settings'
+      fullPath: '/app/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/wiki': {
+      id: '/app/wiki'
+      path: '/wiki'
+      fullPath: '/app/wiki'
+      preLoaderRoute: typeof AppWikiRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/c/$token': {
+      id: '/c/$token'
+      path: '/c/$token'
+      fullPath: '/c/$token'
+      preLoaderRoute: typeof CTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/p/$token': {
+      id: '/p/$token'
+      path: '/p/$token'
+      fullPath: '/p/$token'
+      preLoaderRoute: typeof PTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/triagem/$token': {
+      id: '/triagem/$token'
+      path: '/triagem/$token'
+      fullPath: '/triagem/$token'
+      preLoaderRoute: typeof TriagemTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/app/projects/': {
       id: '/app/projects/'
@@ -383,18 +383,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProjectsIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/projects/new': {
-      id: '/app/projects/new'
-      path: '/projects/new'
-      fullPath: '/app/projects/new'
-      preLoaderRoute: typeof AppProjectsNewRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/projects/$id': {
       id: '/app/projects/$id'
       path: '/projects/$id'
       fullPath: '/app/projects/$id'
       preLoaderRoute: typeof AppProjectsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/projects/new': {
+      id: '/app/projects/new'
+      path: '/projects/new'
+      fullPath: '/app/projects/new'
+      preLoaderRoute: typeof AppProjectsNewRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -445,3 +445,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

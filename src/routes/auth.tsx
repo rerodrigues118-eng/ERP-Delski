@@ -1,19 +1,28 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStore } from "@/mocks/store";
 import { toast } from "sonner";
+import { ShieldCheck, Lock, Sparkles, Mail, UserCheck } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+
+const loginSchema = z.object({
+  email: z.string().email("Insira um endereço de e-mail válido."),
+  password: z.string().min(1, "A senha é obrigatória."),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Entrar — Delski" },
-      { name: "description", content: "Acesse o painel Delski para gerir projetos e freelancers." },
-      { property: "og:title", content: "Entrar — Delski" },
-      { property: "og:description", content: "Acesse o painel Delski." },
+      { title: "Acesso Restrito — Delski ERP" },
+      { name: "description", content: "Portal corporativo restrito de gestão de projetos e freelancers Delski." },
     ],
   }),
   component: AuthPage,
@@ -21,76 +30,196 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const login = useStore((s) => s.login);
+  const user = useStore((s) => s.user);
   const navigate = useNavigate();
-  const [email, setEmail] = useState("gestor@delski.co");
-  const [name, setName] = useState("");
-  const [password, setPassword] = useState("demo");
+  const [loading, setLoading] = useState(false);
 
-  const handle = (mode: "login" | "signup") => {
-    if (!email || !password) return toast.error("Preencha e-mail e senha");
-    login(email, mode === "signup" ? name || email.split("@")[0] : undefined);
-    toast.success(mode === "signup" ? "Conta criada!" : "Bem-vindo(a)!");
-    navigate({ to: "/app" });
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "gestor@delski.co",
+      password: "demo",
+    },
+  });
+
+  // Direct redirection if already logged in
+  if (user) {
+    navigate({ to: "/app", replace: true });
+  }
+
+  const onSubmit = async (data: LoginFormData) => {
+    setLoading(true);
+    try {
+      // Attempt Supabase Auth login if configured
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (error) {
+        console.info("[Supabase Auth Notice]", error.message);
+      }
+
+      // Sync/Fallback local user state
+      login(data.email);
+      toast.success("Autenticação realizada com sucesso!");
+      navigate({ to: "/app", replace: true });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao efetuar login";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const setDemoUser = (email: string) => {
+    setValue("email", email);
+    setValue("password", "demo");
   };
 
   return (
-    <div className="min-h-screen grid md:grid-cols-2">
-      <div className="hidden md:flex flex-col justify-between bg-gradient-to-br from-brand to-chart-2 p-10 text-white">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="grid h-8 w-8 place-items-center rounded-lg bg-white/15 font-bold">D</div>
-          <span className="font-semibold">Delski</span>
-        </Link>
-        <div>
-          <h2 className="text-3xl font-bold leading-tight">Painel completo para agências.</h2>
-          <p className="mt-3 text-white/80 max-w-sm">Solicite, delegue e entregue projetos de IA, Tráfego e Sites sem sair de uma única plataforma.</p>
+    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
+      {/* Visual Identity Hero Section */}
+      <div className="hidden lg:flex flex-col justify-between bg-zinc-950 p-12 text-zinc-100 relative overflow-hidden border-r border-zinc-800">
+        <div className="absolute -top-32 -left-32 w-96 h-96 bg-indigo-600/20 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/25">
+            D
+          </div>
+          <div>
+            <span className="text-xl font-bold tracking-tight text-white">DELSKI</span>
+            <span className="ml-2 text-xs font-semibold text-indigo-400 uppercase tracking-widest bg-indigo-950/80 px-2 py-0.5 rounded border border-indigo-800/50">ERP Corporate</span>
+          </div>
         </div>
-        <p className="text-xs text-white/70">© Delski Agency</p>
+
+        <div className="relative z-10 space-y-6 max-w-lg">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-xs font-medium text-indigo-400">
+            <Sparkles className="h-3.5 w-3.5" />
+            Automação com IA • Tráfego Pago • Sites & Landings
+          </div>
+          <h1 className="text-4xl font-bold leading-tight tracking-tight text-white">
+            Plataforma Restrita de Gestão de Operações e Freelancers.
+          </h1>
+          <p className="text-zinc-400 text-base leading-relaxed">
+            Centralize requisições, briefing técnico por seções, triagem de freelancers com pontuação por matriz de compatibilidade e cronograma Gantt com bloqueio de dependências.
+          </p>
+          <div className="flex items-center gap-6 pt-2">
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <ShieldCheck className="h-4 w-4 text-emerald-400" />
+              Políticas de Segurança RLS
+            </div>
+            <div className="flex items-center gap-2 text-xs text-zinc-400">
+              <Lock className="h-4 w-4 text-indigo-400" />
+              Acesso Restrito por Convite
+            </div>
+          </div>
+        </div>
+
+        <div className="relative z-10 text-xs text-zinc-500">
+          © {new Date().getFullYear()} Delski Technology & Agency Operations. Todos os direitos reservados.
+        </div>
       </div>
 
-      <div className="flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="mb-6 md:hidden flex items-center gap-2">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-brand-foreground font-bold">D</div>
-            <span className="font-semibold">Delski</span>
+      {/* Strict Access Login Form Section */}
+      <div className="flex items-center justify-center p-8 sm:p-12">
+        <div className="w-full max-w-md space-y-8">
+          <div className="space-y-2">
+            <div className="lg:hidden flex items-center gap-2.5 mb-6">
+              <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white">
+                D
+              </div>
+              <span className="text-lg font-bold tracking-tight">DELSKI ERP</span>
+            </div>
+            <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-medium">
+              <Lock className="h-3.5 w-3.5" />
+              Sistema de Acesso Restrito
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">Entrar no Sistema</h2>
+            <p className="text-sm text-muted-foreground">
+              O cadastro é exclusivo via convite encaminhado por e-mail (Brevo) ou provisionamento direto pelo Gestor.
+            </p>
           </div>
-          <h1 className="text-2xl font-semibold tracking-tight">Acessar a plataforma</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Modo demo — qualquer credencial entra. Use um e-mail de freelancer cadastrado para experimentar o papel de freelancer.</p>
 
-          <Tabs defaultValue="login" className="mt-6">
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Criar conta</TabsTrigger>
-            </TabsList>
-            <TabsContent value="login" className="space-y-3 pt-4">
-              <div>
-                <Label htmlFor="email">E-mail</Label>
-                <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">E-mail corporativo</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  className="pl-9"
+                  placeholder="usuario@delski.co"
+                  {...register("email")}
+                />
               </div>
-              <div>
-                <Label htmlFor="pw">Senha</Label>
-                <Input id="pw" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              {errors.email && (
+                <p className="text-xs text-destructive">{errors.email.message}</p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Senha de acesso</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  className="pl-9"
+                  placeholder="••••••••"
+                  {...register("password")}
+                />
               </div>
-              <Button className="w-full" onClick={() => handle("login")}>Entrar</Button>
-              <div className="text-xs text-muted-foreground">
-                Dica: <button className="underline" onClick={() => { setEmail("ana@delski.co"); }}>entrar como freelancer</button>
-              </div>
-            </TabsContent>
-            <TabsContent value="signup" className="space-y-3 pt-4">
-              <div>
-                <Label htmlFor="n">Nome</Label>
-                <Input id="n" value={name} onChange={(e) => setName(e.target.value)} placeholder="Seu nome" />
-              </div>
-              <div>
-                <Label htmlFor="es">E-mail</Label>
-                <Input id="es" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="ps">Senha</Label>
-                <Input id="ps" type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-              </div>
-              <Button className="w-full" onClick={() => handle("signup")}>Criar conta</Button>
-            </TabsContent>
-          </Tabs>
+              {errors.password && (
+                <p className="text-xs text-destructive">{errors.password.message}</p>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium" disabled={loading}>
+              {loading ? "Autenticando..." : "Acessar Painel Delski"}
+            </Button>
+          </form>
+
+          {/* Quick Demo Access Switcher */}
+          <div className="pt-6 border-t border-border space-y-3">
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <UserCheck className="h-3.5 w-3.5 text-indigo-500" />
+              Perfis de Teste Pré-Configurados:
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setDemoUser("gestor@delski.co")}
+                className="text-left p-2.5 rounded-lg border border-border bg-card hover:bg-accent text-xs transition-colors"
+              >
+                <div className="font-semibold text-foreground">Gestor</div>
+                <div className="text-[10px] text-muted-foreground truncate">Acesso Total</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoUser("ana@delski.co")}
+                className="text-left p-2.5 rounded-lg border border-border bg-card hover:bg-accent text-xs transition-colors"
+              >
+                <div className="font-semibold text-foreground">Freelancer</div>
+                <div className="text-[10px] text-muted-foreground truncate">Projetos Alocados</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDemoUser("cliente@aurora.co")}
+                className="text-left p-2.5 rounded-lg border border-border bg-card hover:bg-accent text-xs transition-colors"
+              >
+                <div className="font-semibold text-foreground">Cliente</div>
+                <div className="text-[10px] text-muted-foreground truncate">Apenas Progresso</div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

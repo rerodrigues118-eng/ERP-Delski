@@ -11,9 +11,11 @@ import type {
   LeadStage,
   Project,
   ProjectApplication,
+  ProjectBriefingSections,
   ProjectFile,
   ProjectStatus,
   ProjectTask,
+  ProjectTriageResponse,
   Role,
   TaskStatus,
   WikiArticle,
@@ -39,102 +41,137 @@ const seedFreelancers: Freelancer[] = [
 
 const seedProjects: Project[] = [
   {
-    id: "p1", client: "Café Aurora", type: "Sites",
+    id: "p1",
+    client: "Café Aurora",
+    clientId: "c1",
+    type: "Sites",
     description: "Novo site institucional com blog e integração com Instagram.",
     briefing: "## Objetivo\nRelançar o site com foco em conversão de reservas.\n\n## Escopo\n- 5 páginas\n- Blog com CMS\n- Feed do Instagram embutido\n\n## Restrições\nManter identidade visual atual (cores marrom/creme).",
-    deadline: "2026-08-30", budget: 8500, referenceLink: "https://cafeaurora.com",
-    status: "Em Producao", freelancerId: "f1",
+    briefingSections: {
+      overview: "Reformulação do portal web com 5 páginas chave, layout responsivo e focado em aumento de reservas em 40%.",
+      technicalSpecs: "Stack: React, Vite, Tailwind CSS, API Instagram Graph v18.0, Hospedagem Vercel Enterprise.",
+      repositoryNotes: "Arquivos de protótipo Figma salvos na pasta oficial do Google Drive.",
+    },
+    deadline: "2026-08-30",
+    budget: 8500,
+    freelancerCost: 3200,
+    referenceLink: "https://cafeaurora.com",
+    status: "Em Producao",
+    freelancerId: "f1",
     driveLink: "https://drive.google.com/drive/folders/exemplo1",
-    files: [], clientFeedback: [],
+    files: [
+      { id: "file-1", name: "escopo_tecnico_v2.pdf", size: 1024500, url: "https://jrcyhfjubqtiwbttjeiv.supabase.co/storage/v1/object/public/project-attachments/escopo_tecnico_v2.pdf", uploadedBy: "Gestor", uploadedAt: daysAgo(5) }
+    ],
+    clientFeedback: [],
     history: [
       { id: uid(), at: daysAgo(20), actor: "Gestor", message: "Projeto criado" },
       { id: uid(), at: daysAgo(19), actor: "Gestor", message: "Delegado para Ana Ribeiro" },
       { id: uid(), at: daysAgo(15), actor: "Ana Ribeiro", message: "Movido para Em Produção" },
     ],
-    createdAt: daysAgo(20), lastStatusChangeAt: daysAgo(15),
+    createdAt: daysAgo(20),
+    lastStatusChangeAt: daysAgo(15),
   },
   {
-    id: "p2", client: "Studio Lumen", type: "Trafego",
+    id: "p2",
+    client: "Studio Lumen",
+    clientId: "c2",
+    type: "Trafego",
     description: "Gestão de tráfego pago no Meta Ads e Google Ads por 3 meses.",
-    deadline: "2026-09-15", budget: 6000, status: "Delegado", freelancerId: "f2",
-    files: [], clientFeedback: [], history: [{ id: uid(), at: daysAgo(8), actor: "Gestor", message: "Projeto criado" }],
-    createdAt: daysAgo(8), lastStatusChangeAt: daysAgo(7),
+    briefingSections: {
+      overview: "Estruturação de funil de vendas via Meta Ads e Google Search para conversão de leads qualificados.",
+      technicalSpecs: "Meta Pixel, Google Tag Manager, GA4, Looker Studio Dashboard para relatórios em tempo real.",
+      repositoryNotes: "Banners criativos armazenados no Google Drive na pasta /Criativos2026.",
+    },
+    deadline: "2026-09-15",
+    budget: 6000,
+    freelancerCost: 2000,
+    status: "Delegado",
+    freelancerId: "f2",
+    files: [],
+    clientFeedback: [],
+    history: [{ id: uid(), at: daysAgo(8), actor: "Gestor", message: "Projeto criado" }],
+    createdAt: daysAgo(8),
+    lastStatusChangeAt: daysAgo(7),
   },
   {
-    id: "p3", client: "Vetra Tech", type: "IA",
+    id: "p3",
+    client: "Vetra Tech",
+    clientId: "c3",
+    type: "IA",
     description: "Automação de atendimento com agente IA integrado ao WhatsApp.",
-    deadline: "2026-08-10", budget: 12000, status: "Em Revisao", freelancerId: "f1",
-    files: [], clientFeedback: [], history: [{ id: uid(), at: daysAgo(12), actor: "Gestor", message: "Projeto criado" }],
-    createdAt: daysAgo(12), lastStatusChangeAt: daysAgo(9),
+    briefingSections: {
+      overview: "Agente IA inteligente para triagem de suporte e agendamento automático via API do WhatsApp.",
+      technicalSpecs: "LangChain, OpenAI GPT-4o, Evolution API WhatsApp, Webhooks em Node.js.",
+      repositoryNotes: "Prompts validados e base de conhecimento em formato Markdown.",
+    },
+    deadline: "2026-08-10",
+    budget: 12000,
+    freelancerCost: 4000,
+    status: "Em Revisao",
+    freelancerId: "f1",
+    files: [],
+    clientFeedback: [],
+    history: [{ id: uid(), at: daysAgo(12), actor: "Gestor", message: "Projeto criado" }],
+    createdAt: daysAgo(12),
+    lastStatusChangeAt: daysAgo(9),
   },
   {
-    id: "p4", client: "Padaria Bella", type: "Sites",
+    id: "p4",
+    client: "Padaria Bella",
+    type: "Sites",
     description: "Landing page para captação de leads de aniversários corporativos.",
-    deadline: "2026-08-05", budget: 3500, status: "Solicitado",
-    files: [], clientFeedback: [], history: [{ id: uid(), at: daysAgo(2), actor: "Gestor", message: "Projeto criado" }],
-    createdAt: daysAgo(2), lastStatusChangeAt: daysAgo(2),
+    briefingSections: {
+      overview: "Landing page ultra rápida voltada para cotação de eventos corporativos.",
+      technicalSpecs: "Vite, Tailwind, Formspree / Webhook N8N para CRM.",
+      repositoryNotes: "Fotos em alta resolução no Google Drive.",
+    },
+    deadline: "2026-08-05",
+    budget: 3500,
+    freelancerCost: 1200,
+    status: "Solicitado",
+    files: [],
+    clientFeedback: [],
+    history: [{ id: uid(), at: daysAgo(2), actor: "Gestor", message: "Projeto criado" }],
+    createdAt: daysAgo(2),
+    lastStatusChangeAt: daysAgo(2),
   },
   {
-    id: "p5", client: "Move Fitness", type: "IA",
+    id: "p5",
+    client: "Move Fitness",
+    type: "IA",
     description: "Chatbot IA para agendamento de aulas experimentais.",
-    deadline: "2026-07-20", budget: 5200, status: "Concluido", freelancerId: "f4",
-    files: [], clientFeedback: [], history: [{ id: uid(), at: daysAgo(30), actor: "Gestor", message: "Projeto criado" }],
-    createdAt: daysAgo(30), lastStatusChangeAt: daysAgo(3),
-  },
-  {
-    id: "p6", client: "Cliente Demo", type: "Trafego",
-    description: "Campanha de lançamento para novo produto SaaS.",
-    deadline: "2026-09-01", budget: 4500, status: "Solicitado",
-    files: [], clientFeedback: [], history: [{ id: uid(), at: daysAgo(1), actor: "Gestor", message: "Projeto criado" }],
-    createdAt: daysAgo(1), lastStatusChangeAt: daysAgo(1),
+    briefingSections: {
+      overview: "Bot de conversão de leads no Instagram Direct e WhatsApp.",
+      technicalSpecs: "ManyChat, OpenAI API, webhook de sincronização com sistema de academia.",
+      repositoryNotes: "Fluxogramas de atendimento em PDF.",
+    },
+    deadline: "2026-07-20",
+    budget: 5200,
+    freelancerCost: 2400,
+    status: "Concluido",
+    freelancerId: "f4",
+    files: [],
+    clientFeedback: [],
+    history: [{ id: uid(), at: daysAgo(30), actor: "Gestor", message: "Projeto criado" }],
+    createdAt: daysAgo(30),
+    lastStatusChangeAt: daysAgo(3),
   },
 ];
 
 const seedExpenses: Expense[] = [
   { id: uid(), projectId: "p1", description: "Pagamento Ana Ribeiro — Front-end", amount: 3200, category: "freelancer", status: "Aprovado", freelancerId: "f1", createdAt: daysAgo(10) },
   { id: uid(), projectId: "p1", description: "Domínio + hospedagem 1 ano", amount: 420, category: "ferramentas", status: "Pago", createdAt: daysAgo(15) },
-  { id: uid(), projectId: "p2", description: "Verba de anúncios Meta", amount: 1500, category: "ads", status: "Pago", createdAt: daysAgo(5) },
-  { id: uid(), projectId: "p3", description: "Pagamento Ana Ribeiro — Integração", amount: 4000, category: "freelancer", status: "Pendente", freelancerId: "f1", createdAt: daysAgo(4) },
-  { id: uid(), projectId: "p5", description: "Pagamento Diego Souza", amount: 2400, category: "freelancer", status: "Pago", freelancerId: "f4", createdAt: daysAgo(2) },
+  { id: uid(), projectId: "p2", description: "Pagamento Bruno Alves — Meta Ads", amount: 2000, category: "freelancer", status: "Pago", freelancerId: "f2", createdAt: daysAgo(5) },
+  { id: uid(), projectId: "p3", description: "Pagamento Ana Ribeiro — Integração IA", amount: 4000, category: "freelancer", status: "Pendente", freelancerId: "f1", createdAt: daysAgo(4) },
+  { id: uid(), projectId: "p5", description: "Pagamento Diego Souza — Agente IA", amount: 2400, category: "freelancer", status: "Pago", freelancerId: "f4", createdAt: daysAgo(2) },
 ];
-
-const seedLeads: Lead[] = [
-  { id: uid(), name: "Clínica Vida+", contact: "gestor@vidamais.com", service: "Sites", estimatedValue: 6000, stage: "Prospeccao", notes: "Indicação da Vetra Tech.", createdAt: daysAgo(6) },
-  { id: uid(), name: "Loja Nébula", contact: "(11) 99999-1234", service: "Trafego", estimatedValue: 4500, stage: "Reuniao", createdAt: daysAgo(4) },
-  { id: uid(), name: "Agro Verde", contact: "compras@agroverde.co", service: "IA", estimatedValue: 15000, stage: "Proposta", notes: "Aguardando aprovação da diretoria.", createdAt: daysAgo(3) },
-  { id: uid(), name: "TechFlow", contact: "cto@techflow.io", service: "IA", estimatedValue: 9800, stage: "Proposta", createdAt: daysAgo(2) },
-];
-
-const seedWiki: WikiArticle[] = [
-  { id: uid(), title: "Padrão de código React para sites", category: "Sites", content: "Componentes em PascalCase, hooks em camelCase começando com use.\nTailwind com tokens semânticos — nunca cor hardcoded.\nSempre acessibilidade: labels, aria, contraste AA.", updatedAt: daysAgo(9) },
-  { id: uid(), title: "Prompts validados — Atendimento IA", category: "IA", content: "Prompt base do agente de atendimento (v3):\n\nVocê é um assistente cordial da {empresa}...\n\nRegras: sempre confirmar CPF, nunca prometer prazo sem checar agenda.", updatedAt: daysAgo(5) },
-  { id: uid(), title: "Checklist de campanha Meta Ads", category: "Trafego", content: "1. Pixel instalado e conversões testadas.\n2. Público custom + lookalike criados.\n3. Criativos em 3 formatos (feed, stories, reels).\n4. Orçamento diário validado com o cliente.", updatedAt: daysAgo(2) },
-  { id: uid(), title: "Onboarding do freelancer", category: "Geral", content: "1. Acesso ao Drive da Delski.\n2. Ler SOPs da vertical dele.\n3. Reunião de kickoff com o gestor.", updatedAt: daysAgo(1) },
-];
-
-const withBaseline = (t: Omit<ProjectTask, "baselineStart" | "baselineDue">): ProjectTask =>
-  ({ ...t, baselineStart: t.startDate, baselineDue: t.dueDate });
 
 const seedTasks: ProjectTask[] = [
-  withBaseline({ id: "t1", projectId: "p1", title: "Wireframes das 5 páginas", status: "Concluida", startDate: daysAgo(20).slice(0, 10), dueDate: daysAgo(15).slice(0, 10), createdAt: daysAgo(20) }),
-  withBaseline({ id: "t2", projectId: "p1", title: "Design de alta fidelidade", status: "Concluida", startDate: daysAgo(15).slice(0, 10), dueDate: daysAgo(10).slice(0, 10), predecessorId: "t1", createdAt: daysAgo(15) }),
-  withBaseline({ id: "t3", projectId: "p1", title: "Desenvolvimento front-end", status: "Em andamento", startDate: daysAgo(10).slice(0, 10), dueDate: daysFromNow(5), predecessorId: "t2", createdAt: daysAgo(10) }),
-  withBaseline({ id: "t4", projectId: "p1", title: "Integração blog + Instagram", status: "Pendente", startDate: daysFromNow(5), dueDate: daysFromNow(12), predecessorId: "t3", createdAt: daysAgo(10) }),
-  withBaseline({ id: "t5", projectId: "p1", title: "Deploy e QA final", status: "Pendente", startDate: daysFromNow(12), dueDate: daysFromNow(18), predecessorId: "t4", createdAt: daysAgo(10) }),
-];
-
-const seedApplications: ProjectApplication[] = [
-  {
-    id: "a1", projectId: "p6", freelancerId: "f2", token: uuid(),
-    status: "Respondida", invitedAt: daysAgo(1), respondedAt: daysAgo(0),
-    capacity: "20h/semana", availability: today(),
-    proposedDeadline: daysFromNow(30), proposedValue: 4200,
-    notes: "Tenho experiência com lançamento SaaS B2B, posso começar já.",
-  },
-  {
-    id: "a2", projectId: "p6", freelancerId: "f3", token: uuid(),
-    status: "Pendente", invitedAt: daysAgo(1),
-  },
+  { id: "t1", projectId: "p1", title: "Definição de Requisitos e Visão Geral", phase: "Fase 1: Alinhamento & Setup", status: "Concluida", startDate: daysAgo(20).slice(0, 10), dueDate: daysAgo(15).slice(0, 10), createdAt: daysAgo(20) },
+  { id: "t2", projectId: "p1", title: "Design de Alta Fidelidade e UI Kits", phase: "Fase 1: Alinhamento & Setup", status: "Concluida", startDate: daysAgo(15).slice(0, 10), dueDate: daysAgo(10).slice(0, 10), predecessorId: "t1", createdAt: daysAgo(15) },
+  { id: "t3", projectId: "p1", title: "Desenvolvimento Front-end Responsivo", phase: "Fase 2: Execução & Código", status: "Em andamento", startDate: daysAgo(10).slice(0, 10), dueDate: daysFromNow(5), predecessorId: "t2", createdAt: daysAgo(10) },
+  { id: "t4", projectId: "p1", title: "Integração API Instagram & CMS Blog", phase: "Fase 2: Execução & Código", status: "Pendente", startDate: daysFromNow(5), dueDate: daysFromNow(12), predecessorId: "t3", createdAt: daysAgo(10) },
+  { id: "t5", projectId: "p1", title: "Homologação, Deploy e QA Final", phase: "Fase 3: Testes & Entrega", status: "Pendente", startDate: daysFromNow(12), dueDate: daysFromNow(18), predecessorId: "t4", createdAt: daysAgo(10) },
 ];
 
 interface State {
@@ -146,135 +183,287 @@ interface State {
   wiki: WikiArticle[];
   tasks: ProjectTask[];
   applications: ProjectApplication[];
+  triageResponses: ProjectTriageResponse[];
+  
   login: (email: string, name?: string, role?: Role) => void;
   logout: () => void;
   setRole: (role: Role) => void;
   addProject: (p: Omit<Project, "id" | "status" | "files" | "history" | "createdAt" | "clientFeedback">) => Project;
+  updateProjectDetails: (id: string, patch: Partial<Project>) => void;
   updateProjectStatus: (id: string, status: ProjectStatus) => void;
   updateProjectBriefing: (id: string, briefing: string) => void;
+  updateProjectBriefingSections: (id: string, sections: ProjectBriefingSections) => void;
   assignFreelancer: (id: string, freelancerId: string | undefined) => void;
   setDriveLink: (id: string, link: string) => void;
   addFile: (id: string, f: Omit<ProjectFile, "id" | "uploadedAt">) => void;
   removeFile: (id: string, fileId: string) => void;
+  addClientFeedback: (id: string, decision: ClientDecision, message?: string) => void;
   generatePublicToken: (id: string) => string;
   generateClientToken: (id: string) => string;
-  addClientFeedback: (id: string, decision: ClientDecision, message?: string) => void;
+  addTriageResponse: (response: ProjectTriageResponse) => void;
+  getTriageResponse: (token: string) => ProjectTriageResponse | undefined;
+  
   addFreelancer: (f: Omit<Freelancer, "id" | "createdAt">) => Freelancer;
   toggleFreelancerActive: (id: string) => void;
   removeFreelancer: (id: string) => void;
+  
   addExpense: (e: Omit<Expense, "id" | "createdAt">) => void;
   updateExpenseStatus: (id: string, status: ExpenseStatus) => void;
   removeExpense: (id: string) => void;
+
+  // Leads (CRM)
   addLead: (l: Omit<Lead, "id" | "createdAt" | "stage"> & { stage?: LeadStage }) => void;
   updateLeadStage: (id: string, stage: LeadStage) => void;
   removeLead: (id: string) => void;
   convertLeadToProject: (id: string, deadline: string) => string | null;
+
+  // Wiki
   saveWiki: (w: Omit<WikiArticle, "id" | "updatedAt"> & { id?: string }) => void;
   removeWiki: (id: string) => void;
-  // Tarefas
-  addTask: (t: Omit<ProjectTask, "id" | "createdAt" | "baselineStart" | "baselineDue">) => ProjectTask;
-  updateTask: (id: string, patch: Partial<Omit<ProjectTask, "id" | "projectId" | "createdAt">>) => void;
-  updateTaskStatus: (id: string, status: TaskStatus) => void;
-  removeTask: (id: string) => void;
-  shiftTaskCascade: (id: string, startIso: string, dueIso: string) => void;
-  rebaselineTasks: (projectId: string) => void;
-  // Aplicações / Triagem
-  inviteFreelancerToProject: (projectId: string, freelancerId: string) => ProjectApplication | null;
-  submitApplication: (token: string, data: Omit<Partial<ProjectApplication>, "id" | "token" | "projectId" | "freelancerId" | "status" | "invitedAt">) => void;
+
+  // Applications
+  inviteFreelancerToProject: (projectId: string, freelancerId: string) => ProjectApplication;
+  submitApplication: (token: string, data: Partial<ProjectApplication>) => void;
   updateApplicationStatus: (id: string, status: ApplicationStatus) => void;
   selectApplication: (id: string) => void;
   removeApplication: (id: string) => void;
+  
+  addTask: (t: Omit<ProjectTask, "id" | "createdAt">) => ProjectTask;
+  updateTask: (id: string, patch: Partial<ProjectTask>) => void;
+  updateTaskStatus: (id: string, status: TaskStatus) => { success: boolean; error?: string };
+  removeTask: (id: string) => void;
 }
 
 export const useStore = create<State>()(
   persist(
     (set, get) => ({
-      user: null,
+      user: {
+        id: "gestor-1",
+        email: "gestor@delski.co",
+        name: "Gestor Delski",
+        role: "gestor",
+      },
       projects: seedProjects,
       freelancers: seedFreelancers,
       expenses: seedExpenses,
-      leads: seedLeads,
-      wiki: seedWiki,
+      leads: [],
+      wiki: [],
       tasks: seedTasks,
-      applications: seedApplications,
+      applications: [],
+      triageResponses: [],
+
       login: (email, name, role = "gestor") => {
         const freelancer = get().freelancers.find((f) => f.email === email);
-        const resolvedRole: Role = freelancer ? "freelancer" : role;
+        const isClient = email.includes("cliente") || email.includes("aurora");
+        const resolvedRole: Role = isClient ? "cliente" : freelancer ? "freelancer" : role;
+        
         set({
           user: {
-            id: uid(), email,
-            name: name || freelancer?.name || email.split("@")[0],
-            role: resolvedRole, freelancerId: freelancer?.id,
+            id: uid(),
+            email,
+            name: name || (isClient ? "Cliente Aurora" : freelancer?.name || email.split("@")[0]),
+            role: resolvedRole,
+            freelancerId: freelancer?.id,
+            clientId: isClient ? "c1" : undefined,
           },
         });
       },
+
       logout: () => set({ user: null }),
+
       setRole: (role) => {
         const u = get().user;
         if (!u) return;
         if (role === "freelancer") {
           const f = get().freelancers[0];
-          set({ user: { ...u, role, freelancerId: f?.id, name: f?.name || u.name, email: f?.email || u.email } });
+          set({ user: { ...u, role, freelancerId: f?.id, clientId: undefined, name: f?.name || u.name } });
+        } else if (role === "cliente") {
+          set({ user: { ...u, role, freelancerId: undefined, clientId: "c1", name: "Cliente Aurora" } });
         } else {
-          set({ user: { ...u, role, freelancerId: undefined } });
+          set({ user: { ...u, role, freelancerId: undefined, clientId: undefined, name: "Gestor Delski" } });
         }
       },
+
       addProject: (p) => {
         const project: Project = {
-          ...p, id: uid(), status: "Solicitado", files: [], clientFeedback: [],
+          ...p,
+          id: uid(),
+          status: "Solicitado",
+          files: [],
+          clientFeedback: [],
+          briefingSections: p.briefingSections || {
+            overview: p.briefing || p.description,
+            technicalSpecs: `Tecnologia para vertical ${p.type}`,
+            repositoryNotes: "Links de arquivos e entregáveis",
+          },
           history: [{ id: uid(), at: now(), actor: "Gestor", message: "Projeto criado" }],
-          createdAt: now(), lastStatusChangeAt: now(),
+          createdAt: now(),
+          lastStatusChangeAt: now(),
         };
         set({ projects: [project, ...get().projects] });
         return project;
       },
+
+      updateProjectDetails: (id, patch) => {
+        set({
+          projects: get().projects.map((p) => (p.id === id ? { ...p, ...patch } : p)),
+        });
+      },
+
       updateProjectStatus: (id, status) => {
         set({
           projects: get().projects.map((p) =>
             p.id === id
-              ? { ...p, status, lastStatusChangeAt: now(), history: [...p.history, { id: uid(), at: now(), actor: get().user?.name || "Sistema", message: `Status alterado para ${status}` }] }
+              ? {
+                  ...p,
+                  status,
+                  lastStatusChangeAt: now(),
+                  history: [
+                    ...p.history,
+                    { id: uid(), at: now(), actor: get().user?.name || "Sistema", message: `Status alterado para ${status}` },
+                  ],
+                }
               : p,
           ),
         });
       },
+
       updateProjectBriefing: (id, briefing) => {
         set({ projects: get().projects.map((p) => (p.id === id ? { ...p, briefing } : p)) });
       },
+
+      updateProjectBriefingSections: (id, sections) => {
+        set({
+          projects: get().projects.map((p) =>
+            p.id === id ? { ...p, briefingSections: sections } : p,
+          ),
+        });
+      },
+
       assignFreelancer: (id, freelancerId) => {
         const f = get().freelancers.find((x) => x.id === freelancerId);
         set({
           projects: get().projects.map((p) =>
             p.id === id
               ? {
-                  ...p, freelancerId,
+                  ...p,
+                  freelancerId,
                   status: freelancerId && p.status === "Solicitado" ? "Delegado" : p.status,
                   lastStatusChangeAt: freelancerId && p.status === "Solicitado" ? now() : p.lastStatusChangeAt,
-                  history: [...p.history, { id: uid(), at: now(), actor: get().user?.name || "Sistema", message: freelancerId ? `Delegado para ${f?.name}` : "Delegação removida" }],
+                  history: [
+                    ...p.history,
+                    {
+                      id: uid(),
+                      at: now(),
+                      actor: get().user?.name || "Sistema",
+                      message: freelancerId ? `Delegado para ${f?.name}` : "Delegação removida",
+                    },
+                  ],
                 }
               : p,
           ),
         });
       },
+
       setDriveLink: (id, link) => {
         set({ projects: get().projects.map((p) => (p.id === id ? { ...p, driveLink: link } : p)) });
       },
+
       addFile: (id, f) => {
         const file: ProjectFile = { ...f, id: uid(), uploadedAt: now() };
-        set({ projects: get().projects.map((p) => (p.id === id ? { ...p, files: [...p.files, file] } : p)) });
+        set({
+          projects: get().projects.map((p) => (p.id === id ? { ...p, files: [...p.files, file] } : p)),
+        });
       },
+
       removeFile: (id, fileId) => {
-        set({ projects: get().projects.map((p) => (p.id === id ? { ...p, files: p.files.filter((f) => f.id !== fileId) } : p)) });
+        set({
+          projects: get().projects.map((p) =>
+            p.id === id ? { ...p, files: p.files.filter((f) => f.id !== fileId) } : p,
+          ),
+        });
       },
-      generatePublicToken: (id) => {
-        const token = uid() + uid();
-        set({ projects: get().projects.map((p) => (p.id === id ? { ...p, publicToken: token } : p)) });
-        return token;
+
+      addTriageResponse: (resp) => {
+        set({
+          triageResponses: [resp, ...get().triageResponses.filter((t) => t.token !== resp.token)],
+        });
       },
-      generateClientToken: (id) => {
-        const token = uid() + uid();
-        set({ projects: get().projects.map((p) => (p.id === id ? { ...p, clientToken: token } : p)) });
-        return token;
+
+      getTriageResponse: (token) => {
+        return get().triageResponses.find((t) => t.token === token);
       },
+
+      addFreelancer: (f) => {
+        const freelancer: Freelancer = { ...f, id: uid(), createdAt: now() };
+        set({ freelancers: [freelancer, ...get().freelancers] });
+        return freelancer;
+      },
+
+      toggleFreelancerActive: (id) => {
+        set({
+          freelancers: get().freelancers.map((f) => (f.id === id ? { ...f, active: !f.active } : f)),
+        });
+      },
+
+      removeFreelancer: (id) => {
+        set({ freelancers: get().freelancers.filter((f) => f.id !== id) });
+      },
+
+      addExpense: (e) => {
+        set({ expenses: [{ ...e, id: uid(), createdAt: now() }, ...get().expenses] });
+      },
+
+      updateExpenseStatus: (id, status) => {
+        set({ expenses: get().expenses.map((e) => (e.id === id ? { ...e, status } : e)) });
+      },
+
+      removeExpense: (id) => {
+        set({ expenses: get().expenses.filter((e) => e.id !== id) });
+      },
+
+      addTask: (t) => {
+        const task: ProjectTask = {
+          ...t,
+          id: uid(),
+          phase: t.phase || "Fase 1: Execução",
+          createdAt: now(),
+        };
+        set({ tasks: [...get().tasks, task] });
+        return task;
+      },
+
+      updateTask: (id, patch) => {
+        set({ tasks: get().tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) });
+      },
+
+      updateTaskStatus: (id, newStatus) => {
+        const tasks = get().tasks;
+        const targetTask = tasks.find((t) => t.id === id);
+        if (!targetTask) return { success: false, error: "Tarefa não encontrada" };
+
+        // PREDECESSOR DEPENDENCY CHECKING
+        if (targetTask.predecessorId && (newStatus === "Em andamento" || newStatus === "Concluida")) {
+          const pred = tasks.find((t) => t.id === targetTask.predecessorId);
+          if (pred && pred.status !== "Concluida") {
+            return {
+              success: false,
+              error: `Bloqueado por dependência: A tarefa "${pred.title}" precisa ser concluída antes de avançar esta tarefa!`,
+            };
+          }
+        }
+
+        set({
+          tasks: tasks.map((t) => (t.id === id ? { ...t, status: newStatus } : t)),
+        });
+        return { success: true };
+      },
+
+      removeTask: (id) => {
+        set({ tasks: get().tasks.filter((t) => t.id !== id && t.predecessorId !== id) });
+      },
+
+      // ─── Client Feedback ─────────────────────────────────────────────────
       addClientFeedback: (id, decision, message) => {
         set({
           projects: get().projects.map((p) => {
@@ -288,26 +477,20 @@ export const useStore = create<State>()(
           }),
         });
       },
-      addFreelancer: (f) => {
-        const freelancer: Freelancer = { ...f, id: uid(), createdAt: now() };
-        set({ freelancers: [freelancer, ...get().freelancers] });
-        return freelancer;
+
+      generatePublicToken: (id) => {
+        const token = uid() + uid();
+        set({ projects: get().projects.map((p) => (p.id === id ? { ...p, publicToken: token } : p)) });
+        return token;
       },
-      toggleFreelancerActive: (id) => {
-        set({ freelancers: get().freelancers.map((f) => (f.id === id ? { ...f, active: !f.active } : f)) });
+
+      generateClientToken: (id) => {
+        const token = uid() + uid();
+        set({ projects: get().projects.map((p) => (p.id === id ? { ...p, clientToken: token } : p)) });
+        return token;
       },
-      removeFreelancer: (id) => {
-        set({ freelancers: get().freelancers.filter((f) => f.id !== id) });
-      },
-      addExpense: (e) => {
-        set({ expenses: [{ ...e, id: uid(), createdAt: now() }, ...get().expenses] });
-      },
-      updateExpenseStatus: (id, status) => {
-        set({ expenses: get().expenses.map((e) => (e.id === id ? { ...e, status } : e)) });
-      },
-      removeExpense: (id) => {
-        set({ expenses: get().expenses.filter((e) => e.id !== id) });
-      },
+
+      // ─── Leads (CRM) ──────────────────────────────────────────────────────
       addLead: (l) => {
         set({ leads: [{ ...l, stage: l.stage || "Prospeccao", id: uid(), createdAt: now() }, ...get().leads] });
       },
@@ -321,13 +504,17 @@ export const useStore = create<State>()(
         const lead = get().leads.find((l) => l.id === id);
         if (!lead) return null;
         const project = get().addProject({
-          client: lead.name, type: lead.service,
+          client: lead.name,
+          type: lead.service,
           description: lead.notes || `Projeto originado do lead ${lead.name}.`,
-          deadline, budget: lead.estimatedValue,
+          deadline,
+          budget: lead.estimatedValue,
         });
         set({ leads: get().leads.map((l) => (l.id === id ? { ...l, stage: "Fechado", convertedProjectId: project.id } : l)) });
         return project.id;
       },
+
+      // ─── Wiki ─────────────────────────────────────────────────────────────
       saveWiki: (w) => {
         if (w.id) {
           set({ wiki: get().wiki.map((a) => (a.id === w.id ? { ...a, ...w, id: w.id, updatedAt: now() } as WikiArticle : a)) });
@@ -338,63 +525,13 @@ export const useStore = create<State>()(
       removeWiki: (id) => {
         set({ wiki: get().wiki.filter((a) => a.id !== id) });
       },
-      addTask: (t) => {
-        const task: ProjectTask = { ...t, id: uid(), createdAt: now(), baselineStart: t.startDate, baselineDue: t.dueDate };
-        set({ tasks: [...get().tasks, task] });
-        return task;
-      },
-      updateTask: (id, patch) => {
-        set({ tasks: get().tasks.map((t) => (t.id === id ? { ...t, ...patch } : t)) });
-      },
-      updateTaskStatus: (id, status) => {
-        set({ tasks: get().tasks.map((t) => (t.id === id ? { ...t, status } : t)) });
-      },
-      removeTask: (id) => {
-        set({ tasks: get().tasks.filter((t) => t.id !== id && t.predecessorId !== id) });
-      },
-      shiftTaskCascade: (id, startIso, dueIso) => {
-        const all = [...get().tasks];
-        const map = new Map(all.map((t) => [t.id, { ...t }]));
-        const target = map.get(id);
-        if (!target) return;
-        target.startDate = startIso;
-        target.dueDate = dueIso;
-        // Propagação: filhos (predecessorId === id) devem começar em due+1, preservando duração
-        const queue: string[] = [id];
-        const visited = new Set<string>();
-        while (queue.length) {
-          const currentId = queue.shift()!;
-          if (visited.has(currentId)) continue;
-          visited.add(currentId);
-          const current = map.get(currentId)!;
-          for (const child of Array.from(map.values())) {
-            if (child.predecessorId !== currentId) continue;
-            const minStartMs = new Date(current.dueDate).getTime() + 864e5;
-            const childStartMs = new Date(child.startDate).getTime();
-            if (childStartMs < minStartMs) {
-              const duration = Math.max(0, Math.round((new Date(child.dueDate).getTime() - childStartMs) / 864e5));
-              const newStart = new Date(minStartMs).toISOString().slice(0, 10);
-              const newDue = new Date(minStartMs + duration * 864e5).toISOString().slice(0, 10);
-              child.startDate = newStart;
-              child.dueDate = newDue;
-              queue.push(child.id);
-            }
-          }
-        }
-        set({ tasks: Array.from(map.values()) });
-      },
-      rebaselineTasks: (projectId) => {
-        set({
-          tasks: get().tasks.map((t) =>
-            t.projectId === projectId ? { ...t, baselineStart: t.startDate, baselineDue: t.dueDate } : t,
-          ),
-        });
-      },
+
+      // ─── Applications (legacy / freelancer invite flow) ───────────────────
       inviteFreelancerToProject: (projectId, freelancerId) => {
         const exists = get().applications.find((a) => a.projectId === projectId && a.freelancerId === freelancerId);
         if (exists) return exists;
         const app: ProjectApplication = {
-          id: uid(), projectId, freelancerId, token: uuid(),
+          id: uid(), projectId, freelancerId, token: uid() + uid(),
           status: "Pendente", invitedAt: now(),
         };
         set({ applications: [app, ...get().applications] });
@@ -403,9 +540,7 @@ export const useStore = create<State>()(
       submitApplication: (token, data) => {
         set({
           applications: get().applications.map((a) =>
-            a.token === token
-              ? { ...a, ...data, status: "Respondida", respondedAt: now() }
-              : a,
+            a.token === token ? { ...a, ...data, status: "Respondida" } : a,
           ),
         });
       },
@@ -414,15 +549,13 @@ export const useStore = create<State>()(
       },
       selectApplication: (id) => {
         const app = get().applications.find((a) => a.id === id);
-        if (!app) return;
+        if (!app || !app.freelancerId) return;
         get().assignFreelancer(app.projectId, app.freelancerId);
         set({
           applications: get().applications.map((a) => {
             if (a.projectId !== app.projectId) return a;
             if (a.id === id) return { ...a, status: "Selecionada" };
-            return a.status === "Respondida" || a.status === "Pendente"
-              ? { ...a, status: "Recusada" }
-              : a;
+            return a.status === "Respondida" || a.status === "Pendente" ? { ...a, status: "Recusada" } : a;
           }),
         });
       },
@@ -430,15 +563,21 @@ export const useStore = create<State>()(
         set({ applications: get().applications.filter((a) => a.id !== id) });
       },
     }),
-    { name: "delski-store-v4" },
+
+    { name: "delski-store-v5" },
   ),
 );
+
+// ─── Selector helpers (backward-compat with existing routes) ───────────────
+export const useProjectByClientToken = (token: string) =>
+  useStore((s) => s.projects.find((p) => p.clientToken === token));
 
 export const useProjectByToken = (token: string) =>
   useStore((s) => s.projects.find((p) => p.publicToken === token));
 
-export const useProjectByClientToken = (token: string) =>
-  useStore((s) => s.projects.find((p) => p.clientToken === token));
-
 export const useApplicationByToken = (token: string) =>
-  useStore((s) => s.applications.find((a) => a.token === token));
+  useStore((s) =>
+    // look in triageResponses first, then fall back to a compatible shape
+    s.triageResponses.find((r) => r.token === token),
+  );
+

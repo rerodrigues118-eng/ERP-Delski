@@ -61,10 +61,11 @@ export interface ProjectTask {
   id: string;
   projectId: string;
   title: string;
+  phase?: string; // Phase 1, Phase 2, Phase 3
   status: TaskStatus;
   startDate: string; // ISO yyyy-mm-dd
   dueDate: string;
-  baselineStart?: string; // referência original (para calcular atraso)
+  baselineStart?: string;
   baselineDue?: string;
   predecessorId?: string;
   createdAt: string;
@@ -75,17 +76,40 @@ export type ApplicationStatus = "Pendente" | "Respondida" | "Selecionada" | "Rec
 export interface ProjectApplication {
   id: string;
   projectId: string;
-  freelancerId: string;
+  freelancerId?: string;
   token: string;
   status: ApplicationStatus;
   invitedAt: string;
   respondedAt?: string;
-  // respostas de triagem
-  capacity?: string;         // capacidade (horas/semana)
-  availability?: string;     // disponibilidade (data de início)
-  proposedDeadline?: string; // proposta de prazo (ISO)
-  proposedValue?: number;    // proposta de valor
+  freelancerName?: string;
+  freelancerEmail?: string;
+  skills?: string[];
+  availabilityHours?: number;
+  portfolioUrl?: string;
+  proposedRate?: number;
   notes?: string;
+  score?: number;
+}
+
+export interface ProjectTriageResponse {
+  token: string;
+  projectId: string;
+  freelancerName: string;
+  freelancerEmail: string;
+  skills: string[];
+  availabilityHours: number;
+  portfolioUrl: string;
+  proposedRate: number;
+  notes?: string;
+  score: number;
+  status: "Rascunho" | "Enviado" | "Aprovado" | "Rejeitado";
+  submittedAt: string;
+}
+
+export interface ProjectBriefingSections {
+  overview: string;
+  technicalSpecs: string;
+  repositoryNotes: string;
 }
 
 export interface Project {
@@ -93,12 +117,15 @@ export interface Project {
   client: string;
   type: ServiceType;
   description: string;
-  briefing?: string; // markdown / rich text
+  briefing?: string; // Markdown or overview
+  briefingSections?: ProjectBriefingSections;
   deadline: string;
   budget: number;
+  freelancerCost?: number;
   referenceLink?: string;
   status: ProjectStatus;
   freelancerId?: string;
+  clientId?: string;
   driveLink?: string;
   publicToken?: string;
   clientToken?: string;
@@ -109,7 +136,7 @@ export interface Project {
   lastStatusChangeAt?: string;
 }
 
-export type Role = "gestor" | "freelancer";
+export type Role = "gestor" | "freelancer" | "cliente";
 
 export interface AuthUser {
   id: string;
@@ -117,6 +144,7 @@ export interface AuthUser {
   email: string;
   role: Role;
   freelancerId?: string;
+  clientId?: string;
 }
 
 export type LeadStage = "Prospeccao" | "Reuniao" | "Proposta" | "Fechado" | "Perdido";
