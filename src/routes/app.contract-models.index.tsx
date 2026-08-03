@@ -1,0 +1,482 @@
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { toast } from "sonner";
+import {
+  FilePlus,
+  UploadCloud,
+  ChevronRight,
+  Trash2,
+  Loader2,
+  CheckCircle2,
+  Files,
+} from "lucide-react";
+import {
+  useContractModels,
+  useUploadContractTemplate,
+  useExtractContractVariables,
+  useCreateContractModel,
+  useDeleteContractModel,
+} from "@/hooks/useContractModels";
+import type { ContractModelVariable } from "@/types/contract-models";
+
+const variableOriginSuggestions: Record<string, ContractModelVariable["origin"]> = {
+  nome_representante_contratante: "company",
+  razao_social_nome_contratado: "freelancer",
+  data_inicio: "project",
+  valor_contrato: "project",
+  descricao_servico: "project",
+  nome_assinatura: "manual",
+};
+
+const ORIGIN_LABELS: Record<ContractModelVariable["origin"], string> = {
+  company: "Empresa",
+  freelancer: "Freelancer",
+  project: "Projeto",
+  manual: "Manual",
+  system: "Sistema",
+};
+
+const defaultVariableMap: ContractModelVariable[] = [
+  {
+    name: "nome_representante_contratante",
+    origin: "company",
+    section: "Partes",
+    order: 1,
+    label: "Nome do Representante Contratante",
+    defaultValue: "",
+  },
+  {
+    name: "razao_social_nome_contratado",
+    origin: "freelancer",
+    section: "Partes",
+    order: 2,
+    label: "Razão Social ou Nome do Contratado",
+    defaultValue: "",
+  },
+];
+
+export const Route = createFileRoute("/app/contract-models/")({
+  head: () => ({
+    meta: [{ title: "Modelos de Contrato — Delski ERP" }],
+  }),
+  component: ContractModelsPage,
+});
+
+function buildVariableMap(variableNames: string[]) {
+  return variableNames.map((name, index) => ({
+    name,
+    origin: variableOriginSuggestions[name] ?? "manual",
+    section: "Geral",
+    order: index + 1,
+    label: name.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    defaultValue: "",
+  }));
+}
+
+interface PendingFile {
+  id: string;
+  file: File;
+  name: string;
+  service_type: "IA" | "Trafego" | "Sites" | "Social Media";
+  variables: string[];
+  isExtracting: boolean;
+  error?: string;
+}
+
+function ContractModelsPage() {
+  const { data: models = [], isLoading } = useContractModels();
+  const uploadTemplate = useUploadContractTemplate();
+  const extractVariables = useExtractContractVariables();
+  const createContractModel = useCreateContractModel();
+  const deleteContractModel = useDeleteContractModel();
+
+  const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
+  const [isSubmittingBatch, setIsSubmittingBatch] = useState(false);
+
+  const handleDeleteModel = async (id: string, name: string) => {
+    if (!confirm(`Tem certeza de que deseja apagar o modelo "${name}"?`)) return;
+    try {
+      await deleteContractModel.mutateAsync(id);
+      toast.success("Modelo apagado com sucesso.");
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao apagar modelo.");
+    }
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const rawFiles = Array.from(event.target.files ?? []);
+    if (rawFiles.length === 0) return;
+
+    // Build initial list of pending files
+    const newItems: PendingFile[] = rawFiles.map((file, index) => ({
+      id: `${Date.now()}_${index}_${Math.random().toString(36).substring(2, 7)}`,
+      file,
+      name: file.name
+        .replace(/\.docx$/i, "")
+        .replace(/[-_]+/g, " ")
+        .trim(),
+      service_type: "IA",
+      variables: [],
+      isExtracting: true,
+    }));
+
+    setPendingFiles(newItems);
+
+    // Extract variables asynchronously for each file
+    for (const item of newItems) {
+      try {
+        const vars = await extractVariables.mutateAsync(item.file);
+        setPendingFiles((current) =>
+          current.map((p) =>
+            p.id === item.id ? { ...p, variables: vars, isExtracting: false } : p,
+          ),
+        );
+      } catch (error) {
+        console.error(`Erro ao extrair variáveis do arquivo ${item.file.name}:`, error);
+        setPendingFiles((current) =>
+          current.map((p) =>
+            p.id === item.id
+              ? { ...p, isExtracting: false, error: "Erro ao extrair variáveis" }
+              : p,
+          ),
+        );
+      }
+    }
+  };
+
+  const handleUpdatePendingField = (id: string, field: "name" | "service_type", value: string) => {
+    setPendingFiles((current) => current.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
+  };
+
+  const handleRemovePending = (id: string) => {
+    setPendingFiles((current) => current.filter((p) => p.id !== id));
+  };
+
+  const handleApplyGlobalServiceType = (
+    serviceType: "IA" | "Trafego" | "Sites" | "Social Media",
+  ) => {
+    setPendingFiles((current) => current.map((p) => ({ ...p, service_type: serviceType })));
+  };
+
+  const handleSubmitBatch = async () => {
+    if (pendingFiles.length === 0) {
+      toast.error("Selecione ao menos um arquivo .docx.");
+      return;
+    }
+
+    const invalid = pendingFiles.find((p) => !p.name.trim());
+    if (invalid) {
+      toast.error(`Informe um nome para o arquivo "${invalid.file.name}".`);
+      return;
+    }
+
+    try {
+      setIsSubmittingBatch(true);
+      let count = 0;
+
+      for (const item of pendingFiles) {
+        const upload = await uploadTemplate.mutateAsync(item.file);
+        const variableMap = buildVariableMap(item.variables);
+
+        await createContractModel.mutateAsync({
+          name: item.name.trim(),
+          service_type: item.service_type,
+          docx_path: upload.path,
+          variable_map: variableMap,
+          is_active: false,
+        });
+
+        count++;
+      }
+
+      toast.success(
+        count === 1 ? "Modelo criado com sucesso!" : `${count} modelos criados com sucesso!`,
+      );
+      setPendingFiles([]);
+    } catch (error) {
+      console.error(error);
+      toast.error("Erro ao importar modelos.");
+    } finally {
+      setIsSubmittingBatch(false);
+    }
+  };
+
+  const handleCreateEmptyModel = async () => {
+    const modelName = `Modelo ${models.length + 1}`;
+    await createContractModel.mutateAsync({
+      name: modelName,
+      service_type: "IA",
+      docx_path: "",
+      variable_map: defaultVariableMap,
+      is_active: false,
+    });
+    toast.success("Modelo criado. Complete as informações no editor.");
+  };
+
+  const anyExtracting = pendingFiles.some((p) => p.isExtracting);
+
+  return (
+    <div className="space-y-6 pb-16">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between border-b border-border pb-5">
+        <div>
+          <h1 className="font-serif text-3xl font-bold tracking-tight text-stone-900">
+            Modelos de Contrato
+          </h1>
+          <p className="text-sm text-stone-500 mt-1 max-w-2xl">
+            Cadastre um ou múltiplos modelos `.docx` simultaneamente, extraia variáveis
+            automaticamente e edite o mapeamento.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button
+            onClick={handleCreateEmptyModel}
+            className="gap-2 bg-blue-900 hover:bg-blue-950 text-white font-medium rounded-md shadow-none text-xs h-9 px-4"
+          >
+            <FilePlus className="h-4 w-4" /> Novo Modelo em Branco
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
+        {/* Upload Card */}
+        <Card className="space-y-4 shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Upload de Templates</span>
+              <Badge variant="outline" className="text-xs font-normal">
+                Suporta múltiplos arquivos .docx
+              </Badge>
+            </CardTitle>
+            <CardDescription>
+              Selecione um ou vários arquivos `.docx` para importar modelos de uma só vez.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="contract-files">Arquivos .docx</Label>
+              <input
+                id="contract-files"
+                type="file"
+                accept=".docx"
+                multiple
+                onChange={handleFileChange}
+                className="w-full text-xs file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90 cursor-pointer border border-border rounded-xl p-1 bg-muted/30"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Dica: Você pode selecionar vários arquivos mantendo a tecla{" "}
+                <kbd className="px-1 py-0.5 bg-muted rounded border">Ctrl</kbd> ou{" "}
+                <kbd className="px-1 py-0.5 bg-muted rounded border">Shift</kbd> pressionada.
+              </p>
+            </div>
+
+            {/* Pending Files List */}
+            {pendingFiles.length > 0 && (
+              <div className="space-y-4 pt-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-2">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <Files className="h-3.5 w-3.5 text-indigo-500" />
+                    {pendingFiles.length}{" "}
+                    {pendingFiles.length === 1 ? "arquivo selecionado" : "arquivos selecionados"}
+                  </span>
+
+                  {pendingFiles.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground">Tipo global:</span>
+                      <Select onValueChange={(val) => handleApplyGlobalServiceType(val as any)}>
+                        <SelectTrigger className="h-7 text-xs w-[110px]">
+                          <SelectValue placeholder="Aplicar a todos" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="IA">IA</SelectItem>
+                          <SelectItem value="Trafego">Trafego</SelectItem>
+                          <SelectItem value="Sites">Sites</SelectItem>
+                          <SelectItem value="Social Media">Social Media</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
+                  {pendingFiles.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-border/80 bg-card p-3 space-y-2.5 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className="text-xs font-medium text-muted-foreground truncate max-w-[240px]"
+                          title={item.file.name}
+                        >
+                          #{index + 1} — {item.file.name}
+                        </span>
+
+                        <div className="flex items-center gap-2">
+                          {item.isExtracting ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-indigo-500 bg-indigo-500/10 px-2 py-0.5 rounded-full">
+                              <Loader2 className="h-2.5 w-2.5 animate-spin" /> Extraindo
+                              variáveis...
+                            </span>
+                          ) : item.error ? (
+                            <span className="text-[10px] font-medium text-red-500 bg-red-500/10 px-2 py-0.5 rounded-full">
+                              {item.error}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full">
+                              <CheckCircle2 className="h-2.5 w-2.5" /> {item.variables.length}{" "}
+                              variáveis
+                            </span>
+                          )}
+
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 text-muted-foreground hover:text-red-500"
+                            onClick={() => handleRemovePending(item.id)}
+                            title="Remover este arquivo"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground">
+                            Nome do Modelo
+                          </Label>
+                          <Input
+                            size={1}
+                            className="h-8 text-xs"
+                            value={item.name}
+                            onChange={(e) =>
+                              handleUpdatePendingField(item.id, "name", e.target.value)
+                            }
+                            placeholder="Nome do modelo"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground">
+                            Tipo de Serviço
+                          </Label>
+                          <Select
+                            value={item.service_type}
+                            onValueChange={(val) =>
+                              handleUpdatePendingField(item.id, "service_type", val as any)
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="IA">IA</SelectItem>
+                              <SelectItem value="Trafego">Trafego</SelectItem>
+                              <SelectItem value="Sites">Sites</SelectItem>
+                              <SelectItem value="Social Media">Social Media</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Button
+                  className="w-full gap-2 mt-2"
+                  onClick={handleSubmitBatch}
+                  disabled={pendingFiles.length === 0 || isSubmittingBatch || anyExtracting}
+                >
+                  {isSubmittingBatch ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" /> Importando modelos...
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="h-4 w-4" />
+                      {pendingFiles.length === 1
+                        ? "Importar 1 Modelo"
+                        : `Importar Todos os ${pendingFiles.length} Modelos`}
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Models List */}
+        <Card className="space-y-4 shadow-sm">
+          <CardHeader>
+            <CardTitle>Modelos Cadastrados ({models.length})</CardTitle>
+            <CardDescription>
+              Selecione um modelo para editar o mapeamento de variáveis.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {isLoading ? (
+              <div className="rounded-2xl border border-border bg-muted p-6 text-center text-sm text-muted-foreground">
+                Carregando modelos...
+              </div>
+            ) : models.length === 0 ? (
+              <div className="rounded-2xl border border-border bg-muted p-6 text-sm text-muted-foreground">
+                Nenhum modelo encontrado.
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[560px] overflow-y-auto pr-1">
+                {models.map((model) => (
+                  <div
+                    key={model.id}
+                    className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-all hover:border-border/80"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <p className="font-semibold text-sm">{model.name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {model.service_type} • {model.is_active ? "Ativo" : "Inativo"} •{" "}
+                          {Array.isArray(model.variable_map) ? model.variable_map.length : 0}{" "}
+                          variáveis
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="outline" asChild>
+                          <Link to="/app/contract-models/$id" params={{ id: model.id }}>
+                            <span className="flex items-center gap-2">
+                              <ChevronRight className="h-4 w-4" /> Abrir
+                            </span>
+                          </Link>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20"
+                          onClick={() => handleDeleteModel(model.id, model.name)}
+                          title="Apagar modelo"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+}

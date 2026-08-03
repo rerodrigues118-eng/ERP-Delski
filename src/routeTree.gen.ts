@@ -12,18 +12,32 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as PortalRouteImport } from './routes/portal'
 import { Route as AppIndexRouteImport } from './routes/app.index'
-import { Route as AppCrmRouteImport } from './routes/app.crm'
+import { Route as AppContractGeneratorRouteImport } from './routes/app.contract-generator'
+import { Route as AppDocumentsRouteImport } from './routes/app.documents'
 import { Route as AppFinanceRouteImport } from './routes/app.finance'
-import { Route as AppFreelancersRouteImport } from './routes/app.freelancers'
 import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
-import { Route as AppProposalsRouteImport } from './routes/app.proposals'
-import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppRisksRouteImport } from './routes/app.risks'
+import { Route as AppSuporteRouteImport } from './routes/app.suporte'
 import { Route as AppWikiRouteImport } from './routes/app.wiki'
 import { Route as CTokenRouteImport } from './routes/c.$token'
+import { Route as CandidaturaIdRouteImport } from './routes/candidatura.$id'
 import { Route as PTokenRouteImport } from './routes/p.$token'
+import { Route as PortalAuthRouteImport } from './routes/portal.auth'
+import { Route as PortalContratoRouteImport } from './routes/portal.contrato'
+import { Route as PortalDashboardRouteImport } from './routes/portal.dashboard'
+import { Route as PortalDocumentosRouteImport } from './routes/portal.documentos'
+import { Route as PortalFinanceiroRouteImport } from './routes/portal.financeiro'
+import { Route as PortalProjetosRouteImport } from './routes/portal.projetos'
+import { Route as PortalSuporteRouteImport } from './routes/portal.suporte'
 import { Route as TriagemTokenRouteImport } from './routes/triagem.$token'
+import { Route as AppClientsIndexRouteImport } from './routes/app.clients.index'
+import { Route as AppClientsIdRouteImport } from './routes/app.clients.$id'
+import { Route as AppContractModelsIndexRouteImport } from './routes/app.contract-models.index'
+import { Route as AppContractModelsIdRouteImport } from './routes/app.contract-models.$id'
+import { Route as AppFreelancersIndexRouteImport } from './routes/app.freelancers.index'
+import { Route as AppFreelancersIdRouteImport } from './routes/app.freelancers.$id'
 import { Route as AppProjectsIndexRouteImport } from './routes/app.projects.index'
 import { Route as AppProjectsIdRouteImport } from './routes/app.projects.$id'
 import { Route as AppProjectsNewRouteImport } from './routes/app.projects.new'
@@ -43,14 +57,24 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalRoute = PortalRouteImport.update({
+  id: '/portal',
+  path: '/portal',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppCrmRoute = AppCrmRouteImport.update({
-  id: '/crm',
-  path: '/crm',
+const AppContractGeneratorRoute = AppContractGeneratorRouteImport.update({
+  id: '/contract-generator',
+  path: '/contract-generator',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDocumentsRoute = AppDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFinanceRoute = AppFinanceRouteImport.update({
@@ -58,29 +82,19 @@ const AppFinanceRoute = AppFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => AppRoute,
 } as any)
-const AppFreelancersRoute = AppFreelancersRouteImport.update({
-  id: '/freelancers',
-  path: '/freelancers',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppNotificationsRoute = AppNotificationsRouteImport.update({
   id: '/notifications',
   path: '/notifications',
   getParentRoute: () => AppRoute,
 } as any)
-const AppProposalsRoute = AppProposalsRouteImport.update({
-  id: '/proposals',
-  path: '/proposals',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppReportsRoute = AppReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppRisksRoute = AppRisksRouteImport.update({
   id: '/risks',
   path: '/risks',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSuporteRoute = AppSuporteRouteImport.update({
+  id: '/suporte',
+  path: '/suporte',
   getParentRoute: () => AppRoute,
 } as any)
 const AppWikiRoute = AppWikiRouteImport.update({
@@ -93,15 +107,85 @@ const CTokenRoute = CTokenRouteImport.update({
   path: '/c/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CandidaturaIdRoute = CandidaturaIdRouteImport.update({
+  id: '/candidatura/$id',
+  path: '/candidatura/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PTokenRoute = PTokenRouteImport.update({
   id: '/p/$token',
   path: '/p/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PortalAuthRoute = PortalAuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalContratoRoute = PortalContratoRouteImport.update({
+  id: '/contrato',
+  path: '/contrato',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalDashboardRoute = PortalDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalDocumentosRoute = PortalDocumentosRouteImport.update({
+  id: '/documentos',
+  path: '/documentos',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalFinanceiroRoute = PortalFinanceiroRouteImport.update({
+  id: '/financeiro',
+  path: '/financeiro',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalProjetosRoute = PortalProjetosRouteImport.update({
+  id: '/projetos',
+  path: '/projetos',
+  getParentRoute: () => PortalRoute,
+} as any)
+const PortalSuporteRoute = PortalSuporteRouteImport.update({
+  id: '/suporte',
+  path: '/suporte',
+  getParentRoute: () => PortalRoute,
+} as any)
 const TriagemTokenRoute = TriagemTokenRouteImport.update({
   id: '/triagem/$token',
   path: '/triagem/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AppClientsIndexRoute = AppClientsIndexRouteImport.update({
+  id: '/clients/',
+  path: '/clients/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppClientsIdRoute = AppClientsIdRouteImport.update({
+  id: '/clients/$id',
+  path: '/clients/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContractModelsIndexRoute = AppContractModelsIndexRouteImport.update({
+  id: '/contract-models/',
+  path: '/contract-models/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppContractModelsIdRoute = AppContractModelsIdRouteImport.update({
+  id: '/contract-models/$id',
+  path: '/contract-models/$id',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFreelancersIndexRoute = AppFreelancersIndexRouteImport.update({
+  id: '/freelancers/',
+  path: '/freelancers/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFreelancersIdRoute = AppFreelancersIdRouteImport.update({
+  id: '/freelancers/$id',
+  path: '/freelancers/$id',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppProjectsIndexRoute = AppProjectsIndexRouteImport.update({
   id: '/projects/',
@@ -123,39 +207,67 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
-  '/app/crm': typeof AppCrmRoute
+  '/portal': typeof PortalRouteWithChildren
+  '/app/contract-generator': typeof AppContractGeneratorRoute
+  '/app/documents': typeof AppDocumentsRoute
   '/app/finance': typeof AppFinanceRoute
-  '/app/freelancers': typeof AppFreelancersRoute
   '/app/notifications': typeof AppNotificationsRoute
-  '/app/proposals': typeof AppProposalsRoute
-  '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
+  '/app/suporte': typeof AppSuporteRoute
   '/app/wiki': typeof AppWikiRoute
   '/c/$token': typeof CTokenRoute
+  '/candidatura/$id': typeof CandidaturaIdRoute
   '/p/$token': typeof PTokenRoute
+  '/portal/auth': typeof PortalAuthRoute
+  '/portal/contrato': typeof PortalContratoRoute
+  '/portal/dashboard': typeof PortalDashboardRoute
+  '/portal/documentos': typeof PortalDocumentosRoute
+  '/portal/financeiro': typeof PortalFinanceiroRoute
+  '/portal/projetos': typeof PortalProjetosRoute
+  '/portal/suporte': typeof PortalSuporteRoute
   '/triagem/$token': typeof TriagemTokenRoute
   '/app/': typeof AppIndexRoute
+  '/app/clients/$id': typeof AppClientsIdRoute
+  '/app/contract-models/$id': typeof AppContractModelsIdRoute
+  '/app/freelancers/$id': typeof AppFreelancersIdRoute
   '/app/projects/$id': typeof AppProjectsIdRoute
   '/app/projects/new': typeof AppProjectsNewRoute
+  '/app/clients/': typeof AppClientsIndexRoute
+  '/app/contract-models/': typeof AppContractModelsIndexRoute
+  '/app/freelancers/': typeof AppFreelancersIndexRoute
   '/app/projects/': typeof AppProjectsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
-  '/app/crm': typeof AppCrmRoute
+  '/portal': typeof PortalRouteWithChildren
+  '/app/contract-generator': typeof AppContractGeneratorRoute
+  '/app/documents': typeof AppDocumentsRoute
   '/app/finance': typeof AppFinanceRoute
-  '/app/freelancers': typeof AppFreelancersRoute
   '/app/notifications': typeof AppNotificationsRoute
-  '/app/proposals': typeof AppProposalsRoute
-  '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
+  '/app/suporte': typeof AppSuporteRoute
   '/app/wiki': typeof AppWikiRoute
   '/c/$token': typeof CTokenRoute
+  '/candidatura/$id': typeof CandidaturaIdRoute
   '/p/$token': typeof PTokenRoute
+  '/portal/auth': typeof PortalAuthRoute
+  '/portal/contrato': typeof PortalContratoRoute
+  '/portal/dashboard': typeof PortalDashboardRoute
+  '/portal/documentos': typeof PortalDocumentosRoute
+  '/portal/financeiro': typeof PortalFinanceiroRoute
+  '/portal/projetos': typeof PortalProjetosRoute
+  '/portal/suporte': typeof PortalSuporteRoute
   '/triagem/$token': typeof TriagemTokenRoute
   '/app': typeof AppIndexRoute
+  '/app/clients/$id': typeof AppClientsIdRoute
+  '/app/contract-models/$id': typeof AppContractModelsIdRoute
+  '/app/freelancers/$id': typeof AppFreelancersIdRoute
   '/app/projects/$id': typeof AppProjectsIdRoute
   '/app/projects/new': typeof AppProjectsNewRoute
+  '/app/clients': typeof AppClientsIndexRoute
+  '/app/contract-models': typeof AppContractModelsIndexRoute
+  '/app/freelancers': typeof AppFreelancersIndexRoute
   '/app/projects': typeof AppProjectsIndexRoute
 }
 export interface FileRoutesById {
@@ -163,20 +275,34 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
-  '/app/crm': typeof AppCrmRoute
+  '/portal': typeof PortalRouteWithChildren
+  '/app/contract-generator': typeof AppContractGeneratorRoute
+  '/app/documents': typeof AppDocumentsRoute
   '/app/finance': typeof AppFinanceRoute
-  '/app/freelancers': typeof AppFreelancersRoute
   '/app/notifications': typeof AppNotificationsRoute
-  '/app/proposals': typeof AppProposalsRoute
-  '/app/reports': typeof AppReportsRoute
   '/app/risks': typeof AppRisksRoute
+  '/app/suporte': typeof AppSuporteRoute
   '/app/wiki': typeof AppWikiRoute
   '/c/$token': typeof CTokenRoute
+  '/candidatura/$id': typeof CandidaturaIdRoute
   '/p/$token': typeof PTokenRoute
+  '/portal/auth': typeof PortalAuthRoute
+  '/portal/contrato': typeof PortalContratoRoute
+  '/portal/dashboard': typeof PortalDashboardRoute
+  '/portal/documentos': typeof PortalDocumentosRoute
+  '/portal/financeiro': typeof PortalFinanceiroRoute
+  '/portal/projetos': typeof PortalProjetosRoute
+  '/portal/suporte': typeof PortalSuporteRoute
   '/triagem/$token': typeof TriagemTokenRoute
   '/app/': typeof AppIndexRoute
+  '/app/clients/$id': typeof AppClientsIdRoute
+  '/app/contract-models/$id': typeof AppContractModelsIdRoute
+  '/app/freelancers/$id': typeof AppFreelancersIdRoute
   '/app/projects/$id': typeof AppProjectsIdRoute
   '/app/projects/new': typeof AppProjectsNewRoute
+  '/app/clients/': typeof AppClientsIndexRoute
+  '/app/contract-models/': typeof AppContractModelsIndexRoute
+  '/app/freelancers/': typeof AppFreelancersIndexRoute
   '/app/projects/': typeof AppProjectsIndexRoute
 }
 export interface FileRouteTypes {
@@ -185,59 +311,101 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
-    | '/app/crm'
+    | '/portal'
+    | '/app/contract-generator'
+    | '/app/documents'
     | '/app/finance'
-    | '/app/freelancers'
     | '/app/notifications'
-    | '/app/proposals'
-    | '/app/reports'
     | '/app/risks'
+    | '/app/suporte'
     | '/app/wiki'
     | '/c/$token'
+    | '/candidatura/$id'
     | '/p/$token'
+    | '/portal/auth'
+    | '/portal/contrato'
+    | '/portal/dashboard'
+    | '/portal/documentos'
+    | '/portal/financeiro'
+    | '/portal/projetos'
+    | '/portal/suporte'
     | '/triagem/$token'
     | '/app/'
+    | '/app/clients/$id'
+    | '/app/contract-models/$id'
+    | '/app/freelancers/$id'
     | '/app/projects/$id'
     | '/app/projects/new'
+    | '/app/clients/'
+    | '/app/contract-models/'
+    | '/app/freelancers/'
     | '/app/projects/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
-    | '/app/crm'
+    | '/portal'
+    | '/app/contract-generator'
+    | '/app/documents'
     | '/app/finance'
-    | '/app/freelancers'
     | '/app/notifications'
-    | '/app/proposals'
-    | '/app/reports'
     | '/app/risks'
+    | '/app/suporte'
     | '/app/wiki'
     | '/c/$token'
+    | '/candidatura/$id'
     | '/p/$token'
+    | '/portal/auth'
+    | '/portal/contrato'
+    | '/portal/dashboard'
+    | '/portal/documentos'
+    | '/portal/financeiro'
+    | '/portal/projetos'
+    | '/portal/suporte'
     | '/triagem/$token'
     | '/app'
+    | '/app/clients/$id'
+    | '/app/contract-models/$id'
+    | '/app/freelancers/$id'
     | '/app/projects/$id'
     | '/app/projects/new'
+    | '/app/clients'
+    | '/app/contract-models'
+    | '/app/freelancers'
     | '/app/projects'
   id:
     | '__root__'
     | '/'
     | '/app'
     | '/auth'
-    | '/app/crm'
+    | '/portal'
+    | '/app/contract-generator'
+    | '/app/documents'
     | '/app/finance'
-    | '/app/freelancers'
     | '/app/notifications'
-    | '/app/proposals'
-    | '/app/reports'
     | '/app/risks'
+    | '/app/suporte'
     | '/app/wiki'
     | '/c/$token'
+    | '/candidatura/$id'
     | '/p/$token'
+    | '/portal/auth'
+    | '/portal/contrato'
+    | '/portal/dashboard'
+    | '/portal/documentos'
+    | '/portal/financeiro'
+    | '/portal/projetos'
+    | '/portal/suporte'
     | '/triagem/$token'
     | '/app/'
+    | '/app/clients/$id'
+    | '/app/contract-models/$id'
+    | '/app/freelancers/$id'
     | '/app/projects/$id'
     | '/app/projects/new'
+    | '/app/clients/'
+    | '/app/contract-models/'
+    | '/app/freelancers/'
     | '/app/projects/'
   fileRoutesById: FileRoutesById
 }
@@ -245,7 +413,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  PortalRoute: typeof PortalRouteWithChildren
   CTokenRoute: typeof CTokenRoute
+  CandidaturaIdRoute: typeof CandidaturaIdRoute
   PTokenRoute: typeof PTokenRoute
   TriagemTokenRoute: typeof TriagemTokenRoute
 }
@@ -273,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal': {
+      id: '/portal'
+      path: '/portal'
+      fullPath: '/portal'
+      preLoaderRoute: typeof PortalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/': {
       id: '/app/'
       path: '/'
@@ -280,11 +457,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/crm': {
-      id: '/app/crm'
-      path: '/crm'
-      fullPath: '/app/crm'
-      preLoaderRoute: typeof AppCrmRouteImport
+    '/app/contract-generator': {
+      id: '/app/contract-generator'
+      path: '/contract-generator'
+      fullPath: '/app/contract-generator'
+      preLoaderRoute: typeof AppContractGeneratorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/documents': {
+      id: '/app/documents'
+      path: '/documents'
+      fullPath: '/app/documents'
+      preLoaderRoute: typeof AppDocumentsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/finance': {
@@ -294,13 +478,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFinanceRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/freelancers': {
-      id: '/app/freelancers'
-      path: '/freelancers'
-      fullPath: '/app/freelancers'
-      preLoaderRoute: typeof AppFreelancersRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/notifications': {
       id: '/app/notifications'
       path: '/notifications'
@@ -308,25 +485,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppNotificationsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/app/proposals': {
-      id: '/app/proposals'
-      path: '/proposals'
-      fullPath: '/app/proposals'
-      preLoaderRoute: typeof AppProposalsRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/app/reports': {
-      id: '/app/reports'
-      path: '/reports'
-      fullPath: '/app/reports'
-      preLoaderRoute: typeof AppReportsRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/app/risks': {
       id: '/app/risks'
       path: '/risks'
       fullPath: '/app/risks'
       preLoaderRoute: typeof AppRisksRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/suporte': {
+      id: '/app/suporte'
+      path: '/suporte'
+      fullPath: '/app/suporte'
+      preLoaderRoute: typeof AppSuporteRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/wiki': {
@@ -343,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/candidatura/$id': {
+      id: '/candidatura/$id'
+      path: '/candidatura/$id'
+      fullPath: '/candidatura/$id'
+      preLoaderRoute: typeof CandidaturaIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/p/$token': {
       id: '/p/$token'
       path: '/p/$token'
@@ -350,12 +527,103 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/portal/auth': {
+      id: '/portal/auth'
+      path: '/auth'
+      fullPath: '/portal/auth'
+      preLoaderRoute: typeof PortalAuthRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/contrato': {
+      id: '/portal/contrato'
+      path: '/contrato'
+      fullPath: '/portal/contrato'
+      preLoaderRoute: typeof PortalContratoRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/dashboard': {
+      id: '/portal/dashboard'
+      path: '/dashboard'
+      fullPath: '/portal/dashboard'
+      preLoaderRoute: typeof PortalDashboardRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/documentos': {
+      id: '/portal/documentos'
+      path: '/documentos'
+      fullPath: '/portal/documentos'
+      preLoaderRoute: typeof PortalDocumentosRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/financeiro': {
+      id: '/portal/financeiro'
+      path: '/financeiro'
+      fullPath: '/portal/financeiro'
+      preLoaderRoute: typeof PortalFinanceiroRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/projetos': {
+      id: '/portal/projetos'
+      path: '/projetos'
+      fullPath: '/portal/projetos'
+      preLoaderRoute: typeof PortalProjetosRouteImport
+      parentRoute: typeof PortalRoute
+    }
+    '/portal/suporte': {
+      id: '/portal/suporte'
+      path: '/suporte'
+      fullPath: '/portal/suporte'
+      preLoaderRoute: typeof PortalSuporteRouteImport
+      parentRoute: typeof PortalRoute
+    }
     '/triagem/$token': {
       id: '/triagem/$token'
       path: '/triagem/$token'
       fullPath: '/triagem/$token'
       preLoaderRoute: typeof TriagemTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/app/clients/': {
+      id: '/app/clients/'
+      path: '/clients'
+      fullPath: '/app/clients/'
+      preLoaderRoute: typeof AppClientsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/clients/$id': {
+      id: '/app/clients/$id'
+      path: '/clients/$id'
+      fullPath: '/app/clients/$id'
+      preLoaderRoute: typeof AppClientsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/contract-models/': {
+      id: '/app/contract-models/'
+      path: '/contract-models'
+      fullPath: '/app/contract-models/'
+      preLoaderRoute: typeof AppContractModelsIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/contract-models/$id': {
+      id: '/app/contract-models/$id'
+      path: '/contract-models/$id'
+      fullPath: '/app/contract-models/$id'
+      preLoaderRoute: typeof AppContractModelsIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/freelancers/': {
+      id: '/app/freelancers/'
+      path: '/freelancers'
+      fullPath: '/app/freelancers/'
+      preLoaderRoute: typeof AppFreelancersIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/freelancers/$id': {
+      id: '/app/freelancers/$id'
+      path: '/freelancers/$id'
+      fullPath: '/app/freelancers/$id'
+      preLoaderRoute: typeof AppFreelancersIdRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/projects/': {
       id: '/app/projects/'
@@ -382,42 +650,77 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
-  AppCrmRoute: typeof AppCrmRoute
+  AppContractGeneratorRoute: typeof AppContractGeneratorRoute
+  AppDocumentsRoute: typeof AppDocumentsRoute
   AppFinanceRoute: typeof AppFinanceRoute
-  AppFreelancersRoute: typeof AppFreelancersRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
-  AppProposalsRoute: typeof AppProposalsRoute
-  AppReportsRoute: typeof AppReportsRoute
   AppRisksRoute: typeof AppRisksRoute
+  AppSuporteRoute: typeof AppSuporteRoute
   AppWikiRoute: typeof AppWikiRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppClientsIdRoute: typeof AppClientsIdRoute
+  AppContractModelsIdRoute: typeof AppContractModelsIdRoute
+  AppFreelancersIdRoute: typeof AppFreelancersIdRoute
   AppProjectsIdRoute: typeof AppProjectsIdRoute
   AppProjectsNewRoute: typeof AppProjectsNewRoute
+  AppClientsIndexRoute: typeof AppClientsIndexRoute
+  AppContractModelsIndexRoute: typeof AppContractModelsIndexRoute
+  AppFreelancersIndexRoute: typeof AppFreelancersIndexRoute
   AppProjectsIndexRoute: typeof AppProjectsIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppCrmRoute: AppCrmRoute,
+  AppContractGeneratorRoute: AppContractGeneratorRoute,
+  AppDocumentsRoute: AppDocumentsRoute,
   AppFinanceRoute: AppFinanceRoute,
-  AppFreelancersRoute: AppFreelancersRoute,
   AppNotificationsRoute: AppNotificationsRoute,
-  AppProposalsRoute: AppProposalsRoute,
-  AppReportsRoute: AppReportsRoute,
   AppRisksRoute: AppRisksRoute,
+  AppSuporteRoute: AppSuporteRoute,
   AppWikiRoute: AppWikiRoute,
   AppIndexRoute: AppIndexRoute,
+  AppClientsIdRoute: AppClientsIdRoute,
+  AppContractModelsIdRoute: AppContractModelsIdRoute,
+  AppFreelancersIdRoute: AppFreelancersIdRoute,
   AppProjectsIdRoute: AppProjectsIdRoute,
   AppProjectsNewRoute: AppProjectsNewRoute,
+  AppClientsIndexRoute: AppClientsIndexRoute,
+  AppContractModelsIndexRoute: AppContractModelsIndexRoute,
+  AppFreelancersIndexRoute: AppFreelancersIndexRoute,
   AppProjectsIndexRoute: AppProjectsIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface PortalRouteChildren {
+  PortalAuthRoute: typeof PortalAuthRoute
+  PortalContratoRoute: typeof PortalContratoRoute
+  PortalDashboardRoute: typeof PortalDashboardRoute
+  PortalDocumentosRoute: typeof PortalDocumentosRoute
+  PortalFinanceiroRoute: typeof PortalFinanceiroRoute
+  PortalProjetosRoute: typeof PortalProjetosRoute
+  PortalSuporteRoute: typeof PortalSuporteRoute
+}
+
+const PortalRouteChildren: PortalRouteChildren = {
+  PortalAuthRoute: PortalAuthRoute,
+  PortalContratoRoute: PortalContratoRoute,
+  PortalDashboardRoute: PortalDashboardRoute,
+  PortalDocumentosRoute: PortalDocumentosRoute,
+  PortalFinanceiroRoute: PortalFinanceiroRoute,
+  PortalProjetosRoute: PortalProjetosRoute,
+  PortalSuporteRoute: PortalSuporteRoute,
+}
+
+const PortalRouteWithChildren =
+  PortalRoute._addFileChildren(PortalRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  PortalRoute: PortalRouteWithChildren,
   CTokenRoute: CTokenRoute,
+  CandidaturaIdRoute: CandidaturaIdRoute,
   PTokenRoute: PTokenRoute,
   TriagemTokenRoute: TriagemTokenRoute,
 }

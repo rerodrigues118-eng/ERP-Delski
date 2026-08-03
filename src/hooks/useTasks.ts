@@ -48,11 +48,7 @@ export function useCreateTask() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (input: CreateTaskInput) => {
-      const { data, error } = await supabase
-        .from("project_tasks")
-        .insert(input)
-        .select()
-        .single();
+      const { data, error } = await supabase.from("project_tasks").insert(input).select().single();
       if (error) throw error;
       return data as unknown as ProjectTask;
     },
@@ -68,7 +64,17 @@ export function useCreateTask() {
 export function useUpdateTaskStatus() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ taskId, projectId, newStatus, tasks }: { taskId: string; projectId: string; newStatus: TaskStatus; tasks: ProjectTask[] }) => {
+    mutationFn: async ({
+      taskId,
+      projectId,
+      newStatus,
+      tasks,
+    }: {
+      taskId: string;
+      projectId: string;
+      newStatus: TaskStatus;
+      tasks: ProjectTask[];
+    }) => {
       const target = tasks.find((t) => t.id === taskId);
       if (!target) throw new Error("Tarefa não encontrada.");
 
@@ -76,7 +82,9 @@ export function useUpdateTaskStatus() {
       if (newStatus !== "Pendente" && target.predecessor_id) {
         const predecessor = tasks.find((t) => t.id === target.predecessor_id);
         if (predecessor && predecessor.status !== "Concluida") {
-          throw new Error(`Dependência não concluída: a tarefa "${predecessor.title}" precisa ser concluída antes.`);
+          throw new Error(
+            `Dependência não concluída: a tarefa "${predecessor.title}" precisa ser concluída antes.`,
+          );
         }
       }
 

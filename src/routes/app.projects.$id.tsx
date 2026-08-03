@@ -10,30 +10,76 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Progress } from "@/components/ui/progress";
 import {
-  Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import {
-  ArrowLeft, Calendar, DollarSign, ExternalLink, FileText, Plus, Upload, CheckCircle2,
-  AlertCircle, ShieldCheck, Share2, Sparkles, Lock, Clock, UserCheck, Layers, Link as LinkIcon, Trash2, Loader2
+  ArrowLeft,
+  Calendar,
+  DollarSign,
+  ExternalLink,
+  FileText,
+  Plus,
+  Upload,
+  CheckCircle2,
+  AlertCircle,
+  ShieldCheck,
+  Share2,
+  Sparkles,
+  Lock,
+  Clock,
+  UserCheck,
+  Layers,
+  Link as LinkIcon,
+  Trash2,
+  Loader2,
+  Copy,
 } from "lucide-react";
 import { sendTriageInviteEmail, sendDelegationEmail } from "@/integrations/brevo";
 import { calculateFreelancerMatch } from "@/lib/matchmaking";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { useProject, useUpdateProject, useAssignFreelancer, type ProjectStatus } from "@/hooks/useProjects";
-import { useProjectTasks, useCreateTask, useUpdateTaskStatus, useDeleteTask, type TaskStatus } from "@/hooks/useTasks";
+import {
+  useProject,
+  useUpdateProject,
+  useAssignFreelancer,
+  type ProjectStatus,
+} from "@/hooks/useProjects";
+import {
+  useProjectTasks,
+  useCreateTask,
+  useUpdateTaskStatus,
+  useDeleteTask,
+  type TaskStatus,
+} from "@/hooks/useTasks";
 import { useFreelancers } from "@/hooks/useProfiles";
-import { SERVICE_LABEL, STATUS_LABEL } from "@/mocks/types";
+import {
+  useProjectCandidaturas,
+  useApproveCandidato,
+  useUpdateCandidatura,
+  type Candidatura,
+} from "@/hooks/useTriage";
+import { SERVICE_LABEL, STATUS_LABEL, STATUSES } from "@/mocks/types";
+import { ProjectContractFieldsSection } from "@/components/ProjectContractFieldsSection";
 
 export const Route = createFileRoute("/app/projects/$id")({
   head: () => ({
-    meta: [
-      { title: "Detalhes do Projeto — Delski ERP" },
-    ],
+    meta: [{ title: "Detalhes do Projeto — Delski ERP" }],
   }),
   component: ProjectDetailPage,
 });
@@ -57,8 +103,11 @@ function ProjectDetailPage() {
   const { data: project, isLoading: loadingProject } = useProject(id);
   const { data: tasks = [], isLoading: loadingTasks } = useProjectTasks(id);
   const { data: freelancers = [] } = useFreelancers();
+  const { data: candidaturas = [], isLoading: loadingCandidaturas } = useProjectCandidaturas(id);
 
   const updateProject = useUpdateProject();
+  const approveCandidato = useApproveCandidato();
+  const updateCandidatura = useUpdateCandidatura();
   const assignFreelancer = useAssignFreelancer();
   const createTask = useCreateTask();
   const updateTaskStatus = useUpdateTaskStatus();
@@ -68,24 +117,64 @@ function ProjectDetailPage() {
   const [activeBriefingTab, setActiveBriefingTab] = useState("overview");
   const [briefingText, setBriefingText] = useState("");
   const [driveInput, setDriveInput] = useState("");
+  const [projectContractValues, setProjectContractValues] = useState<Record<string, string>>({});
 
   // Triage modal state
   const [showTriageModal, setShowTriageModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
+  const [showEditCandidaturaModal, setShowEditCandidaturaModal] = useState(false);
+  const [editingCandidatura, setEditingCandidatura] = useState<Candidatura | null>(null);
 
   // Task dialog
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
 
   // Upload state
   const [uploading, setUploading] = useState(false);
-  const [files, setFiles] = useState<{ id: string; name: string; url: string; uploadedAt: string }[]>([]);
+  const [files, setFiles] = useState<
+    { id: string; name: string; url: string; uploadedAt: string }[]
+  >([]);
 
   useEffect(() => {
     if (project) {
       setBriefingText(project.briefing_content || "");
       setDriveInput(project.google_drive_link || "");
+      setProjectContractValues(project.contract_field_values || {});
     }
   }, [project]);
+
+  const editCandidaturaSchema = z.object({
+    freelancer_name: z.string().min(3, "Nome completo é obrigatório"),
+    freelancer_email: z.string().email("Endereço de e-mail inválido"),
+    availability_hours: z.coerce.number().min(1, "Informe as horas semanais disponíveis"),
+    proposed_rate: z.coerce.number().min(10, "Informe sua pretensão de valor (R$)"),
+    portfolio_url: z
+      .string()
+      .url("Insira uma URL válida (ex: https://github.com/...)")
+      .or(z.literal("")),
+    experience_summary: z.string().min(10, "Descreva sua experiência relevante"),
+    considerations: z.string().min(10, "Descreva suas considerações técnicas"),
+  });
+
+  type EditCandidaturaFormData = z.infer<typeof editCandidaturaSchema>;
+
+  const {
+    register: registerEditCandidatura,
+    handleSubmit: handleSubmitEditCandidatura,
+    reset: resetEditCandidatura,
+    formState: { errors: editCandidaturaErrors },
+  } = useForm<EditCandidaturaFormData>({
+    resolver: zodResolver(editCandidaturaSchema) as any,
+    defaultValues: {
+      freelancer_name: "",
+      freelancer_email: "",
+      availability_hours: 20,
+      proposed_rate: 1500,
+      portfolio_url: "",
+      experience_summary: "",
+      considerations: "",
+    },
+  });
 
   const {
     register: registerTask,
@@ -101,6 +190,57 @@ function ProjectDetailPage() {
       dueDate: new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10),
     },
   });
+
+  const [contractUploading, setContractUploading] = useState(false);
+  const [contractRecord, setContractRecord] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (!project?.id) {
+      return;
+    }
+
+    const projectId = project.id;
+
+    (async () => {
+      const { data } = await supabase
+        .from("project_contracts")
+        .select("*")
+        .eq("project_id", projectId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      setContractRecord(data ?? null);
+    })();
+
+    const channel = supabase
+      .channel("contracts")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "project_contracts",
+          filter: `project_id=eq.${projectId}`,
+        },
+        () => {
+          (async () => {
+            const { data } = await supabase
+              .from("project_contracts")
+              .select("*")
+              .eq("project_id", projectId)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            setContractRecord(data ?? null);
+          })();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [project?.id]);
 
   if (loadingProject) {
     return (
@@ -144,7 +284,7 @@ function ProjectDetailPage() {
     try {
       const fileExt = file.name.split(".").pop();
       const filePath = `${project.id}/${Math.random().toString(36).slice(2)}.${fileExt}`;
-      
+
       const { data, error } = await supabase.storage
         .from("project-attachments")
         .upload(filePath, file);
@@ -161,7 +301,12 @@ function ProjectDetailPage() {
 
       setFiles((prev) => [
         ...prev,
-        { id: Math.random().toString(), name: file.name, url: publicUrl, uploadedAt: new Date().toLocaleDateString("pt-BR") },
+        {
+          id: Math.random().toString(),
+          name: file.name,
+          url: publicUrl,
+          uploadedAt: new Date().toLocaleDateString("pt-BR"),
+        },
       ]);
 
       toast.success(`Arquivo ${file.name} anexado com sucesso!`);
@@ -190,7 +335,7 @@ function ProjectDetailPage() {
           resetTask();
           setShowTaskModal(false);
         },
-      }
+      },
     );
   };
 
@@ -208,7 +353,7 @@ function ProjectDetailPage() {
   const handleSendTriageInvite = async () => {
     if (!inviteEmail) return toast.error("Informe um e-mail válido");
     const triageLink = `${window.location.origin}/triagem/${project.id}`;
-    
+
     await sendTriageInviteEmail({
       to: { name: inviteEmail.split("@")[0], email: inviteEmail },
       projectClient: project.title,
@@ -217,6 +362,66 @@ function ProjectDetailPage() {
 
     setInviteEmail("");
     setShowTriageModal(false);
+  };
+
+  const handleCopyCandidacyLink = async () => {
+    const link = `${window.location.origin}/candidatura/${project.id}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopiedLink(true);
+      toast.success("Link de candidatura copiado para a área de transferência!");
+      setTimeout(() => setCopiedLink(false), 1800);
+    } catch {
+      toast.error("Não foi possível copiar o link automaticamente.");
+    }
+  };
+
+  const handleApproveCandidato = (candidatura: (typeof candidaturas)[number]) => {
+    approveCandidato.mutate({
+      candidaturaId: candidatura.id,
+      projectId: project.id,
+      projectTitle: project.title,
+      freelancerName: candidatura.freelancer_name,
+      freelancerEmail: candidatura.freelancer_email,
+      proposedRate: candidatura.proposed_rate ?? undefined,
+    });
+  };
+
+  const openEditCandidatura = (candidatura: Candidatura) => {
+    setEditingCandidatura(candidatura);
+    resetEditCandidatura({
+      freelancer_name: candidatura.freelancer_name,
+      freelancer_email: candidatura.freelancer_email,
+      availability_hours: candidatura.availability_hours ?? 0,
+      proposed_rate: candidatura.proposed_rate ?? 0,
+      portfolio_url: candidatura.portfolio_url ?? "",
+      experience_summary: candidatura.experience_summary ?? "",
+      considerations: candidatura.considerations ?? candidatura.notes ?? "",
+    });
+    setShowEditCandidaturaModal(true);
+  };
+
+  const handleSaveCandidatura = (data: EditCandidaturaFormData) => {
+    if (!editingCandidatura) return;
+    updateCandidatura.mutate(
+      {
+        id: editingCandidatura.id,
+        freelancer_name: data.freelancer_name,
+        freelancer_email: data.freelancer_email,
+        availability_hours: data.availability_hours,
+        portfolio_url: data.portfolio_url || undefined,
+        proposed_rate: data.proposed_rate,
+        experience_summary: data.experience_summary,
+        considerations: data.considerations,
+        notes: data.considerations,
+      },
+      {
+        onSuccess: () => {
+          setShowEditCandidaturaModal(false);
+          setEditingCandidatura(null);
+        },
+      },
+    );
   };
 
   // Assign Freelancer from Selection
@@ -235,7 +440,7 @@ function ProjectDetailPage() {
             });
           }
         },
-      }
+      },
     );
   };
 
@@ -244,7 +449,75 @@ function ProjectDetailPage() {
   const completedTasks = tasks.filter((t) => t.status === "Concluida").length;
   const progressPct = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
-  const currentFreelancer = project.freelancers?.[0]?.profile;
+  const rawFreelancer = project?.freelancers?.[0];
+  const currentFreelancer = rawFreelancer
+    ? "profile" in (rawFreelancer as any) && (rawFreelancer as any).profile
+      ? (rawFreelancer as any).profile
+      : rawFreelancer
+    : null;
+
+  const generateContractPDF = async () => {
+    try {
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF();
+      doc.setFontSize(12);
+      doc.text(`Contrato de Prestação de Serviços`, 20, 20);
+      doc.text(`Projeto: ${project.title}`, 20, 40);
+      doc.text(`Freelancer: ${currentFreelancer?.full_name || ""}`, 20, 50);
+      doc.text(`E-mail: ${currentFreelancer?.email || ""}`, 20, 60);
+      doc.text(`Valor acordado: R$ ${Number(project.freelancer_cost || 0).toFixed(2)}`, 20, 70);
+      const blob = doc.output("blob");
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${project.title.replace(/\s+/g, "_")}_contrato.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      toast.error("Erro ao gerar contrato em PDF");
+    }
+  };
+
+  const handleContractUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setContractUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `contracts/${project.id}/${Math.random().toString(36).slice(2)}.${fileExt}`;
+      const { data, error } = await supabase.storage.from("contracts").upload(filePath, file);
+      let publicUrl = "";
+      if (data?.path) {
+        const { data: pub } = supabase.storage.from("contracts").getPublicUrl(data.path);
+        publicUrl = pub.publicUrl;
+      } else {
+        publicUrl = URL.createObjectURL(file);
+      }
+
+      const { data: inserted, error: insErr } = await (supabase.from("project_contracts") as any)
+        .insert({
+          project_id: project.id,
+          freelancer_id: currentFreelancer?.id,
+          file_path: data?.path,
+          file_url: publicUrl,
+        })
+        .select()
+        .maybeSingle();
+
+      if (insErr) throw insErr;
+      setContractRecord(inserted ?? null);
+      toast.success("Contrato enviado para análise do Gestor.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao enviar contrato");
+    } finally {
+      setContractUploading(false);
+      if (e.target) e.target.value = "";
+    }
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
@@ -258,7 +531,10 @@ function ProjectDetailPage() {
           </div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold tracking-tight">{project.title}</h1>
-            <Badge variant="outline" className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20">
+            <Badge
+              variant="outline"
+              className="bg-indigo-500/10 text-indigo-400 border-indigo-500/20"
+            >
               {SERVICE_LABEL[project.service_type] || project.service_type}
             </Badge>
             <Badge className="bg-zinc-800 text-zinc-300 text-xs">
@@ -266,7 +542,9 @@ function ProjectDetailPage() {
             </Badge>
           </div>
           {project.client?.full_name && (
-            <p className="text-xs text-muted-foreground">Cliente contratante: {project.client.full_name} ({project.client.email})</p>
+            <p className="text-xs text-muted-foreground">
+              Cliente contratante: {project.client.full_name} ({project.client.email})
+            </p>
           )}
         </div>
 
@@ -274,21 +552,32 @@ function ProjectDetailPage() {
           <div className="flex items-center gap-2">
             <Select
               value={project.status}
-              onValueChange={(status) => updateProject.mutate({ id: project.id, patch: { status: status as ProjectStatus } })}
+              onValueChange={(status) =>
+                updateProject.mutate({ id: project.id, patch: { status: status as ProjectStatus } })
+              }
             >
-              <SelectTrigger className="w-[180px] bg-card border-border">
+              <SelectTrigger className="w-[220px] bg-card border-border">
                 <SelectValue placeholder="Alterar Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="Solicitado">Solicitado</SelectItem>
-                <SelectItem value="Delegado">Delegado</SelectItem>
-                <SelectItem value="Em Producao">Em Produção</SelectItem>
-                <SelectItem value="Em Revisao">Em Revisão</SelectItem>
-                <SelectItem value="Concluido">Concluído</SelectItem>
+                {STATUSES.map((status) => (
+                  <SelectItem key={status} value={status}>
+                    {STATUS_LABEL[status] || status}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
 
-            <Button variant="outline" onClick={() => setShowTriageModal(true)} className="gap-1.5 text-xs">
+            <Button variant="outline" onClick={handleCopyCandidacyLink} className="gap-1.5 text-xs">
+              <Copy className="h-3.5 w-3.5" />{" "}
+              {copiedLink ? "Link Copiado" : "Copiar Link de Candidatura"}
+            </Button>
+
+            <Button
+              variant="outline"
+              onClick={() => setShowTriageModal(true)}
+              className="gap-1.5 text-xs"
+            >
               <Share2 className="h-3.5 w-3.5" /> Enviar Triagem
             </Button>
           </div>
@@ -313,7 +602,10 @@ function ProjectDetailPage() {
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground font-medium">Orçamento Bruto</div>
                 <div className="text-lg font-bold mt-1 text-emerald-400">
-                  R$ {Number(project.budget || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  R${" "}
+                  {Number(project.budget || 0).toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -322,7 +614,10 @@ function ProjectDetailPage() {
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground font-medium">Custo Freelancer</div>
                 <div className="text-lg font-bold mt-1 text-rose-400">
-                  R$ {Number(project.freelancer_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                  R${" "}
+                  {Number(project.freelancer_cost || 0).toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -335,7 +630,10 @@ function ProjectDetailPage() {
               <div className="text-xs text-indigo-300 font-medium">Seu Repasse / Remuneração</div>
               <div className="text-lg font-bold mt-1 text-indigo-400 flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
-                R$ {Number(project.freelancer_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R${" "}
+                {Number(project.freelancer_cost || 0).toLocaleString("pt-BR", {
+                  minimumFractionDigits: 2,
+                })}
               </div>
             </CardContent>
           </Card>
@@ -347,7 +645,8 @@ function ProjectDetailPage() {
               <div className="text-xs text-emerald-300 font-medium">Valor do Contrato</div>
               <div className="text-lg font-bold mt-1 text-emerald-400 flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
-                R$ {Number(project.budget || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                R${" "}
+                {Number(project.budget || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
               </div>
             </CardContent>
           </Card>
@@ -358,7 +657,9 @@ function ProjectDetailPage() {
             <div className="text-xs text-muted-foreground font-medium">Progresso das Tarefas</div>
             <div className="text-lg font-bold mt-1 flex items-center justify-between">
               <span>{progressPct}%</span>
-              <span className="text-xs font-normal text-muted-foreground">{completedTasks}/{totalTasks} concluídas</span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {completedTasks}/{totalTasks} concluídas
+              </span>
             </div>
             <Progress value={progressPct} className="h-1.5 mt-2" />
           </CardContent>
@@ -375,6 +676,11 @@ function ProjectDetailPage() {
             <Layers className="h-4 w-4" /> Tarefas & Gantt ({totalTasks})
           </TabsTrigger>
           {isGestor && (
+            <TabsTrigger value="candidaturas" className="gap-1.5">
+              <UserCheck className="h-4 w-4 text-emerald-400" /> Candidaturas
+            </TabsTrigger>
+          )}
+          {isGestor && (
             <TabsTrigger value="matchmaking" className="gap-1.5">
               <Sparkles className="h-4 w-4 text-amber-400" /> Triagem & Matchmaking
             </TabsTrigger>
@@ -387,10 +693,16 @@ function ProjectDetailPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-lg font-bold">Conteúdo do Briefing</CardTitle>
-                <CardDescription>Escopo, requisitos técnicos e documentação centralizada.</CardDescription>
+                <CardDescription>
+                  Escopo, requisitos técnicos e documentação centralizada.
+                </CardDescription>
               </div>
               {isGestor && (
-                <Button onClick={handleSaveBriefing} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                <Button
+                  onClick={handleSaveBriefing}
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                >
                   Salvar Briefing
                 </Button>
               )}
@@ -422,7 +734,11 @@ function ProjectDetailPage() {
                     </Button>
                   )}
                   {project.google_drive_link && (
-                    <Button asChild size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                    <Button
+                      asChild
+                      size="sm"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white"
+                    >
                       <a href={project.google_drive_link} target="_blank" rel="noreferrer">
                         Abrir Drive <ExternalLink className="h-3.5 w-3.5 ml-1" />
                       </a>
@@ -434,12 +750,18 @@ function ProjectDetailPage() {
               {/* Attachments Section */}
               <div className="pt-4 border-t border-border space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label className="font-semibold text-sm">Anexos & Documentos ({files.length})</Label>
+                  <Label className="font-semibold text-sm">
+                    Anexos & Documentos ({files.length})
+                  </Label>
                   <label className="cursor-pointer">
                     <input type="file" onChange={handleFileUpload} className="hidden" />
                     <Button variant="outline" size="sm" asChild disabled={uploading}>
                       <span>
-                        {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Upload className="h-3.5 w-3.5 mr-1" />}
+                        {uploading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" />
+                        ) : (
+                          <Upload className="h-3.5 w-3.5 mr-1" />
+                        )}
                         Anexar Arquivo
                       </span>
                     </Button>
@@ -451,20 +773,174 @@ function ProjectDetailPage() {
                     <div key={file.id} className="p-3 flex items-center justify-between text-sm">
                       <div>
                         <div className="font-medium text-foreground">{file.name}</div>
-                        <div className="text-xs text-muted-foreground">Enviado em {file.uploadedAt}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Enviado em {file.uploadedAt}
+                        </div>
                       </div>
-                      <a href={file.url} target="_blank" rel="noreferrer" className="text-indigo-400 hover:underline text-xs flex items-center gap-1">
+                      <a
+                        href={file.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-indigo-400 hover:underline text-xs flex items-center gap-1"
+                      >
                         Download <ExternalLink className="h-3 w-3" />
                       </a>
                     </div>
                   ))}
                   {files.length === 0 && (
-                    <div className="p-4 text-center text-xs text-muted-foreground">Nenhum anexo adicionado ainda.</div>
+                    <div className="p-4 text-center text-xs text-muted-foreground">
+                      Nenhum anexo adicionado ainda.
+                    </div>
                   )}
                 </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* Dados para Contrato do Projeto */}
+          <ProjectContractFieldsSection
+            serviceType={project.service_type}
+            values={projectContractValues}
+            readOnly={!isGestor}
+            onChange={(newVals, complete) => {
+              setProjectContractValues(newVals);
+              if (isGestor) {
+                updateProject.mutate({
+                  id: project.id,
+                  patch: {
+                    contract_field_values: newVals,
+                    contract_fields_status: complete ? "completo" : "pendente",
+                  },
+                });
+              }
+            }}
+          />
+
+          {/* Contract Section for assigned Freelancer */}
+          {isFreelancer && currentFreelancer && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Contrato de Prestação de Serviços</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm text-muted-foreground">
+                  Baixe o modelo do contrato preenchido com os dados do projeto e envie a versão
+                  assinada.
+                </p>
+                <div className="mt-3 flex items-center gap-3">
+                  <Button variant="outline" onClick={generateContractPDF} size="sm">
+                    Gerar Modelo de Contrato (PDF)
+                  </Button>
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="application/pdf,image/*"
+                      onChange={handleContractUpload}
+                      className="hidden"
+                    />
+                    <Button variant="ghost" size="sm" disabled={contractUploading}>
+                      {contractUploading ? "Enviando..." : "Enviar Contrato Assinado"}
+                    </Button>
+                  </label>
+                </div>
+
+                {contractRecord ? (
+                  <div className="mt-4 border border-border p-3 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">
+                          {contractRecord.file_path?.split("/").pop() || "Contrato enviado"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Status: {contractRecord.status}
+                        </div>
+                      </div>
+                      {contractRecord.file_url && (
+                        <a
+                          href={contractRecord.file_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-indigo-400 hover:underline text-xs"
+                        >
+                          Visualizar Contrato
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-4 text-sm text-muted-foreground">
+                    Nenhum contrato enviado ainda.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Manager / Client view of latest freelancer contract */}
+          {(isGestor || isCliente) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Documentos e Contrato do Freelancer</CardTitle>
+                <CardDescription>
+                  Último contrato enviado pelo freelancer e resultado da análise do gestor.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {contractRecord ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">
+                          {contractRecord.file_path?.split("/").pop() || "Contrato enviado"}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Enviado em {new Date(contractRecord.created_at).toLocaleString()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Status: {contractRecord.status}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {contractRecord.file_url && (
+                          <a
+                            href={contractRecord.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-indigo-400 hover:underline text-sm"
+                          >
+                            Abrir arquivo
+                          </a>
+                        )}
+                        {contractRecord.manager_response_file_url && (
+                          <a
+                            href={contractRecord.manager_response_file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-emerald-500 hover:underline text-sm"
+                          >
+                            Ver arquivo de resposta do gestor
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {contractRecord.manager_message && (
+                      <div className="p-3 border border-border rounded">
+                        <div className="text-sm font-semibold">Comentário do Gestor</div>
+                        <div className="text-sm text-muted-foreground mt-1">
+                          {contractRecord.manager_message}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-sm text-muted-foreground">
+                    Ainda não há contrato enviado pelo freelancer.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Tasks Tab */}
@@ -472,7 +948,11 @@ function ProjectDetailPage() {
           <div className="flex justify-between items-center">
             <h3 className="font-bold text-lg">Cronograma & Dependências de Tarefas</h3>
             {!isCliente && (
-              <Button onClick={() => setShowTaskModal(true)} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5">
+              <Button
+                onClick={() => setShowTaskModal(true)}
+                size="sm"
+                className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5"
+              >
                 <Plus className="h-4 w-4" /> Nova Tarefa
               </Button>
             )}
@@ -480,59 +960,83 @@ function ProjectDetailPage() {
 
           <div className="space-y-3">
             {loadingTasks && (
-              <div className="py-8 text-center text-sm text-muted-foreground">Carregando tarefas do Supabase...</div>
+              <div className="py-8 text-center text-sm text-muted-foreground">
+                Carregando tarefas do Supabase...
+              </div>
             )}
-            {!loadingTasks && tasks.map((task) => {
-              const predecessor = tasks.find((t) => t.id === task.predecessor_id);
-              const isLocked = predecessor && predecessor.status !== "Concluida";
+            {!loadingTasks &&
+              tasks.map((task) => {
+                const predecessor = tasks.find((t) => t.id === task.predecessor_id);
+                const isLocked = predecessor && predecessor.status !== "Concluida";
 
-              return (
-                <Card key={task.id} className={`bg-card transition-all ${isLocked ? "opacity-75 border-amber-500/30" : ""}`}>
-                  <CardContent className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        {isLocked && <Lock className="h-4 w-4 text-amber-500" title={`Bloqueada por: ${predecessor?.title}`} />}
-                        <span className="font-semibold text-foreground">{task.title}</span>
-                        <Badge variant="outline" className="text-[10px]">{task.phase}</Badge>
+                return (
+                  <Card
+                    key={task.id}
+                    className={`bg-card transition-all ${isLocked ? "opacity-75 border-amber-500/30" : ""}`}
+                  >
+                    <CardContent className="p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          {isLocked && (
+                            <span title={`Bloqueada por: ${predecessor?.title}`}>
+                              <Lock className="h-4 w-4 text-amber-500" />
+                            </span>
+                          )}
+                          <span className="font-semibold text-foreground">{task.title}</span>
+                          <Badge variant="outline" className="text-[10px]">
+                            {task.phase}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground flex items-center gap-3">
+                          <span>Início: {task.start_date}</span>
+                          <span>Término: {task.due_date}</span>
+                          {predecessor && (
+                            <span
+                              className={
+                                predecessor.status === "Concluida"
+                                  ? "text-emerald-400"
+                                  : "text-amber-400"
+                              }
+                            >
+                              Depende de: {predecessor.title} ({predecessor.status})
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-3">
-                        <span>Início: {task.start_date}</span>
-                        <span>Término: {task.due_date}</span>
-                        {predecessor && (
-                          <span className={predecessor.status === "Concluida" ? "text-emerald-400" : "text-amber-400"}>
-                            Depende de: {predecessor.title} ({predecessor.status})
-                          </span>
+
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={task.status}
+                          onValueChange={(st) => handleTaskStatusChange(task.id, st as TaskStatus)}
+                          disabled={isLocked && task.status === "Pendente"}
+                        >
+                          <SelectTrigger className="w-[140px] text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Pendente">Pendente</SelectItem>
+                            <SelectItem value="Em andamento">Em andamento</SelectItem>
+                            <SelectItem value="Em revisao">Em revisão</SelectItem>
+                            <SelectItem value="Concluida">Concluída</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        {isGestor && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() =>
+                              deleteTask.mutate({ taskId: task.id, projectId: project.id })
+                            }
+                          >
+                            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-rose-500" />
+                          </Button>
                         )}
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={task.status}
-                        onValueChange={(st) => handleTaskStatusChange(task.id, st as TaskStatus)}
-                        disabled={isLocked && task.status === "Pendente"}
-                      >
-                        <SelectTrigger className="w-[140px] text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Pendente">Pendente</SelectItem>
-                          <SelectItem value="Em andamento">Em andamento</SelectItem>
-                          <SelectItem value="Em revisao">Em revisão</SelectItem>
-                          <SelectItem value="Concluida">Concluída</SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      {isGestor && (
-                        <Button size="icon" variant="ghost" onClick={() => deleteTask.mutate({ taskId: task.id, projectId: project.id })}>
-                          <Trash2 className="h-4 w-4 text-muted-foreground hover:text-rose-500" />
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    </CardContent>
+                  </Card>
+                );
+              })}
             {!loadingTasks && tasks.length === 0 && (
               <div className="p-8 text-center border border-dashed rounded-xl text-sm text-muted-foreground">
                 Nenhuma tarefa criada para este projeto ainda.
@@ -540,6 +1044,118 @@ function ProjectDetailPage() {
             )}
           </div>
         </TabsContent>
+
+        {/* Candidaturas Tab (Gestor Only) */}
+        {isGestor && (
+          <TabsContent value="candidaturas" className="pt-4 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg font-bold flex items-center gap-2">
+                  <UserCheck className="h-5 w-5 text-emerald-400" />
+                  Candidaturas Recebidas
+                </CardTitle>
+                <CardDescription>
+                  Analise as respostas do formulário público e aprove cada freelancer diretamente
+                  para o projeto.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {loadingCandidaturas ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    Carregando candidaturas...
+                  </div>
+                ) : candidaturas.length === 0 ? (
+                  <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                    Nenhuma candidatura registrada para este projeto ainda.
+                  </div>
+                ) : (
+                  candidaturas.map((candidatura) => (
+                    <div
+                      key={candidatura.id}
+                      className="rounded-xl border border-border bg-card/70 p-4 space-y-3"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-foreground">
+                              {candidatura.freelancer_name}
+                            </h4>
+                            <Badge
+                              variant={candidatura.status === "Aprovado" ? "default" : "outline"}
+                              className={
+                                candidatura.status === "Aprovado" ? "bg-emerald-600 text-white" : ""
+                              }
+                            >
+                              {candidatura.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">
+                            {candidatura.freelancer_email}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openEditCandidatura(candidatura)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                            disabled={
+                              candidatura.status === "Aprovado" || approveCandidato.isPending
+                            }
+                            onClick={() => handleApproveCandidato(candidatura)}
+                          >
+                            Aprovar Candidato
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2 text-sm">
+                        <div className="rounded-lg border border-border/70 p-3">
+                          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Disponibilidade
+                          </div>
+                          <div className="mt-1 font-medium text-foreground">
+                            {candidatura.availability_hours ?? 0}h/semana
+                          </div>
+                        </div>
+                        <div className="rounded-lg border border-border/70 p-3">
+                          <div className="text-xs uppercase tracking-wide text-muted-foreground">
+                            Pretensão
+                          </div>
+                          <div className="mt-1 font-medium text-foreground">
+                            R$ {Number(candidatura.proposed_rate || 0).toLocaleString("pt-BR")}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 text-sm text-muted-foreground">
+                        <div>
+                          <div className="font-medium text-foreground">Experiência</div>
+                          <p className="mt-1 whitespace-pre-wrap">
+                            {candidatura.experience_summary || "Sem descrição detalhada informada."}
+                          </p>
+                        </div>
+                        <div>
+                          <div className="font-medium text-foreground">Considerações</div>
+                          <p className="mt-1 whitespace-pre-wrap">
+                            {candidatura.considerations ||
+                              candidatura.notes ||
+                              "Sem observações adicionais."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
 
         {/* Matchmaking Tab (Gestor Only) */}
         {isGestor && (
@@ -558,15 +1174,21 @@ function ProjectDetailPage() {
                 {currentFreelancer ? (
                   <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between">
                     <div>
-                      <div className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">Freelancer Atribuído</div>
-                      <div className="text-lg font-bold text-foreground mt-0.5">{currentFreelancer.full_name}</div>
+                      <div className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">
+                        Freelancer Atribuído
+                      </div>
+                      <div className="text-lg font-bold text-foreground mt-0.5">
+                        {currentFreelancer.full_name}
+                      </div>
                       <div className="text-xs text-muted-foreground">{currentFreelancer.email}</div>
                     </div>
                     <Badge className="bg-emerald-600 text-white">Alocado(a)</Badge>
                   </div>
                 ) : (
                   <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">Nenhum freelancer alocado neste projeto. Escolha um abaixo:</p>
+                    <p className="text-sm text-muted-foreground">
+                      Nenhum freelancer alocado neste projeto. Escolha um abaixo:
+                    </p>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {freelancers.map((f) => (
                         <Card key={f.id} className="p-4 bg-card flex justify-between items-center">
@@ -574,7 +1196,11 @@ function ProjectDetailPage() {
                             <div className="font-bold text-sm text-foreground">{f.full_name}</div>
                             <div className="text-xs text-muted-foreground">{f.email}</div>
                           </div>
-                          <Button size="sm" onClick={() => handleAssignFreelancer(f.id)} className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs">
+                          <Button
+                            size="sm"
+                            onClick={() => handleAssignFreelancer(f.id)}
+                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
+                          >
                             Atribuir ao Projeto
                           </Button>
                         </Card>
@@ -593,13 +1219,17 @@ function ProjectDetailPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Criar Nova Tarefa</DialogTitle>
-            <DialogDescription>Adicione uma tarefa ao cronograma e defina dependências.</DialogDescription>
+            <DialogDescription>
+              Adicione uma tarefa ao cronograma e defina dependências.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmitTask(onAddTask)} className="space-y-4">
             <div className="space-y-1">
               <Label>Título da Tarefa</Label>
               <Input placeholder="Ex: Criação de Telas UI" {...registerTask("title")} />
-              {taskErrors.title && <p className="text-xs text-destructive">{taskErrors.title.message}</p>}
+              {taskErrors.title && (
+                <p className="text-xs text-destructive">{taskErrors.title.message}</p>
+              )}
             </div>
 
             <div className="space-y-1">
@@ -620,19 +1250,35 @@ function ProjectDetailPage() {
 
             <div className="space-y-1">
               <Label>Depende da Tarefa (Opcional)</Label>
-              <Select onValueChange={(val) => registerTask("predecessorId").onChange({ target: { value: val, name: "predecessorId" } })}>
-                <SelectTrigger><SelectValue placeholder="Selecione uma tarefa antecedente..." /></SelectTrigger>
+              <Select
+                onValueChange={(val) =>
+                  registerTask("predecessorId").onChange({
+                    target: { value: val, name: "predecessorId" },
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione uma tarefa antecedente..." />
+                </SelectTrigger>
                 <SelectContent>
                   {tasks.map((t) => (
-                    <SelectItem key={t.id} value={t.id}>{t.title}</SelectItem>
+                    <SelectItem key={t.id} value={t.id}>
+                      {t.title}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setShowTaskModal(false)}>Cancelar</Button>
-              <Button type="submit" disabled={createTask.isPending} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Button type="button" variant="outline" onClick={() => setShowTaskModal(false)}>
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={createTask.isPending}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              >
                 Criar Tarefa
               </Button>
             </DialogFooter>
@@ -645,7 +1291,9 @@ function ProjectDetailPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Enviar Link de Triagem ao Cliente</DialogTitle>
-            <DialogDescription>Envia um e-mail com link exclusivo para preenchimento de requisitos do projeto.</DialogDescription>
+            <DialogDescription>
+              Envia um e-mail com link exclusivo para preenchimento de requisitos do projeto.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <Label>E-mail do Destinatário</Label>
@@ -657,11 +1305,111 @@ function ProjectDetailPage() {
             />
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTriageModal(false)}>Cancelar</Button>
-            <Button onClick={handleSendTriageInvite} className="bg-indigo-600 hover:bg-indigo-700 text-white">
+            <Button variant="outline" onClick={() => setShowTriageModal(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleSendTriageInvite}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
               Enviar Convite via Brevo
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditCandidaturaModal} onOpenChange={setShowEditCandidaturaModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Candidatura</DialogTitle>
+            <DialogDescription>Atualize os dados de triagem antes de aprovar.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitEditCandidatura(handleSaveCandidatura)} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nome Completo</Label>
+                <Input {...registerEditCandidatura("freelancer_name")} />
+                {editCandidaturaErrors.freelancer_name && (
+                  <p className="text-xs text-destructive">
+                    {editCandidaturaErrors.freelancer_name.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>E-mail</Label>
+                <Input {...registerEditCandidatura("freelancer_email")} />
+                {editCandidaturaErrors.freelancer_email && (
+                  <p className="text-xs text-destructive">
+                    {editCandidaturaErrors.freelancer_email.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Disponibilidade (h/sem)</Label>
+                <Input type="number" {...registerEditCandidatura("availability_hours")} />
+                {editCandidaturaErrors.availability_hours && (
+                  <p className="text-xs text-destructive">
+                    {editCandidaturaErrors.availability_hours.message}
+                  </p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Pretensão de Valor (R$)</Label>
+                <Input type="number" {...registerEditCandidatura("proposed_rate")} />
+                {editCandidaturaErrors.proposed_rate && (
+                  <p className="text-xs text-destructive">
+                    {editCandidaturaErrors.proposed_rate.message}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label>Portfólio / URL</Label>
+              <Input {...registerEditCandidatura("portfolio_url")} />
+              {editCandidaturaErrors.portfolio_url && (
+                <p className="text-xs text-destructive">
+                  {editCandidaturaErrors.portfolio_url.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Experiência Relevante</Label>
+              <Textarea rows={4} {...registerEditCandidatura("experience_summary")} />
+              {editCandidaturaErrors.experience_summary && (
+                <p className="text-xs text-destructive">
+                  {editCandidaturaErrors.experience_summary.message}
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Considerações</Label>
+              <Textarea rows={4} {...registerEditCandidatura("considerations")} />
+              {editCandidaturaErrors.considerations && (
+                <p className="text-xs text-destructive">
+                  {editCandidaturaErrors.considerations.message}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowEditCandidaturaModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+                Salvar Alterações
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

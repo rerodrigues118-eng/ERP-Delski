@@ -40,7 +40,10 @@ export const Route = createFileRoute("/triagem/$token")({
   head: () => ({
     meta: [
       { title: "Formulário de Triagem de Freelancer — Delski" },
-      { name: "description", content: "Formulário oficial de triagem e avaliação de capacidade técnica Delski." },
+      {
+        name: "description",
+        content: "Formulário oficial de triagem e avaliação de capacidade técnica Delski.",
+      },
     ],
   }),
   component: TriagePage,
@@ -61,7 +64,7 @@ function TriagePage() {
     watch,
     formState: { errors },
   } = useForm<TriageFormData>({
-    resolver: zodResolver(triageSchema),
+    resolver: zodResolver(triageSchema) as any,
     defaultValues: {
       fullName: "",
       email: "",
@@ -106,7 +109,10 @@ function TriagePage() {
   const toggleSkill = (skill: string) => {
     const current = watch("skills") || [];
     if (current.includes(skill)) {
-      setValue("skills", current.filter((s) => s !== skill));
+      setValue(
+        "skills",
+        current.filter((s) => s !== skill),
+      );
     } else {
       setValue("skills", [...current, skill]);
     }
@@ -148,12 +154,16 @@ function TriagePage() {
             <CheckCircle2 className="h-8 w-8" />
           </div>
           <div className="space-y-2">
-            <Badge variant="outline" className="border-emerald-500/30 text-emerald-400 bg-emerald-950/40">
+            <Badge
+              variant="outline"
+              className="border-emerald-500/30 text-emerald-400 bg-emerald-950/40"
+            >
               Triagem Concluída
             </Badge>
             <h1 className="text-2xl font-bold text-white">Respostas Registradas!</h1>
             <p className="text-sm text-zinc-400 leading-relaxed">
-              Sua candidatura e respostas de capacidade foram salvas para o projeto <strong className="text-zinc-200">{projectTitle}</strong>.
+              Sua candidatura e respostas de capacidade foram salvas para o projeto{" "}
+              <strong className="text-zinc-200">{projectTitle}</strong>.
             </p>
           </div>
           <div className="p-4 bg-zinc-950/60 rounded-xl border border-zinc-800 text-left text-xs space-y-2">
@@ -167,7 +177,8 @@ function TriagePage() {
             </div>
           </div>
           <p className="text-xs text-zinc-500">
-            O Gestor da Delski entrará em contato por e-mail após validar o índice de compatibilidade.
+            O Gestor da Delski entrará em contato por e-mail após validar o índice de
+            compatibilidade.
           </p>
         </div>
       </div>
@@ -184,25 +195,34 @@ function TriagePage() {
               D
             </div>
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">Delski Triagem</span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-indigo-400">
+                Delski Triagem
+              </span>
               <h1 className="text-xl font-bold text-white">Avaliação de Capacidade Técnica</h1>
             </div>
           </div>
           <p className="text-sm text-zinc-400">
-            Você foi convidado(a) a participar do processo de alocação para o projeto <strong className="text-white">{projectTitle}</strong> ({projectType}).
+            Você foi convidado(a) a participar do processo de alocação para o projeto{" "}
+            <strong className="text-white">{projectTitle}</strong> ({projectType}).
           </p>
           <div className="flex flex-wrap gap-2 pt-2 border-t border-zinc-800/80">
             <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">
               Serviço: {projectType}
             </Badge>
             <Badge variant="secondary" className="bg-zinc-800 text-zinc-300">
-              Prazo Estimado: {project?.deadline ? new Date(project.deadline).toLocaleDateString("pt-BR") : "A definir"}
+              Prazo Estimado:{" "}
+              {project?.deadline
+                ? new Date(project.deadline).toLocaleDateString("pt-BR")
+                : "A definir"}
             </Badge>
           </div>
         </div>
 
         {/* Form Card */}
-        <form onSubmit={handleSubmit(onPreSubmit)} className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-6">
+        <form
+          onSubmit={handleSubmit(onPreSubmit)}
+          className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 sm:p-8 space-y-6"
+        >
           <div className="flex justify-between items-center pb-4 border-b border-zinc-800">
             <h2 className="text-lg font-bold text-white">Dados do Freelancer</h2>
             <Button
@@ -225,7 +245,9 @@ function TriagePage() {
                 className="bg-zinc-950 border-zinc-800 text-zinc-100"
                 {...register("fullName")}
               />
-              {errors.fullName && <p className="text-xs text-rose-400">{errors.fullName.message}</p>}
+              {errors.fullName && (
+                <p className="text-xs text-rose-400">{errors.fullName.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -262,7 +284,13 @@ function TriagePage() {
                   >
                     <div className="flex items-center gap-2">
                       <Checkbox checked={checked} onCheckedChange={() => toggleSkill(skill)} />
-                      <span>{skill === "IA" ? "Automação IA" : skill === "Trafego" ? "Tráfego Pago" : "Desenvolvimento Sites"}</span>
+                      <span>
+                        {skill === "IA"
+                          ? "Automação IA"
+                          : skill === "Trafego"
+                            ? "Tráfego Pago"
+                            : "Desenvolvimento Sites"}
+                      </span>
                     </div>
                   </button>
                 );
@@ -283,7 +311,9 @@ function TriagePage() {
                 className="bg-zinc-950 border-zinc-800 text-zinc-100"
                 {...register("availabilityHours")}
               />
-              {errors.availabilityHours && <p className="text-xs text-rose-400">{errors.availabilityHours.message}</p>}
+              {errors.availabilityHours && (
+                <p className="text-xs text-rose-400">{errors.availabilityHours.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -294,7 +324,9 @@ function TriagePage() {
                 className="bg-zinc-950 border-zinc-800 text-zinc-100"
                 {...register("proposedRate")}
               />
-              {errors.proposedRate && <p className="text-xs text-rose-400">{errors.proposedRate.message}</p>}
+              {errors.proposedRate && (
+                <p className="text-xs text-rose-400">{errors.proposedRate.message}</p>
+              )}
             </div>
           </div>
 
@@ -308,7 +340,9 @@ function TriagePage() {
               className="bg-zinc-950 border-zinc-800 text-zinc-100"
               {...register("portfolioUrl")}
             />
-            {errors.portfolioUrl && <p className="text-xs text-rose-400">{errors.portfolioUrl.message}</p>}
+            {errors.portfolioUrl && (
+              <p className="text-xs text-rose-400">{errors.portfolioUrl.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -344,14 +378,18 @@ function TriagePage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Confirmar envio da triagem?</AlertDialogTitle>
             <AlertDialogDescription className="text-zinc-400">
-              Após o envio, suas respostas de capacidade técnica e disponibilidade serão encaminhadas ao Gestor e a triagem será concluída.
+              Após o envio, suas respostas de capacidade técnica e disponibilidade serão
+              encaminhadas ao Gestor e a triagem será concluída.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel className="bg-zinc-800 border-zinc-700 text-zinc-300 hover:bg-zinc-700">
               Revisar Respostas
             </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmSubmission} className="bg-indigo-600 text-white hover:bg-indigo-700">
+            <AlertDialogAction
+              onClick={confirmSubmission}
+              className="bg-indigo-600 text-white hover:bg-indigo-700"
+            >
               Confirmar Envio
             </AlertDialogAction>
           </AlertDialogFooter>

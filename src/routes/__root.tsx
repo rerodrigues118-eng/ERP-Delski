@@ -45,9 +45,7 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          Algo deu errado
-        </h1>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Algo deu errado</h1>
         <p className="mt-2 text-sm text-muted-foreground">
           Não foi possível carregar esta página. Tente novamente ou volte ao início.
         </p>
@@ -79,9 +77,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Delski — Gestão de projetos e freelancers" },
-      { name: "description", content: "Plataforma da agência Delski para gerir projetos de IA, Tráfego Pago e Sites, delegar freelancers e acompanhar entregas em tempo real." },
+      {
+        name: "description",
+        content:
+          "Plataforma da agência Delski para gerir projetos de IA, Tráfego Pago e Sites, delegar freelancers e acompanhar entregas em tempo real.",
+      },
       { property: "og:title", content: "Delski — Gestão de projetos e freelancers" },
-      { property: "og:description", content: "Gestão de projetos, freelancers e entregas para agências digitais." },
+      {
+        property: "og:description",
+        content: "Gestão de projetos, freelancers e entregas para agências digitais.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -90,7 +95,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap",
+      },
     ],
   }),
   shellComponent: RootShell,

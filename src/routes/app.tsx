@@ -37,17 +37,19 @@ function AppLayout() {
       <div className="min-h-screen flex w-full bg-background">
         <AppSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-14 flex items-center gap-3 border-b bg-card/50 backdrop-blur px-4 sticky top-0 z-10">
-            <SidebarTrigger />
-            <div className="text-sm text-muted-foreground font-medium">
+          <header className="h-14 flex items-center gap-3 border-b border-stone-100 !bg-white px-4 sticky top-0 z-10 shadow-none">
+            <SidebarTrigger className="!text-stone-700 hover:bg-stone-50" />
+            <div className="text-sm font-semibold !text-stone-700">
               {role === "gestor"
                 ? "Painel do Gestor"
                 : role === "freelancer"
-                ? "Área do Freelancer"
-                : "Portal do Cliente"}
+                  ? "Área do Freelancer"
+                  : "Portal do Cliente"}
             </div>
           </header>
-          <main className="flex-1 p-6"><Outlet /></main>
+          <main className="flex-1 p-6">
+            <Outlet />
+          </main>
         </div>
       </div>
     </SidebarProvider>

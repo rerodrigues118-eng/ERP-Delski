@@ -1,32 +1,65 @@
-export type ServiceType = "IA" | "Trafego" | "Sites";
+export type ServiceType = "IA" | "Trafego" | "Sites" | "Social Media";
 export type ProjectStatus =
+  | "Criado"
   | "Solicitado"
+  | "Aguardando Candidaturas"
+  | "Emitir contrato"
+  | "Revisão de Contrato"
   | "Delegado"
   | "Em Producao"
-  | "Em Revisao"
   | "Concluido";
 
-export const SERVICE_TYPES: ServiceType[] = ["IA", "Trafego", "Sites"];
+export const SERVICE_TYPES: ServiceType[] = ["IA", "Trafego", "Sites", "Social Media"];
 export const STATUSES: ProjectStatus[] = [
+  "Criado",
   "Solicitado",
+  "Aguardando Candidaturas",
+  "Emitir contrato",
+  "Revisão de Contrato",
   "Delegado",
   "Em Producao",
-  "Em Revisao",
   "Concluido",
 ];
 
 export const STATUS_LABEL: Record<ProjectStatus, string> = {
+  Criado: "Criado",
   Solicitado: "Solicitado",
-  Delegado: "Delegado",
-  "Em Producao": "Em Produção",
-  "Em Revisao": "Em Revisão",
+  "Aguardando Candidaturas": "Aguardando Candidaturas",
+  "Emitir contrato": "Emitir contrato",
+  "Revisão de Contrato": "Revisão de Contrato",
   Concluido: "Concluído",
+  "Em Producao": "Em Produção",
+  Delegado: "Delegado",
+};
+
+// Premium solid badge styles
+export const SERVICE_BADGE_COLORS: Record<ServiceType, string> = {
+  IA: "bg-violet-750 text-white border-violet-850 hover:bg-violet-750 shadow-none font-bold",
+  Trafego: "bg-amber-600 text-white border-amber-700 hover:bg-amber-600 shadow-none font-bold",
+  Sites: "bg-emerald-700 text-white border-emerald-800 hover:bg-emerald-700 shadow-none font-bold",
+  "Social Media": "bg-pink-700 text-white border-pink-800 hover:bg-pink-700 shadow-none font-bold",
+};
+
+export const STATUS_BADGE_COLORS: Record<ProjectStatus, string> = {
+  Criado: "bg-slate-600 text-white border-slate-700 hover:bg-slate-600 shadow-none font-bold",
+  Solicitado: "bg-sky-600 text-white border-sky-700 hover:bg-sky-600 shadow-none font-bold",
+  "Aguardando Candidaturas":
+    "bg-orange-500 text-white border-orange-600 hover:bg-orange-500 shadow-none font-bold",
+  "Emitir contrato":
+    "bg-purple-600 text-white border-purple-700 hover:bg-purple-600 shadow-none font-bold",
+  "Revisão de Contrato":
+    "bg-yellow-600 text-white border-yellow-750 hover:bg-yellow-600 shadow-none font-bold",
+  Delegado: "bg-teal-650 text-white border-teal-750 hover:bg-teal-650 shadow-none font-bold",
+  "Em Producao": "bg-blue-600 text-white border-blue-700 hover:bg-blue-600 shadow-none font-bold",
+  Concluido:
+    "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-600 shadow-none font-bold",
 };
 
 export const SERVICE_LABEL: Record<ServiceType, string> = {
   IA: "Automação com IA",
-  Trafego: "Tráfego / Social Media",
+  Trafego: "Tráfego Pago",
   Sites: "Desenvolvimento de Sites",
+  "Social Media": "Social Media",
 };
 
 export interface Freelancer {
@@ -198,4 +231,7 @@ export interface WikiArticle {
   category: "IA" | "Trafego" | "Sites" | "Geral";
   content: string;
   updatedAt: string;
+  audience?: "todos" | "freelancers" | "clientes" | "gestor";
+  attachmentUrl?: string | null;
+  createdBy?: string | null;
 }

@@ -28,8 +28,7 @@ const uuid = () =>
     : uid() + uid() + uid();
 const now = () => new Date().toISOString();
 const daysAgo = (n: number) => new Date(Date.now() - n * 864e5).toISOString();
-const daysFromNow = (n: number) =>
-  new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
+const daysFromNow = (n: number) => new Date(Date.now() + n * 864e5).toISOString().slice(0, 10);
 const today = () => new Date().toISOString().slice(0, 10);
 
 const seedFreelancers: Freelancer[] = [];
@@ -47,11 +46,13 @@ interface State {
   tasks: ProjectTask[];
   applications: ProjectApplication[];
   triageResponses: ProjectTriageResponse[];
-  
+
   login: (email: string, name?: string, role?: Role) => void;
   logout: () => void;
   setRole: (role: Role) => void;
-  addProject: (p: Omit<Project, "id" | "status" | "files" | "history" | "createdAt" | "clientFeedback">) => Project;
+  addProject: (
+    p: Omit<Project, "id" | "status" | "files" | "history" | "createdAt" | "clientFeedback">,
+  ) => Project;
   updateProjectDetails: (id: string, patch: Partial<Project>) => void;
   updateProjectStatus: (id: string, status: ProjectStatus) => void;
   updateProjectBriefing: (id: string, briefing: string) => void;
@@ -65,11 +66,11 @@ interface State {
   generateClientToken: (id: string) => string;
   addTriageResponse: (response: ProjectTriageResponse) => void;
   getTriageResponse: (token: string) => ProjectTriageResponse | undefined;
-  
+
   addFreelancer: (f: Omit<Freelancer, "id" | "createdAt">) => Freelancer;
   toggleFreelancerActive: (id: string) => void;
   removeFreelancer: (id: string) => void;
-  
+
   addExpense: (e: Omit<Expense, "id" | "createdAt">) => void;
   updateExpenseStatus: (id: string, status: ExpenseStatus) => void;
   removeExpense: (id: string) => void;
@@ -90,7 +91,7 @@ interface State {
   updateApplicationStatus: (id: string, status: ApplicationStatus) => void;
   selectApplication: (id: string) => void;
   removeApplication: (id: string) => void;
-  
+
   addTask: (t: Omit<ProjectTask, "id" | "createdAt">) => ProjectTask;
   updateTask: (id: string, patch: Partial<ProjectTask>) => void;
   updateTaskStatus: (id: string, status: TaskStatus) => { success: boolean; error?: string };
@@ -119,7 +120,7 @@ export const useStore = create<State>()(
         const freelancer = get().freelancers.find((f) => f.email === email);
         const isClient = email.includes("cliente") || email.includes("aurora");
         const resolvedRole: Role = isClient ? "cliente" : freelancer ? "freelancer" : role;
-        
+
         set({
           user: {
             id: uid(),
@@ -139,11 +140,23 @@ export const useStore = create<State>()(
         if (!u) return;
         if (role === "freelancer") {
           const f = get().freelancers[0];
-          set({ user: { ...u, role, freelancerId: f?.id, clientId: undefined, name: f?.name || u.name } });
+          set({
+            user: { ...u, role, freelancerId: f?.id, clientId: undefined, name: f?.name || u.name },
+          });
         } else if (role === "cliente") {
-          set({ user: { ...u, role, freelancerId: undefined, clientId: "c1", name: "Cliente Aurora" } });
+          set({
+            user: { ...u, role, freelancerId: undefined, clientId: "c1", name: "Cliente Aurora" },
+          });
         } else {
-          set({ user: { ...u, role, freelancerId: undefined, clientId: undefined, name: "Gestor Delski" } });
+          set({
+            user: {
+              ...u,
+              role,
+              freelancerId: undefined,
+              clientId: undefined,
+              name: "Gestor Delski",
+            },
+          });
         }
       },
 
@@ -183,7 +196,12 @@ export const useStore = create<State>()(
                   lastStatusChangeAt: now(),
                   history: [
                     ...p.history,
-                    { id: uid(), at: now(), actor: get().user?.name || "Sistema", message: `Status alterado para ${status}` },
+                    {
+                      id: uid(),
+                      at: now(),
+                      actor: get().user?.name || "Sistema",
+                      message: `Status alterado para ${status}`,
+                    },
                   ],
                 }
               : p,
@@ -212,7 +230,8 @@ export const useStore = create<State>()(
                   ...p,
                   freelancerId,
                   status: freelancerId && p.status === "Solicitado" ? "Delegado" : p.status,
-                  lastStatusChangeAt: freelancerId && p.status === "Solicitado" ? now() : p.lastStatusChangeAt,
+                  lastStatusChangeAt:
+                    freelancerId && p.status === "Solicitado" ? now() : p.lastStatusChangeAt,
                   history: [
                     ...p.history,
                     {
@@ -235,7 +254,9 @@ export const useStore = create<State>()(
       addFile: (id, f) => {
         const file: ProjectFile = { ...f, id: uid(), uploadedAt: now() };
         set({
-          projects: get().projects.map((p) => (p.id === id ? { ...p, files: [...p.files, file] } : p)),
+          projects: get().projects.map((p) =>
+            p.id === id ? { ...p, files: [...p.files, file] } : p,
+          ),
         });
       },
 
@@ -265,7 +286,9 @@ export const useStore = create<State>()(
 
       toggleFreelancerActive: (id) => {
         set({
-          freelancers: get().freelancers.map((f) => (f.id === id ? { ...f, active: !f.active } : f)),
+          freelancers: get().freelancers.map((f) =>
+            f.id === id ? { ...f, active: !f.active } : f,
+          ),
         });
       },
 
@@ -306,7 +329,10 @@ export const useStore = create<State>()(
         if (!targetTask) return { success: false, error: "Tarefa não encontrada" };
 
         // PREDECESSOR DEPENDENCY CHECKING
-        if (targetTask.predecessorId && (newStatus === "Em andamento" || newStatus === "Concluida")) {
+        if (
+          targetTask.predecessorId &&
+          (newStatus === "Em andamento" || newStatus === "Concluida")
+        ) {
           const pred = tasks.find((t) => t.id === targetTask.predecessorId);
           if (pred && pred.status !== "Concluida") {
             return {
@@ -335,7 +361,18 @@ export const useStore = create<State>()(
             return {
               ...p,
               clientFeedback: [...(p.clientFeedback || []), fb],
-              history: [...p.history, { id: uid(), at: now(), actor: `Cliente ${p.client}`, message: decision === "aprovado" ? "Aprovou a entrega" : `Solicitou ajuste${message ? ": " + message : ""}` }],
+              history: [
+                ...p.history,
+                {
+                  id: uid(),
+                  at: now(),
+                  actor: `Cliente ${p.client}`,
+                  message:
+                    decision === "aprovado"
+                      ? "Aprovou a entrega"
+                      : `Solicitou ajuste${message ? ": " + message : ""}`,
+                },
+              ],
             };
           }),
         });
@@ -343,19 +380,28 @@ export const useStore = create<State>()(
 
       generatePublicToken: (id) => {
         const token = uid() + uid();
-        set({ projects: get().projects.map((p) => (p.id === id ? { ...p, publicToken: token } : p)) });
+        set({
+          projects: get().projects.map((p) => (p.id === id ? { ...p, publicToken: token } : p)),
+        });
         return token;
       },
 
       generateClientToken: (id) => {
         const token = uid() + uid();
-        set({ projects: get().projects.map((p) => (p.id === id ? { ...p, clientToken: token } : p)) });
+        set({
+          projects: get().projects.map((p) => (p.id === id ? { ...p, clientToken: token } : p)),
+        });
         return token;
       },
 
       // ─── Leads (CRM) ──────────────────────────────────────────────────────
       addLead: (l) => {
-        set({ leads: [{ ...l, stage: l.stage || "Prospeccao", id: uid(), createdAt: now() }, ...get().leads] });
+        set({
+          leads: [
+            { ...l, stage: l.stage || "Prospeccao", id: uid(), createdAt: now() },
+            ...get().leads,
+          ],
+        });
       },
       updateLeadStage: (id, stage) => {
         set({ leads: get().leads.map((l) => (l.id === id ? { ...l, stage } : l)) });
@@ -373,14 +419,22 @@ export const useStore = create<State>()(
           deadline,
           budget: lead.estimatedValue,
         });
-        set({ leads: get().leads.map((l) => (l.id === id ? { ...l, stage: "Fechado", convertedProjectId: project.id } : l)) });
+        set({
+          leads: get().leads.map((l) =>
+            l.id === id ? { ...l, stage: "Fechado", convertedProjectId: project.id } : l,
+          ),
+        });
         return project.id;
       },
 
       // ─── Wiki ─────────────────────────────────────────────────────────────
       saveWiki: (w) => {
         if (w.id) {
-          set({ wiki: get().wiki.map((a) => (a.id === w.id ? { ...a, ...w, id: w.id, updatedAt: now() } as WikiArticle : a)) });
+          set({
+            wiki: get().wiki.map((a) =>
+              a.id === w.id ? ({ ...a, ...w, id: w.id, updatedAt: now() } as WikiArticle) : a,
+            ),
+          });
         } else {
           set({ wiki: [{ ...w, id: uid(), updatedAt: now() } as WikiArticle, ...get().wiki] });
         }
@@ -391,11 +445,17 @@ export const useStore = create<State>()(
 
       // ─── Applications (legacy / freelancer invite flow) ───────────────────
       inviteFreelancerToProject: (projectId, freelancerId) => {
-        const exists = get().applications.find((a) => a.projectId === projectId && a.freelancerId === freelancerId);
+        const exists = get().applications.find(
+          (a) => a.projectId === projectId && a.freelancerId === freelancerId,
+        );
         if (exists) return exists;
         const app: ProjectApplication = {
-          id: uid(), projectId, freelancerId, token: uid() + uid(),
-          status: "Pendente", invitedAt: now(),
+          id: uid(),
+          projectId,
+          freelancerId,
+          token: uid() + uid(),
+          status: "Pendente",
+          invitedAt: now(),
         };
         set({ applications: [app, ...get().applications] });
         return app;
@@ -418,7 +478,9 @@ export const useStore = create<State>()(
           applications: get().applications.map((a) => {
             if (a.projectId !== app.projectId) return a;
             if (a.id === id) return { ...a, status: "Selecionada" };
-            return a.status === "Respondida" || a.status === "Pendente" ? { ...a, status: "Recusada" } : a;
+            return a.status === "Respondida" || a.status === "Pendente"
+              ? { ...a, status: "Recusada" }
+              : a;
           }),
         });
       },
@@ -443,4 +505,3 @@ export const useApplicationByToken = (token: string) =>
     // look in triageResponses first, then fall back to a compatible shape
     s.triageResponses.find((r) => r.token === token),
   );
-
