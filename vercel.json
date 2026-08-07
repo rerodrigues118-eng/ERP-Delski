@@ -1,0 +1,4 @@
+{
+  "buildCommand": "pnpm run build:erp",
+  "installCommand": "pnpm install"
+}
