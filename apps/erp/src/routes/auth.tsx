@@ -221,47 +221,30 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen grid lg:grid-cols-2 bg-background">
-      {/* Visual Identity Hero Section */}
-      <div className="hidden lg:flex flex-col justify-between bg-stone-950 p-12 text-stone-100 relative overflow-hidden border-r border-stone-800">
-        <div className="relative z-10 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-md bg-blue-900 flex items-center justify-center font-serif font-bold text-white shadow-sm text-lg">
-            D
-          </div>
-          <div>
-            <span className="text-xl font-serif font-bold tracking-tight text-white">DELSKI</span>
-          </div>
+    <div className="min-h-screen flex flex-col justify-between items-center bg-gray-50/60 p-6 sm:p-12">
+      {/* Brand Header */}
+      <div className="flex items-center gap-3 pt-4">
+        <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-md text-lg">
+          D
         </div>
-
-        <div className="relative z-10 text-xs text-stone-500">
-          © {new Date().getFullYear()} Delski Technology & Agency Operations. Todos os direitos
-          reservados.
-        </div>
+        <span className="text-xl font-bold tracking-tight text-gray-900">DELSKI ERP</span>
       </div>
 
-      {/* Login & Register Tabs Section */}
-      <div className="flex items-center justify-center p-6 sm:p-12">
-        <div className="w-full max-w-md space-y-6">
-          <div className="lg:hidden flex items-center gap-2.5 mb-4">
-            <div className="h-9 w-9 rounded-lg bg-indigo-600 flex items-center justify-center font-bold text-white">
-              D
-            </div>
-            <span className="text-lg font-bold tracking-tight">DELSKI ERP</span>
-          </div>
-
-          <Tabs
-            value={activeTab}
-            onValueChange={(v) => setActiveTab(v as "login" | "register")}
-            className="w-full"
-          >
-            <TabsList className="grid grid-cols-2 w-full mb-6 bg-muted p-1 border border-border rounded-lg">
-              <TabsTrigger value="login" className="gap-2 font-medium">
-                <LogIn className="h-4 w-4" /> Entrar no Sistema
-              </TabsTrigger>
-              <TabsTrigger value="register" className="gap-2 font-medium text-indigo-400">
-                <UserPlus className="h-4 w-4" /> Criar Conta
-              </TabsTrigger>
-            </TabsList>
+      {/* Main Form Box */}
+      <div className="w-full max-w-md my-auto bg-white p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as "login" | "register")}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-2 w-full mb-6 bg-muted p-1 border border-border rounded-lg">
+            <TabsTrigger value="login" className="gap-2 font-medium">
+              <LogIn className="h-4 w-4" /> Entrar no Sistema
+            </TabsTrigger>
+            <TabsTrigger value="register" className="gap-2 font-medium text-indigo-400">
+              <UserPlus className="h-4 w-4" /> Criar Conta
+            </TabsTrigger>
+          </TabsList>
 
             {/* TAB: LOGIN */}
             <TabsContent value="login" className="space-y-6">
@@ -422,7 +405,11 @@ function AuthPage() {
             </TabsContent>
           </Tabs>
         </div>
+
+        {/* Footer Rights */}
+        <div className="text-xs text-gray-400 pb-4 text-center">
+          © {new Date().getFullYear()} Delski Technology & Agency Operations. Todos os direitos reservados.
+        </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
