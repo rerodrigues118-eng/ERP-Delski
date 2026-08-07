@@ -90,7 +90,7 @@ function AuthPage() {
     },
   });
 
-  // Auto-fill from URL search params or redirect client to /portal/auth
+  // Auto-fill from URL search params or redirect client to /portal/auth (only on initial mount)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -107,7 +107,7 @@ function AuthPage() {
       if (emailParam) setLoginValue("email", emailParam);
       if (passParam) setLoginValue("password", passParam);
     }
-  }, [setLoginValue, navigate]);
+  }, []);
 
   // Direct redirection if already logged in via Supabase
   useEffect(() => {
@@ -269,6 +269,7 @@ function AuthPage() {
                     <Input
                       id="email"
                       type="email"
+                      autoComplete="username"
                       className="pl-9"
                       placeholder="usuario@delski.co"
                       {...registerLogin("email")}
@@ -286,6 +287,7 @@ function AuthPage() {
                     <Input
                       id="password"
                       type="password"
+                      autoComplete="current-password"
                       className="pl-9"
                       placeholder="••••••••"
                       {...registerLogin("password")}
