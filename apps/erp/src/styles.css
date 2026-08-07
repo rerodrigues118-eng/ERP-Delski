@@ -1,0 +1,313 @@
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&display=swap");
+@import "tailwindcss" source(none);
+@import "tw-animate-css";
+@source "../src";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-serif: "Newsreader", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+}
+
+/* ── Design System Utilities ─────────────────────────────── */
+@layer utilities {
+  .font-editorial {
+    font-family: var(--font-serif);
+  }
+  .bg-paper {
+    background-color: var(--background);
+  }
+  /* Shadows */
+  .shadow-card {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  }
+  .shadow-card-hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  }
+  .shadow-subtle {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04);
+  }
+  /* Typography helpers */
+  .page-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+  }
+  .section-label {
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #6B7280;
+  }
+  .kpi-value {
+    font-size: 1.625rem;
+    font-weight: 700;
+    color: #111827;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  /* Table helpers */
+  .data-table thead th {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #6B7280;
+    border-bottom: 1px solid #F3F4F6;
+    background-color: #FAFAFA;
+  }
+  .data-table tbody tr {
+    border-bottom: 1px solid #F9FAFB;
+    transition: background-color 0.1s ease;
+  }
+  .data-table tbody tr:hover {
+    background-color: rgb(239 246 255 / 0.4);
+  }
+  .data-table tbody td {
+    padding: 0.875rem 1rem;
+    font-size: 0.875rem;
+    color: #374151;
+  }
+  /* Status badge presets */
+  .badge-blue {
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+    border-color: #BFDBFE;
+  }
+  .badge-green {
+    background-color: #F0FDF4;
+    color: #15803D;
+    border-color: #BBF7D0;
+  }
+  .badge-amber {
+    background-color: #FFFBEB;
+    color: #B45309;
+    border-color: #FDE68A;
+  }
+  .badge-red {
+    background-color: #FEF2F2;
+    color: #B91C1C;
+    border-color: #FECACA;
+  }
+  .badge-purple {
+    background-color: #FAF5FF;
+    color: #7E22CE;
+    border-color: #E9D5FF;
+  }
+  .badge-gray {
+    background-color: #F9FAFB;
+    color: #4B5563;
+    border-color: #E5E7EB;
+  }
+  /* KPI Card base */
+  .kpi-card {
+    background: white;
+    border-radius: 0.75rem;
+    border: 1px solid #F3F4F6;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+    transition: box-shadow 0.2s ease;
+  }
+  .kpi-card:hover {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  }
+  /* Sidebar nav item */
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #4B5563;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .nav-item:hover {
+    background-color: #F9FAFB;
+    color: #111827;
+  }
+  .nav-item.active {
+    background-color: #EFF6FF;
+    color: #1D4ED8;
+    font-weight: 600;
+    border-left: 2px solid #2563EB;
+    border-radius: 0 0.5rem 0.5rem 0;
+    padding-left: calc(0.75rem - 2px);
+  }
+}
+
+/* ── Design Tokens ───────────────────────────────────────── */
+:root {
+  --radius: 0.625rem; /* 10px */
+  --sidebar-width: 220px;
+  --header-height: 56px;
+
+  /* Background: Clean White */
+  --background: #FFFFFF;
+  /* Foreground: Rich Black */
+  --foreground: #111827;
+
+  --card: #FFFFFF;
+  --card-foreground: #111827;
+  --popover: #FFFFFF;
+  --popover-foreground: #111827;
+
+  /* Primary: Blue Royal #2563EB */
+  --primary: #2563EB;
+  --primary-foreground: #FFFFFF;
+  --brand: #2563EB;
+  --brand-foreground: #FFFFFF;
+
+  --secondary: #F8FAFC;
+  --secondary-foreground: #374151;
+  --muted: #F3F4F6;
+  --muted-foreground: #6B7280;
+  --accent: #EFF6FF;
+  --accent-foreground: #1D4ED8;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: #E5E7EB;
+  --input: #E5E7EB;
+  --ring: #2563EB;
+
+  /* Charts */
+  --chart-1: #2563EB;
+  --chart-2: #10B981;
+  --chart-3: #F59E0B;
+  --chart-4: #8B5CF6;
+  --chart-5: #EF4444;
+
+  /* Sidebar */
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #374151;
+  --sidebar-primary: #2563EB;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #EFF6FF;
+  --sidebar-accent-foreground: #1D4ED8;
+  --sidebar-border: #E5E7EB;
+  --sidebar-ring: #2563EB;
+}
+
+.dark {
+  --background: #0F172A;
+  --foreground: #F8FAFC;
+  --card: #1E293B;
+  --card-foreground: #F1F5F9;
+  --popover: #1E293B;
+  --popover-foreground: #F1F5F9;
+  --primary: #3B82F6;
+  --primary-foreground: #FFFFFF;
+  --brand: #3B82F6;
+  --brand-foreground: #FFFFFF;
+  --secondary: #1E293B;
+  --secondary-foreground: #CBD5E1;
+  --muted: #1E293B;
+  --muted-foreground: #94A3B8;
+  --accent: #1E3A5F;
+  --accent-foreground: #93C5FD;
+  --destructive: #EF4444;
+  --destructive-foreground: #FFFFFF;
+  --border: rgb(255 255 255 / 0.1);
+  --input: rgb(255 255 255 / 0.12);
+  --ring: #3B82F6;
+  --chart-1: #3B82F6;
+  --chart-2: #34D399;
+  --chart-3: #FBBF24;
+  --chart-4: #A78BFA;
+  --chart-5: #F87171;
+  --sidebar: #0F172A;
+  --sidebar-foreground: #CBD5E1;
+  --sidebar-primary: #3B82F6;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #1E3A5F;
+  --sidebar-accent-foreground: #93C5FD;
+  --sidebar-border: rgb(255 255 255 / 0.08);
+  --sidebar-ring: #3B82F6;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* Remove serif headings — only editorial sections get serif */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-sans);
+    font-weight: 700;
+    color: #111827;
+  }
+  .font-serif-title {
+    font-family: var(--font-serif);
+  }
+  /* Smooth scrollbar */
+  ::-webkit-scrollbar {
+    width: 5px;
+    height: 5px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #D1D5DB;
+    border-radius: 99px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #9CA3AF;
+  }
+}

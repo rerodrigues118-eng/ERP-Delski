@@ -99,6 +99,21 @@ create table if not exists public.project_expenses (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
+-- 6b. Tabela de Repasses de Freelancers
+create table if not exists public.freelancer_payouts (
+  id uuid default gen_random_uuid() primary key,
+  project_id uuid references public.projects(id) on delete cascade,
+  freelancer_id uuid references public.profiles(id) on delete cascade,
+  amount numeric(10,2) not null default 0.00,
+  due_date date,
+  payment_date date,
+  status text check (status in ('pendente','pago','agendado')) default 'pendente',
+  payment_receipt_path text,
+  payment_receipt_url text,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
 -- ==========================================================
 -- FUNÇÃO AUXILIAR SECURITY DEFINER (EVITA RECURSÃO INFINITA)
 -- ==========================================================
@@ -144,9 +159,12 @@ $$;
 
 alter table public.profiles enable row level security;
 alter table public.projects enable row level security;
+alter table public.clients enable row level security;
 alter table public.project_freelancers enable row level security;
 alter table public.project_tasks enable row level security;
 alter table public.project_triage enable row level security;
+alter table public.project_expenses enable row level security;
+alter table public.freelancer_payouts enable row level security;
 
 alter table public.projects drop constraint if exists projects_status_check;
 alter table public.projects add constraint projects_status_check check (status in ('Criado', 'Aguardando Candidaturas', 'Em Triagem', 'Em Andamento', 'Em Revisao', 'Concluido', 'Solicitado', 'Delegado', 'Em Producao'));
@@ -226,9 +244,45 @@ create policy "Usuarios vinculados veem tarefas" on public.project_tasks
 
 drop policy if exists "Acesso livre para leitura e inserção de triagem" on public.project_triage;
 
+drop policy if exists "Gestores acesso total a clients" on public.clients;
+drop policy if exists "Clientes veem seu registro de client" on public.clients;
+drop policy if exists "Gestores acesso total a project_expenses" on public.project_expenses;
+drop policy if exists "Freelancers veem despesas proprio" on public.project_expenses;
+drop policy if exists "Gestores acesso total a freelancer_payouts" on public.freelancer_payouts;
+drop policy if exists "Freelancers veem seus repasses" on public.freelancer_payouts;
+
 -- 5. Políticas para Project Triage
 create policy "Acesso livre para leitura e inserção de triagem" on public.project_triage
   for all using (true);
+
+-- 5b. Políticas para Clients, Project Expenses e Freelancer Payouts
+create policy "Gestores acesso total a clients" on public.clients
+  for all using (public.is_gestor(auth.uid())) with check (public.is_gestor(auth.uid()));
+
+create policy "Clientes veem seu registro de client" on public.clients
+  for select using (
+    auth.role() = 'authenticated' and (
+      auth_user_id = auth.uid()
+      or lower(email) = lower(auth.jwt() ->> 'email')
+    )
+  );
+
+create policy "Gestores acesso total a project_expenses" on public.project_expenses
+  for all using (public.is_gestor(auth.uid())) with check (public.is_gestor(auth.uid()));
+
+create policy "Freelancers veem despesas proprio" on public.project_expenses
+  for select using (
+    auth.role() = 'authenticated' and (
+      freelancer_id = auth.uid()
+      or project_id in (select project_id from public.project_freelancers where freelancer_id = auth.uid())
+    )
+  );
+
+create policy "Gestores acesso total a freelancer_payouts" on public.freelancer_payouts
+  for all using (public.is_gestor(auth.uid())) with check (public.is_gestor(auth.uid()));
+
+create policy "Freelancers veem seus repasses" on public.freelancer_payouts
+  for select using (freelancer_id = auth.uid());
 
 -- ==========================================================
 -- STORAGE BUCKET PARA ANEXOS DE PROJETOS
@@ -260,6 +314,18 @@ create policy "Uploads permitidos para contratos autenticados" on storage.object
 
 create policy "Leitura publica de contratos" on storage.objects
   for select using (bucket_id = 'contracts');
+
+insert into storage.buckets (id, name, public)
+values ('receipts', 'receipts', true)
+on conflict (id) do nothing;
+
+drop policy if exists "Uploads permitidos para recibos" on storage.objects;
+create policy "Uploads permitidos para recibos" on storage.objects
+  for insert with check (bucket_id = 'receipts' and auth.role() = 'authenticated');
+
+drop policy if exists "Leitura autenticada de recibos" on storage.objects;
+create policy "Leitura autenticada de recibos" on storage.objects
+  for select using (bucket_id = 'receipts' and auth.role() = 'authenticated');
 
 insert into storage.buckets (id, name, public)
 values ('contract-templates', 'contract-templates', true)
@@ -319,7 +385,7 @@ create table if not exists public.generated_contracts (
   docx_path text not null,
   pdf_path text,
   signed_docx_path text,
-  status text check (status in ('draft','generated','exported','assinado_freelancer','concluido')) default 'draft',
+  status text check (status in ('draft','rascunho','aguardando_upload_gestor','generated','aguardando_assinatura_freelancer','exported','assinado_freelancer','concluido')) default 'rascunho',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -578,6 +644,81 @@ create table if not exists public.notifications (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   created_by uuid references public.profiles(id) on delete set null
 );
+
+-- ==========================================================
+-- Tabela de Chamados / Suporte (support_tickets)
+-- ==========================================================
+create table if not exists public.support_tickets (
+  id uuid default gen_random_uuid() primary key,
+  client_id uuid references public.profiles(id) on delete set null,
+  user_id uuid references public.profiles(id) on delete set null,
+  created_by uuid references public.profiles(id) on delete set null,
+  client_name text,
+  client_email text,
+  category text,
+  subject text not null,
+  message text not null,
+  status text check (status in ('Aberto','Em Andamento','Resolvido','Fechado')) default 'Aberto',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone
+);
+
+alter table public.support_tickets enable row level security;
+
+drop policy if exists "Usuarios podem ver seus propios chamados" on public.support_tickets;
+create policy "Usuários podem ver seus próprios chamados" on public.support_tickets
+  for select using (
+    auth.role() = 'authenticated' and (
+      client_id = auth.uid()
+      or user_id = auth.uid()
+      or lower(client_email) = lower(auth.jwt() ->> 'email')
+    )
+  );
+
+drop policy if exists "Gestores podem ver todos os chamados" on public.support_tickets;
+create policy "Gestores podem ver todos os chamados" on public.support_tickets
+  for select using (public.is_gestor(auth.uid()));
+
+drop policy if exists "Clientes inserem chamados" on public.support_tickets;
+create policy "Clientes inserem chamados" on public.support_tickets
+  for insert with check (
+    auth.role() = 'authenticated' and (
+      client_id = auth.uid() or user_id = auth.uid() or created_by = auth.uid()
+    )
+  );
+
+drop policy if exists "Gestores atualizam chamados" on public.support_tickets;
+create policy "Gestores atualizam chamados" on public.support_tickets
+  for update using (public.is_gestor(auth.uid())) with check (public.is_gestor(auth.uid()));
+
+-- Trigger: notify managers when a new ticket is created
+drop function if exists public.notify_managers_new_ticket;
+create or replace function public.notify_managers_new_ticket()
+returns trigger
+language plpgsql
+security definer
+as $$
+begin
+  -- Insert a notification for each gestor/admin
+  insert into public.notifications (user_id, title, message, type, created_at, created_by)
+  select p.id,
+    'Novo chamado de suporte',
+    'Novo chamado: ' || coalesce(new.subject, '<sem assunto>') || ' — ' || substring(new.message for 160),
+    'sistema', timezone('utc', now()), new.created_by
+  from public.profiles p
+  where lower(p.role) in ('gestor', 'admin');
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_notify_managers_on_ticket on public.support_tickets;
+create trigger trg_notify_managers_on_ticket
+  after insert on public.support_tickets
+  for each row execute function public.notify_managers_new_ticket();
+-- Ensure notifications has expected columns before creating policies
+alter table public.notifications add column if not exists user_id uuid references public.profiles(id) on delete cascade;
+alter table public.notifications add column if not exists created_by uuid references public.profiles(id) on delete set null;
 
 alter table public.notifications enable row level security;
 

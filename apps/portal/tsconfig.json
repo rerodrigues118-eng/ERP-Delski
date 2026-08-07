@@ -1,11 +1,5 @@
 {
-  "include": [
-    "apps/**/*.ts",
-    "apps/**/*.tsx",
-    "packages/**/*.ts",
-    "packages/**/*.tsx",
-    "eslint.config.js"
-  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
   "compilerOptions": {
     "target": "ES2022",
     "jsx": "react-jsx",
@@ -23,6 +17,9 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedSideEffectImports": true
+    "noUncheckedSideEffectImports": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   }
 }

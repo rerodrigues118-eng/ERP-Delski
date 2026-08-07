@@ -1,25 +1,14 @@
 {
-  "name": "delski-flow",
+  "name": "@delski/erp",
   "private": true,
-  "sideEffects": false,
   "type": "module",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "scripts": {
-    "dev": "npm run dev:erp",
-    "dev:erp": "npm --prefix apps/erp run dev",
-    "dev:portal": "npm --prefix apps/portal run dev",
-    "build": "npm run build:erp && npm run build:portal",
-    "build:erp": "npm --prefix apps/erp run build",
-    "build:portal": "npm --prefix apps/portal run build",
-    "preview:erp": "npm --prefix apps/erp run preview",
-    "preview:portal": "npm --prefix apps/portal run preview",
-    "lint": "eslint .",
-    "format": "prettier --write ."
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@delski/shared": "workspace:*",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@hookform/resolvers": "^5.2.2",
@@ -52,20 +41,22 @@
     "@supabase/supabase-js": "^2.110.9",
     "@tailwindcss/vite": "^4.2.1",
     "@tanstack/react-query": "^5.101.1",
-    "docxtemplater": "^3.69.3",
-    "pizzip": "^3.0.6",
-    "mammoth": "^1.7.6",
-    "file-saver": "^2.0.5",
-    "@tanstack/react-router": "^1.168.26",
+    "@tanstack/react-router": "^1.170.16",
     "@tanstack/react-start": "^1.168.26",
     "@tanstack/router-plugin": "^1.168.18",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.1.0",
+    "docxtemplater": "^3.69.3",
     "embla-carousel-react": "^8.6.0",
+    "file-saver": "^2.0.5",
+    "framer-motion": "^13.0.0",
     "input-otp": "^1.4.2",
+    "jspdf": "^2.5.1",
     "lucide-react": "^0.575.0",
+    "mammoth": "^1.7.6",
+    "pizzip": "^3.0.6",
     "react": "^19.2.0",
     "react-day-picker": "^9.14.0",
     "react-dom": "^19.2.0",
@@ -75,37 +66,21 @@
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.2.1",
-    "jspdf": "^2.5.1",
     "tw-animate-css": "^1.3.4",
     "vaul": "^1.1.2",
+    "use-sync-external-store": "^1.4.0",
     "vite-tsconfig-paths": "^6.0.2",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@eslint/js": "^9.32.0",
     "@lovable.dev/vite-tanstack-config": "^2.7.7",
     "@types/node": "^22.16.5",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.2.0",
-    "eslint": "^9.32.0",
-    "eslint-config-prettier": "^10.1.1",
-    "eslint-plugin-prettier": "^5.2.6",
-    "eslint-plugin-react-hooks": "^5.2.0",
-    "eslint-plugin-react-refresh": "^0.4.20",
-    "globals": "^15.15.0",
     "nitro": "3.0.260603-beta",
-    "prettier": "^3.7.3",
     "typescript": "^5.8.3",
-    "typescript-eslint": "^8.56.1",
     "vite": "^8.0.16"
-  },
-  "pnpm": {
-    "overrides": {
-      "@tanstack/router-core": "^1.168.26",
-      "@tanstack/react-router": "^1.168.26",
-      "@tanstack/react-start": "^1.168.26"
-    }
   }
 }
