@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useSyncExternalStore, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { User, Session } from "@supabase/supabase-js";
 
@@ -20,186 +20,200 @@ interface AuthState {
   session: Session | null;
 }
 
-export function useAuth() {
-  const [state, setState] = useState<AuthState>({
-    user: null,
-    profile: null,
-    role: null,
-    loading: true,
-    session: null,
-  });
+let globalAuthState: AuthState = {
+  user: null,
+  profile: null,
+  role: null,
+  loading: true,
+  session: null,
+};
 
-  const fetchFullNameFromMetadata = (user: User) => {
-    const metadata = user.user_metadata as Record<string, unknown> | undefined;
-    const fullNameMetadata =
-      typeof metadata?.full_name === "string" && metadata.full_name.trim()
-        ? metadata.full_name.trim()
-        : undefined;
-    const nameMetadata =
-      typeof metadata?.name === "string" && metadata.name.trim() ? metadata.name.trim() : undefined;
-    const preferredNameMetadata =
-      typeof metadata?.preferred_name === "string" && metadata.preferred_name.trim()
-        ? metadata.preferred_name.trim()
-        : undefined;
-    const givenNameMetadata =
-      typeof metadata?.given_name === "string" && metadata.given_name.trim()
-        ? metadata.given_name.trim()
-        : undefined;
+const listeners = new Set<() => void>();
 
-    return (
-      fullNameMetadata ||
-      nameMetadata ||
-      preferredNameMetadata ||
-      givenNameMetadata ||
-      user.email?.split("@")[0] ||
-      "Usuário"
-    );
+function notify() {
+  listeners.forEach((listener) => listener());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
   };
+}
 
-  const fetchProfileFromDatabase = useCallback(async (user: User): Promise<UserProfile | null> => {
-    try {
-      const normalizedEmail = user.email?.trim().toLowerCase() || "";
-      const metadataFullName = fetchFullNameFromMetadata(user);
+function getSnapshot() {
+  return globalAuthState;
+}
 
-      // 1. Check profile by ID (user.id)
-      const { data: byId } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .maybeSingle();
+const fetchFullNameFromMetadata = (user: User) => {
+  const metadata = user.user_metadata as Record<string, unknown> | undefined;
+  const fullNameMetadata =
+    typeof metadata?.full_name === "string" && metadata.full_name.trim()
+      ? metadata.full_name.trim()
+      : undefined;
+  const nameMetadata =
+    typeof metadata?.name === "string" && metadata.name.trim() ? metadata.name.trim() : undefined;
+  const preferredNameMetadata =
+    typeof metadata?.preferred_name === "string" && metadata.preferred_name.trim()
+      ? metadata.preferred_name.trim()
+      : undefined;
+  const givenNameMetadata =
+    typeof metadata?.given_name === "string" && metadata.given_name.trim()
+      ? metadata.given_name.trim()
+      : undefined;
 
-      if (byId) {
-        if (
-          byId.full_name?.trim() &&
-          !byId.full_name.includes("@") &&
-          byId.full_name !== user.email?.split("@")[0]
-        ) {
-          return byId as UserProfile;
-        }
+  return (
+    fullNameMetadata ||
+    nameMetadata ||
+    preferredNameMetadata ||
+    givenNameMetadata ||
+    user.email?.split("@")[0] ||
+    "Usuário"
+  );
+};
 
-        try {
-          const { data: clientByEmail } = await supabase
-            .from("clients")
-            .select("full_name")
-            .ilike("email", normalizedEmail)
-            .maybeSingle();
+const fetchProfileFromDatabase = async (user: User): Promise<UserProfile | null> => {
+  try {
+    const normalizedEmail = user.email?.trim().toLowerCase() || "";
+    const metadataFullName = fetchFullNameFromMetadata(user);
 
-          if (clientByEmail?.full_name?.trim()) {
-            const realName = clientByEmail.full_name.split("(")[0].trim();
-            await (supabase.from("profiles") as any)
-              .update({ full_name: realName })
-              .eq("id", user.id);
-            byId.full_name = realName;
-          }
-        } catch (err) {
-          // Log RLS permission errors for debugging
-          console.warn('[useAuth] RLS permission check failed:', err);
-        }
+    // 1. Check profile by ID (user.id)
+    const { data: byId } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (byId) {
+      if (
+        byId.full_name?.trim() &&
+        !byId.full_name.includes("@") &&
+        byId.full_name !== user.email?.split("@")[0]
+      ) {
         return byId as UserProfile;
       }
 
-      // 2. Check profile by Email (link manual profile created by Gestor to Auth user.id)
-      if (normalizedEmail) {
-        const { data: byEmail } = await supabase
-          .from("profiles")
-          .select("*")
+      try {
+        const { data: clientByEmail } = await supabase
+          .from("clients")
+          .select("full_name")
           .ilike("email", normalizedEmail)
-          .order("created_at", { ascending: true })
-          .limit(1)
           .maybeSingle();
 
-        if (byEmail) {
-          return { ...byEmail, id: user.id, auth_user_id: user.id } as UserProfile;
+        if (clientByEmail?.full_name?.trim()) {
+          const realName = clientByEmail.full_name.split("(")[0].trim();
+          await (supabase.from("profiles") as any)
+            .update({ full_name: realName })
+            .eq("id", user.id);
+          byId.full_name = realName;
         }
+      } catch (err) {
+        console.warn("[useAuth] RLS permission check failed:", err);
+      }
+      return byId as UserProfile;
+    }
 
-        let clientName = metadataFullName;
-        try {
-          const { data: clientByEmail } = await supabase
-            .from("clients")
-            .select("full_name")
-            .ilike("email", normalizedEmail)
-            .limit(1)
-            .maybeSingle();
-          if (clientByEmail?.full_name) {
-            clientName = clientByEmail.full_name.split("(")[0].trim();
-          }
-        } catch (err) {
-          // Log RLS permission errors for debugging
-          console.warn('[useAuth] RLS permission check failed:', err);
-        }
+    // 2. Check profile by Email
+    if (normalizedEmail) {
+      const { data: byEmail } = await supabase
+        .from("profiles")
+        .select("*")
+        .ilike("email", normalizedEmail)
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-        return {
-          id: user.id,
-          full_name: clientName || metadataFullName,
-          email: user.email || "",
-          role: (user.user_metadata?.role as string) || "cliente",
-        } as UserProfile;
+      if (byEmail) {
+        return { ...byEmail, id: user.id, auth_user_id: user.id } as UserProfile;
       }
 
-      // 3. Fallback: Default profile object
-      const metaRole = (user.user_metadata?.role as string) || "gestor";
+      let clientName = metadataFullName;
+      try {
+        const { data: clientByEmail } = await supabase
+          .from("clients")
+          .select("full_name")
+          .ilike("email", normalizedEmail)
+          .limit(1)
+          .maybeSingle();
+        if (clientByEmail?.full_name) {
+          clientName = clientByEmail.full_name.split("(")[0].trim();
+        }
+      } catch (err) {
+        console.warn("[useAuth] RLS permission check failed:", err);
+      }
+
       return {
         id: user.id,
-        full_name: metadataFullName,
+        full_name: clientName || metadataFullName,
         email: user.email || "",
-        role: metaRole,
+        role: (user.user_metadata?.role as string) || "cliente",
       } as UserProfile;
-    } catch (error) {
-      console.warn("[useAuth] Error retrieving profile from database:", error);
-      return null;
     }
-  }, []);
 
-  useEffect(() => {
-    // Check initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const profile = await fetchProfileFromDatabase(session.user);
-        const rawRole = (profile?.role || session.user.user_metadata?.role || "gestor").toString();
-        setState({
-          user: session.user,
-          profile,
-          role: rawRole,
-          loading: false,
-          session,
-        });
-      } else {
-        setState({ user: null, profile: null, role: null, loading: false, session: null });
-      }
-    });
+    // 3. Fallback: Default profile object
+    const metaRole = (user.user_metadata?.role as string) || "gestor";
+    return {
+      id: user.id,
+      full_name: metadataFullName,
+      email: user.email || "",
+      role: metaRole,
+    } as UserProfile;
+  } catch (error) {
+    console.warn("[useAuth] Error retrieving profile from database:", error);
+    return null;
+  }
+};
 
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const profile = await fetchProfileFromDatabase(session.user);
-        const rawRole = (profile?.role || session.user.user_metadata?.role || "gestor").toString();
-        setState({
-          user: session.user,
-          profile,
-          role: rawRole,
-          loading: false,
-          session,
-        });
-      } else {
-        setState({ user: null, profile: null, role: null, loading: false, session: null });
-      }
-    });
+let isAuthInitialized = false;
 
-    return () => subscription.unsubscribe();
-  }, [fetchProfileFromDatabase]);
+function initAuthSingleton() {
+  if (isAuthInitialized) return;
+  isAuthInitialized = true;
+
+  const updateStateFromSession = async (session: Session | null) => {
+    if (session?.user) {
+      const profile = await fetchProfileFromDatabase(session.user);
+      const rawRole = (profile?.role || session.user.user_metadata?.role || "gestor").toString();
+      globalAuthState = {
+        user: session.user,
+        profile,
+        role: rawRole,
+        loading: false,
+        session,
+      };
+    } else {
+      globalAuthState = { user: null, profile: null, role: null, loading: false, session: null };
+    }
+    notify();
+  };
+
+  supabase.auth.getSession().then(({ data: { session } }) => {
+    updateStateFromSession(session);
+  });
+
+  supabase.auth.onAuthStateChange((_event, session) => {
+    updateStateFromSession(session);
+  });
+}
+
+if (typeof window !== "undefined") {
+  initAuthSingleton();
+}
+
+export function useAuth() {
+  const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   const logout = useCallback(async () => {
-    setState((current) => ({ ...current, loading: true }));
+    globalAuthState = { ...globalAuthState, loading: true };
+    notify();
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("Logout failed:", error.message);
     }
-    setState({ user: null, profile: null, role: null, loading: false, session: null });
+    globalAuthState = { user: null, profile: null, role: null, loading: false, session: null };
+    notify();
   }, []);
 
-  // Robust, case-insensitive role checks
   const roleLower = (state.role || "").toLowerCase();
   const isGestor =
     roleLower === "gestor" ||

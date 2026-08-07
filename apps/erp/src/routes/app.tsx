@@ -126,7 +126,7 @@ function AppLayout() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (!loading && !user && typeof window !== "undefined" && window.location.pathname.includes("/app")) {
       navigate({ to: "/auth", replace: true });
     }
   }, [user, loading, navigate]);

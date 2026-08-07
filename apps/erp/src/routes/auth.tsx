@@ -111,7 +111,7 @@ function AuthPage() {
 
   // Direct redirection if already logged in via Supabase
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && user && typeof window !== "undefined" && window.location.pathname.includes("/auth")) {
       if (isCliente) {
         toast.info("Você está conectado como Cliente. Por favor, acesse o Portal do Cliente.");
       } else {
