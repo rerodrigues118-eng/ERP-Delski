@@ -9,11 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import {
-  ShieldCheck,
   Lock,
-  Sparkles,
   Mail,
-  UserCheck,
   Loader2,
   UserPlus,
   LogIn,
@@ -23,14 +20,14 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
 const loginSchema = z.object({
-  email: z.string().email("Insira um endereço de e-mail válido."),
+  email: z.string().min(1, "O e-mail é obrigatório.").email("Insira um endereço de e-mail válido."),
   password: z.string().min(1, "A senha é obrigatória."),
 });
 
 const registerSchema = z
   .object({
     fullName: z.string().min(3, "Nome completo deve ter pelo menos 3 caracteres."),
-    email: z.string().email("Insira um endereço de e-mail válido."),
+    email: z.string().min(1, "O e-mail é obrigatório.").email("Insira um endereço de e-mail válido."),
     password: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."),
     confirmPassword: z.string().min(6, "A confirmação de senha é obrigatória."),
   })
@@ -65,7 +62,6 @@ function AuthPage() {
   const {
     register: registerLogin,
     handleSubmit: handleSubmitLogin,
-    setValue: setLoginValue,
     formState: { errors: loginErrors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -79,6 +75,7 @@ function AuthPage() {
   const {
     register: registerSignUp,
     handleSubmit: handleSubmitSignUp,
+    setValue: setRegisterValue,
     formState: { errors: registerErrors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -90,28 +87,9 @@ function AuthPage() {
     },
   });
 
-  // Auto-fill from URL search params or redirect client to /portal/auth (only on initial mount)
+  // Direct redirection ONLY if already logged in via Supabase
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const roleParam = params.get("role");
-      const lastPortal = localStorage.getItem("delski_last_portal");
-
-      if (roleParam === "client" || roleParam === "cliente" || lastPortal === "client") {
-        navigate({ to: "/portal/auth", replace: true });
-        return;
-      }
-
-      const emailParam = params.get("email");
-      const passParam = params.get("password");
-      if (emailParam) setLoginValue("email", emailParam);
-      if (passParam) setLoginValue("password", passParam);
-    }
-  }, []);
-
-  // Direct redirection if already logged in via Supabase
-  useEffect(() => {
-    if (!authLoading && user && typeof window !== "undefined" && window.location.pathname.includes("/auth")) {
+    if (!authLoading && user && typeof window !== "undefined" && window.location.pathname === "/auth") {
       if (isCliente) {
         toast.info("Você está conectado como Cliente. Por favor, acesse o Portal do Cliente.");
       } else {
@@ -120,101 +98,68 @@ function AuthPage() {
     }
   }, [user, isCliente, authLoading, navigate]);
 
+  // Clean, standard login handler
   const onLoginSubmit = async (data: LoginFormData) => {
     setLoading(true);
     try {
-      // 1. Try signing in with Supabase Auth
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: data.email,
+      const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: data.email.trim(),
         password: data.password,
       });
 
       if (signInError) {
-        // 2. If user does not exist in Supabase Auth, attempt automatic sign up
-        const { data: signUpResult, error: signUpError } = await supabase.auth.signUp({
-          email: data.email,
-          password: data.password,
-          options: {
-            data: {
-              full_name: data.email.split("@")[0],
-              role: data.email.includes("freelancer") ? "freelancer" : "gestor",
-            },
-          },
-        });
-
-        if (!signUpError && signUpResult.user) {
-          // Create profile in DB
-          await (supabase.from("profiles") as any).upsert({
-            id: signUpResult.user.id,
-            full_name: data.email.split("@")[0],
-            email: data.email,
-            role: data.email.includes("freelancer") ? "freelancer" : "gestor",
-          });
-
-          // Attempt login after signup
-          await supabase.auth.signInWithPassword({
-            email: data.email,
-            password: data.password,
-          });
-
-          toast.success("Conta criada e acesso concedido!");
-          navigate({ to: "/app", replace: true });
-          return;
-        }
-
-        // 3. Fallback: navigate directly to /app so user is not blocked
-        toast.info("Acessando o sistema...");
-        setTimeout(() => navigate({ to: "/app", replace: true }), 600);
+        toast.error("E-mail ou senha incorretos. Verifique suas credenciais.");
+        setLoading(false);
         return;
       }
 
-      toast.success("Autenticação realizada com sucesso!");
-      navigate({ to: "/app", replace: true });
-    } catch {
-      toast.info("Entrando no painel...");
-      navigate({ to: "/app", replace: true });
+      if (authData.user) {
+        toast.success("Autenticação realizada com sucesso!");
+        navigate({ to: "/app", replace: true });
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao realizar login.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
   };
 
+  // Clean, standard register handler
   const onRegisterSubmit = async (data: RegisterFormData) => {
     setLoading(true);
     try {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: data.email,
+        email: data.email.trim(),
         password: data.password,
         options: {
           data: {
-            full_name: data.fullName,
+            full_name: data.fullName.trim(),
             role: "freelancer",
           },
         },
       });
 
       if (signUpError) {
-        toast.info("Processando cadastro...");
+        toast.error(signUpError.message || "Erro ao criar conta.");
+        setLoading(false);
+        return;
       }
 
-      const userId = authData.user?.id || crypto.randomUUID();
+      if (authData.user) {
+        await (supabase.from("profiles") as any).upsert({
+          id: authData.user.id,
+          full_name: data.fullName.trim(),
+          email: data.email.trim(),
+          role: "freelancer",
+        });
 
-      await (supabase.from("profiles") as any).upsert({
-        id: userId,
-        full_name: data.fullName,
-        email: data.email,
-        role: "freelancer",
-      });
-
-      toast.success("Conta de Freelancer criada com sucesso!");
-      await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
-
-      navigate({ to: "/app", replace: true });
+        toast.success("Conta criada com sucesso! Faça login para continuar.");
+        setActiveTab("login");
+      }
     } catch (err: unknown) {
-      toast.info("Entrando no aplicativo...");
-      navigate({ to: "/app", replace: true });
+      const msg = err instanceof Error ? err.message : "Erro ao criar conta.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -246,172 +191,176 @@ function AuthPage() {
             </TabsTrigger>
           </TabsList>
 
-            {/* TAB: LOGIN */}
-            <TabsContent value="login" className="space-y-6">
+          {/* TAB: LOGIN */}
+          <TabsContent value="login" className="space-y-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-medium">
+                <Lock className="h-3.5 w-3.5" />
+                Acesso via Supabase Auth
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                Entrar no Sistema
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Informe suas credenciais registradas para acessar o painel corporativo Delski.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmitLogin(onLoginSubmit)} className="space-y-4">
               <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-medium">
-                  <Lock className="h-3.5 w-3.5" />
-                  Acesso via Supabase Auth
+                <Label htmlFor="email">E-mail corporativo</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    autoComplete="email"
+                    className="pl-9"
+                    placeholder="usuario@delski.co"
+                    {...registerLogin("email")}
+                  />
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                  Entrar no Sistema
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Informe suas credenciais registradas para acessar o painel corporativo Delski.
-                </p>
+                {loginErrors.email && (
+                  <p className="text-xs text-destructive">{loginErrors.email.message}</p>
+                )}
               </div>
 
-              <form onSubmit={handleSubmitLogin(onLoginSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">E-mail corporativo</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      autoComplete="username"
-                      className="pl-9"
-                      placeholder="usuario@delski.co"
-                      {...registerLogin("email")}
-                    />
-                  </div>
-                  {loginErrors.email && (
-                    <p className="text-xs text-destructive">{loginErrors.email.message}</p>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="password">Senha de acesso</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="password"
-                      type="password"
-                      autoComplete="current-password"
-                      className="pl-9"
-                      placeholder="••••••••"
-                      {...registerLogin("password")}
-                    />
-                  </div>
-                  {loginErrors.password && (
-                    <p className="text-xs text-destructive">{loginErrors.password.message}</p>
-                  )}
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
-                  disabled={loading}
-                >
-                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {loading ? "Autenticando..." : "Acessar Painel Delski"}
-                </Button>
-              </form>
-            </TabsContent>
-
-            {/* TAB: REGISTER FREELANCER */}
-            <TabsContent value="register" className="space-y-6">
               <div className="space-y-2">
-                <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20 text-xs font-medium">
-                  <UserPlus className="h-3.5 w-3.5" />
-                  Cadastro no Sistema
+                <Label htmlFor="password">Senha de acesso</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    autoComplete="current-password"
+                    className="pl-9"
+                    placeholder="••••••••"
+                    {...registerLogin("password")}
+                  />
                 </div>
-                <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                  Criar Conta
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Preencha seus dados para criar sua conta no Delski ERP.
-                </p>
+                {loginErrors.password && (
+                  <p className="text-xs text-destructive">{loginErrors.password.message}</p>
+                )}
               </div>
 
-              <form onSubmit={handleSubmitSignUp(onRegisterSubmit)} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="fullName">Nome Completo</Label>
-                  <div className="relative">
-                    <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="fullName"
-                      type="text"
-                      className="pl-9"
-                      placeholder="Ex: Maria Silva"
-                      {...registerSignUp("fullName")}
-                    />
-                  </div>
-                  {registerErrors.fullName && (
-                    <p className="text-xs text-destructive">{registerErrors.fullName.message}</p>
-                  )}
+              <Button
+                type="submit"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
+                disabled={loading}
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading ? "Autenticando..." : "Acessar Painel Delski"}
+              </Button>
+            </form>
+          </TabsContent>
+
+          {/* TAB: REGISTER FREELANCER */}
+          <TabsContent value="register" className="space-y-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20 text-xs font-medium">
+                <UserPlus className="h-3.5 w-3.5" />
+                Cadastro no Sistema
+              </div>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">
+                Criar Conta
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Preencha seus dados para criar sua conta no Delski ERP.
+              </p>
+            </div>
+
+            <form onSubmit={handleSubmitSignUp(onRegisterSubmit)} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="fullName">Nome Completo</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="fullName"
+                    type="text"
+                    autoComplete="name"
+                    className="pl-9"
+                    placeholder="Ex: Maria Silva"
+                    {...registerSignUp("fullName")}
+                  />
                 </div>
+                {registerErrors.fullName && (
+                  <p className="text-xs text-destructive">{registerErrors.fullName.message}</p>
+                )}
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="reg-email">E-mail</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="reg-email"
-                      type="email"
-                      className="pl-9"
-                      placeholder="seu.email@dominio.com"
-                      {...registerSignUp("email")}
-                    />
-                  </div>
-                  {registerErrors.email && (
-                    <p className="text-xs text-destructive">{registerErrors.email.message}</p>
-                  )}
+              <div className="space-y-2">
+                <Label htmlFor="reg-email">E-mail</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="reg-email"
+                    type="email"
+                    autoComplete="email"
+                    className="pl-9"
+                    placeholder="seu.email@dominio.com"
+                    {...registerSignUp("email")}
+                  />
                 </div>
+                {registerErrors.email && (
+                  <p className="text-xs text-destructive">{registerErrors.email.message}</p>
+                )}
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="reg-password">Senha de acesso</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="reg-password"
-                      type="password"
-                      className="pl-9"
-                      placeholder="No mínimo 6 caracteres"
-                      {...registerSignUp("password")}
-                    />
-                  </div>
-                  {registerErrors.password && (
-                    <p className="text-xs text-destructive">{registerErrors.password.message}</p>
-                  )}
+              <div className="space-y-2">
+                <Label htmlFor="reg-password">Senha de acesso</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="reg-password"
+                    type="password"
+                    autoComplete="new-password"
+                    className="pl-9"
+                    placeholder="No mínimo 6 caracteres"
+                    {...registerSignUp("password")}
+                  />
                 </div>
+                {registerErrors.password && (
+                  <p className="text-xs text-destructive">{registerErrors.password.message}</p>
+                )}
+              </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      className="pl-9"
-                      placeholder="Repita sua senha"
-                      {...registerSignUp("confirmPassword")}
-                    />
-                  </div>
-                  {registerErrors.confirmPassword && (
-                    <p className="text-xs text-destructive">
-                      {registerErrors.confirmPassword.message}
-                    </p>
-                  )}
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    className="pl-9"
+                    placeholder="Repita sua senha"
+                    {...registerSignUp("confirmPassword")}
+                  />
                 </div>
+                {registerErrors.confirmPassword && (
+                  <p className="text-xs text-destructive">
+                    {registerErrors.confirmPassword.message}
+                  </p>
+                )}
+              </div>
 
-                <Button
-                  type="submit"
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
-                  disabled={loading}
-                >
-                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {loading ? "Criando conta no Supabase..." : "Criar Conta & Entrar no APP"}
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Footer Rights */}
-        <div className="text-xs text-gray-400 pb-4 text-center">
-          © {new Date().getFullYear()} Delski Technology & Agency Operations. Todos os direitos reservados.
-        </div>
+              <Button
+                type="submit"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
+                disabled={loading}
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading ? "Criando conta..." : "Criar Conta & Entrar no APP"}
+              </Button>
+            </form>
+          </TabsContent>
+        </Tabs>
       </div>
-    );
-  }
+
+      {/* Footer Rights */}
+      <div className="text-xs text-gray-400 pb-4 text-center">
+        © {new Date().getFullYear()} Delski Technology & Agency Operations. Todos os direitos reservados.
+      </div>
+    </div>
+  );
+}
