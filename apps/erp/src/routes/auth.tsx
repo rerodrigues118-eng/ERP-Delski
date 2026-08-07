@@ -230,34 +230,13 @@ function AuthPage() {
           </div>
           <div>
             <span className="text-xl font-serif font-bold tracking-tight text-white">DELSKI</span>
-            <span className="ml-2 text-xs font-semibold text-stone-400 uppercase tracking-widest bg-stone-900 px-2 py-0.5 rounded border border-stone-800">
-              OPERATIONAL ERP
-            </span>
           </div>
         </div>
 
         <div className="relative z-10 space-y-6 max-w-lg">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-stone-900 border border-stone-800 text-xs font-medium text-stone-300">
-            <ShieldCheck className="h-3.5 w-3.5 text-blue-400" />
-            Ambiente Interno Operacional & Cadastral
-          </div>
           <h1 className="font-serif text-4xl font-bold leading-tight tracking-tight text-white">
-            Plataforma Corporativa de Gestão de Operações e Freelancers.
+            Plataforma Corporativa de Gestão
           </h1>
-          <p className="text-stone-400 text-sm leading-relaxed">
-            Centralize requisições, briefing técnico por seções, triagem de freelancers com
-            pontuação por matriz de compatibilidade e cronograma Gantt com bloqueio de dependências.
-          </p>
-          <div className="flex items-center gap-6 pt-2">
-            <div className="flex items-center gap-2 text-xs text-stone-400">
-              <ShieldCheck className="h-4 w-4 text-emerald-400" />
-              Políticas de Segurança RLS (Supabase)
-            </div>
-            <div className="flex items-center gap-2 text-xs text-stone-400">
-              <Lock className="h-4 w-4 text-blue-400" />
-              Acesso Restrito a Gestores & Freelancers
-            </div>
-          </div>
         </div>
 
         <div className="relative z-10 text-xs text-stone-500">
@@ -286,7 +265,7 @@ function AuthPage() {
                 <LogIn className="h-4 w-4" /> Entrar no Sistema
               </TabsTrigger>
               <TabsTrigger value="register" className="gap-2 font-medium text-indigo-400">
-                <UserPlus className="h-4 w-4" /> Criar Conta (Freelancer)
+                <UserPlus className="h-4 w-4" /> Criar Conta
               </TabsTrigger>
             </TabsList>
 
@@ -356,13 +335,13 @@ function AuthPage() {
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20 text-xs font-medium">
                   <UserPlus className="h-3.5 w-3.5" />
-                  Cadastro Direto de Freelancers
+                  Cadastro no Sistema
                 </div>
                 <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                  Criar Conta de Freelancer
+                  Criar Conta
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Preencha seus dados para criar sua conta de especialista no Delski ERP.
+                  Preencha seus dados para criar sua conta no Delski ERP.
                 </p>
               </div>
 
