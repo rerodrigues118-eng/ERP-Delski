@@ -1,4 +1,5 @@
 {
   "buildCommand": "npm run build:erp",
-  "installCommand": "npm install --legacy-peer-deps"
+  "installCommand": "npm install --legacy-peer-deps",
+  "outputDirectory": ".vercel/output"
 }
