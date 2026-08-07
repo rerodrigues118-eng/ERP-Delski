@@ -233,12 +233,6 @@ function AuthPage() {
           </div>
         </div>
 
-        <div className="relative z-10 space-y-6 max-w-lg">
-          <h1 className="font-serif text-4xl font-bold leading-tight tracking-tight text-white">
-            Plataforma Corporativa de Gestão
-          </h1>
-        </div>
-
         <div className="relative z-10 text-xs text-stone-500">
           © {new Date().getFullYear()} Delski Technology & Agency Operations. Todos os direitos
           reservados.
