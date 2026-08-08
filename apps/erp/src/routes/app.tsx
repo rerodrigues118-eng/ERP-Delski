@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Bell, Search, ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "@tanstack/react-router";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 export const Route = createFileRoute("/app")({
   ssr: false,
@@ -122,42 +123,23 @@ function AppHeader() {
 }
 
 function AppLayout() {
-  const { user, session, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !session && !user) {
-      navigate({ to: "/auth", replace: true });
-    }
-  }, [session, user, loading, navigate]);
-
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center bg-white">
-        <p className="text-muted-foreground animate-pulse text-sm font-medium">Carregando sessão...</p>
-      </div>
-    );
-  }
-
-  if (!session && !user) {
-    return null; // Não renderiza nada enquanto o useEffect faz o redirect
-  }
-
   return (
-    <div className="min-h-screen flex w-full bg-slate-50">
-      {/* Fixed sidebar */}
-      <AppSidebar />
+    <ProtectedRoute>
+      <div className="min-h-screen flex w-full bg-slate-50">
+        {/* Fixed sidebar */}
+        <AppSidebar />
 
-      {/* Main area shifted right of sidebar */}
-      <div
-        className="flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200"
-        style={{ marginLeft: "var(--sidebar-width, 220px)" }}
-      >
-        <AppHeader />
-        <main className="flex-1 p-7 xl:p-8">
-          <Outlet />
-        </main>
+        {/* Main area shifted right of sidebar */}
+        <div
+          className="flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-200"
+          style={{ marginLeft: "var(--sidebar-width, 220px)" }}
+        >
+          <AppHeader />
+          <main className="flex-1 p-7 xl:p-8">
+            <Outlet />
+          </main>
+        </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }

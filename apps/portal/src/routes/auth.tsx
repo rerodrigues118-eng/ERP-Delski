@@ -23,7 +23,7 @@ export const Route = createFileRoute("/auth")({
 function ClientAuthPage() {
   const searchParams = useSearch({ from: "/auth" });
   const queryEmail = searchParams?.email;
-  const { user, profile, isCliente, isGestor, isFreelancer, loading: authLoading } = useAuth();
+  const { isAuthenticated, isCliente, isGestor, isFreelancer, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState(queryEmail || "");
@@ -40,14 +40,15 @@ function ClientAuthPage() {
 
   // Guard: Role-based redirection if already logged in
   useEffect(() => {
-    if (!authLoading && user) {
+    if (!authLoading && isAuthenticated) {
       if (isGestor || isFreelancer) {
         toast.info("Acesso interno detectado. Redirecionando...");
+        window.location.href = "/auth";
       } else if (isCliente) {
         navigate({ to: "/dashboard", replace: true });
       }
     }
-  }, [user, profile, isGestor, isFreelancer, isCliente, authLoading, navigate]);
+  }, [isAuthenticated, isGestor, isFreelancer, isCliente, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

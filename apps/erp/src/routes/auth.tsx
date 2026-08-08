@@ -54,21 +54,21 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { user, session, isCliente, loading: authLoading } = useAuth();
+  const { isAuthenticated, isCliente, isLoading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
   // Direct redirection ONLY if already logged in via Supabase
   useEffect(() => {
-    if (!authLoading && (session || user)) {
+    if (!authLoading && isAuthenticated) {
       if (isCliente) {
         toast.info("Você está conectado como Cliente.");
-        navigate({ to: "/portal/auth", replace: true });
+        window.location.href = "/portal/auth";
       } else {
         navigate({ to: "/app", replace: true });
       }
     }
-  }, [session, user, isCliente, authLoading, navigate]);
+  }, [isAuthenticated, isCliente, authLoading, navigate]);
 
   // Form hooks for Login
   const {

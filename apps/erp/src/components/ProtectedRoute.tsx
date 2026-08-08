@@ -3,14 +3,14 @@ import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { session, isLoading } = useAuth();
+  const { isAuthenticated, isLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !session) {
+    if (!isLoading && !isAuthenticated) {
       navigate({ to: '/auth', replace: true });
     }
-  }, [session, isLoading, navigate]);
+  }, [isAuthenticated, isLoading, navigate]);
 
   if (isLoading) {
     return (
@@ -20,7 +20,7 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!session) return null;
+  if (!isAuthenticated) return null;
 
   return <>{children}</>;
 };

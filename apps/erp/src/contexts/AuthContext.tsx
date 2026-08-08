@@ -227,7 +227,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     roleLower === "administrator";
   const isFreelancer = roleLower === "freelancer";
   const isCliente = roleLower === "cliente" || roleLower === "client";
-  const isAuthenticated = !!user;
+  const isAuthenticated = !isLoading && !!session && !!user;
 
   return (
     <AuthContext.Provider value={{

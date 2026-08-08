@@ -1,36 +1,17 @@
-import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
-import { useEffect } from "react";
-import { useAuth } from "@/hooks/useAuth";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { ClientLayout } from "@/components/ClientLayout";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 export const Route = createFileRoute("/_app")({
   component: PortalLayout,
 });
 
 function PortalLayout() {
-  const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate({ to: "/auth", replace: true });
-    }
-  }, [user, loading, navigate]);
-
-  if (loading || !user) {
-    return (
-      <div className="min-h-screen grid place-items-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent" />
-          <p className="text-sm text-muted-foreground">Carregando Portal do Cliente...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <ClientLayout>
-      <Outlet />
-    </ClientLayout>
+    <ProtectedRoute>
+      <ClientLayout>
+        <Outlet />
+      </ClientLayout>
+    </ProtectedRoute>
   );
 }
