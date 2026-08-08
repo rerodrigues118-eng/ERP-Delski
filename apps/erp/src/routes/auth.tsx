@@ -101,27 +101,39 @@ function AuthPage() {
   }, [user, isCliente, authLoading, navigate]);
 
   // Clean, standard login handler
-  const onLoginSubmit = async (data: LoginFormData) => {
+  const onLoginSubmit = async (data: LoginFormData, e?: React.BaseSyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    const email = data.email?.trim();
+    const password = data.password;
+
+    if (!email || !password) {
+      toast.error("Preencha e-mail e senha.");
+      return;
+    }
+
     setLoading(true);
     try {
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: data.email.trim(),
-        password: data.password,
+        email,
+        password,
       });
 
       if (signInError) {
-        throw signInError;
+        toast.error(signInError.message || "Erro de autenticação. Verifique suas credenciais.");
+        return;
       }
 
-      if (authData.user) {
-        toast.success("Autenticação realizada com sucesso!");
+      if (authData?.session || authData?.user) {
+        toast.success("Login realizado com sucesso!");
         navigate({ to: "/app", replace: true });
       }
     } catch (err: unknown) {
-      console.error("Erro no login:", err);
-      const msg =
-        err instanceof Error ? err.message : "Erro ao realizar login. Verifique suas credenciais.";
-      toast.error(msg);
+      console.error("Erro inesperado no login:", err);
+      toast.error("Erro de conexão com o servidor de autenticação.");
     } finally {
       setLoading(false);
     }
