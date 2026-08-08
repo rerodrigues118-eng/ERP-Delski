@@ -110,9 +110,7 @@ function AuthPage() {
       });
 
       if (signInError) {
-        toast.error("E-mail ou senha incorretos. Verifique suas credenciais.");
-        setLoading(false);
-        return;
+        throw signInError;
       }
 
       if (authData.user) {
@@ -120,7 +118,9 @@ function AuthPage() {
         navigate({ to: "/app", replace: true });
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao realizar login.";
+      console.error("Erro no login:", err);
+      const msg =
+        err instanceof Error ? err.message : "Erro ao realizar login. Verifique suas credenciais.";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -143,9 +143,7 @@ function AuthPage() {
       });
 
       if (signUpError) {
-        toast.error(signUpError.message || "Erro ao criar conta.");
-        setLoading(false);
-        return;
+        throw signUpError;
       }
 
       if (authData.user) {
@@ -160,6 +158,7 @@ function AuthPage() {
         setActiveTab("login");
       }
     } catch (err: unknown) {
+      console.error("Erro ao criar conta:", err);
       const msg = err instanceof Error ? err.message : "Erro ao criar conta.";
       toast.error(msg);
     } finally {
@@ -208,15 +207,16 @@ function AuthPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmitLogin(onLoginSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmitLogin(onLoginSubmit)} autoComplete="off" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail corporativo</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="email"
+                    name="email"
                     type="email"
-                    autoComplete="email"
+                    autoComplete="off"
                     className="pl-9"
                     placeholder="usuario@delski.co"
                     {...registerLogin("email")}
@@ -233,8 +233,9 @@ function AuthPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="password"
+                    name="password"
                     type="password"
-                    autoComplete="current-password"
+                    autoComplete="new-password"
                     className="pl-9"
                     placeholder="••••••••"
                     {...registerLogin("password")}
@@ -271,15 +272,16 @@ function AuthPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmitSignUp(onRegisterSubmit)} className="space-y-4">
+            <form onSubmit={handleSubmitSignUp(onRegisterSubmit)} autoComplete="off" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome Completo</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="fullName"
+                    name="fullName"
                     type="text"
-                    autoComplete="name"
+                    autoComplete="off"
                     className="pl-9"
                     placeholder="Ex: Maria Silva"
                     {...registerSignUp("fullName")}
@@ -296,8 +298,9 @@ function AuthPage() {
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="reg-email"
+                    name="email"
                     type="email"
-                    autoComplete="email"
+                    autoComplete="off"
                     className="pl-9"
                     placeholder="seu.email@dominio.com"
                     {...registerSignUp("email")}
@@ -314,6 +317,7 @@ function AuthPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="reg-password"
+                    name="password"
                     type="password"
                     autoComplete="new-password"
                     className="pl-9"
@@ -332,6 +336,7 @@ function AuthPage() {
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="confirmPassword"
+                    name="confirmPassword"
                     type="password"
                     autoComplete="new-password"
                     className="pl-9"

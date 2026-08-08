@@ -28,6 +28,7 @@ let globalAuthState: AuthState = {
   session: null,
 };
 
+let fetchedProfileUserId: string | null = null;
 const listeners = new Set<() => void>();
 
 function notify() {
@@ -110,10 +111,18 @@ const fetchProfileFromDatabase = async (user: User): Promise<UserProfile | null>
       full_name: metadataFullName,
       email: user.email || "",
       role: metaRole,
+      created_at: new Date().toISOString(),
     } as UserProfile;
   } catch (error) {
     console.warn("[useAuth] Error retrieving profile from database:", error);
-    return null;
+    // Return fallback profile on RLS error or null to avoid crashing
+    return {
+      id: user.id,
+      full_name: fetchFullNameFromMetadata(user),
+      email: user.email || "",
+      role: (user.user_metadata?.role as string) || "gestor",
+      created_at: new Date().toISOString(),
+    } as UserProfile;
   }
 };
 
@@ -135,38 +144,45 @@ function initAuthSingleton() {
     try {
       if (session?.user) {
         const rawRole = (session.user.user_metadata?.role || "gestor").toString();
+
+        const userChanged = globalAuthState.user?.id !== session.user.id;
         
         // Immediately set session and unblock UI
         globalAuthState = {
           user: session.user,
-          profile: globalAuthState.profile,
+          profile: userChanged ? null : globalAuthState.profile,
           role: rawRole,
           loading: false,
           session,
         };
         notify();
 
-        // Fetch profile asynchronously in background without blocking UI
-        fetchProfileFromDatabase(session.user)
-          .then((profile) => {
-            if (profile) {
-              globalAuthState = {
-                ...globalAuthState,
-                profile,
-                role: (profile.role || globalAuthState.role || "gestor").toString(),
-              };
-              notify();
-            }
-          })
-          .catch((err) => {
-            console.warn("[useAuth] Profile background fetch failed:", err);
-          });
+        // Fetch profile asynchronously in background ONCE per user id to prevent loop
+        if (fetchedProfileUserId !== session.user.id) {
+          fetchedProfileUserId = session.user.id;
+          fetchProfileFromDatabase(session.user)
+            .then((profile) => {
+              if (profile) {
+                globalAuthState = {
+                  ...globalAuthState,
+                  profile,
+                  role: (profile.role || globalAuthState.role || "gestor").toString(),
+                };
+                notify();
+              }
+            })
+            .catch((err) => {
+              console.warn("[useAuth] Profile background fetch failed:", err);
+            });
+        }
       } else {
+        fetchedProfileUserId = null;
         globalAuthState = { user: null, profile: null, role: null, loading: false, session: null };
         notify();
       }
     } catch (err) {
       console.error("[useAuth] Error updating state from session:", err);
+      fetchedProfileUserId = null;
       globalAuthState = { user: null, profile: null, role: null, loading: false, session: null };
       notify();
     }
@@ -198,6 +214,7 @@ export function useAuth() {
   const state = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   const logout = useCallback(async () => {
+    fetchedProfileUserId = null;
     globalAuthState = { ...globalAuthState, loading: true };
     notify();
     try {
