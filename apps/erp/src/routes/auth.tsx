@@ -138,7 +138,11 @@ function AuthPage() {
   };
 
   // Clean, standard register handler
-  const onRegisterSubmit = async (data: RegisterFormData) => {
+  const onRegisterSubmit = async (data: RegisterFormData, e?: React.BaseSyntheticEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setLoading(true);
     try {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({

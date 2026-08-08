@@ -51,6 +51,7 @@ function ClientAuthPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (!email.trim() || !password) {
       toast.error("Por favor, preencha todos os campos.");
       return;
