@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { Bell, Search, ChevronRight } from "lucide-react";
@@ -124,9 +124,11 @@ function AppHeader() {
 function AppLayout() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
-    if (!loading && !user && typeof window !== "undefined" && window.location.pathname.includes("/app")) {
+    if (!loading && !user && !hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
       navigate({ to: "/auth", replace: true });
     }
   }, [user, loading, navigate]);

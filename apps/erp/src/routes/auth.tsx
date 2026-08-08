@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -57,6 +57,7 @@ function AuthPage() {
   const { user, isCliente, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+  const hasRedirectedRef = useRef(false);
 
   // Form hooks for Login
   const {
@@ -75,7 +76,6 @@ function AuthPage() {
   const {
     register: registerSignUp,
     handleSubmit: handleSubmitSignUp,
-    setValue: setRegisterValue,
     formState: { errors: registerErrors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -87,11 +87,13 @@ function AuthPage() {
     },
   });
 
-  // Direct redirection ONLY if already logged in via Supabase
+  // Direct redirection ONLY if already logged in via Supabase (guarded by useRef)
   useEffect(() => {
-    if (!authLoading && user && typeof window !== "undefined" && window.location.pathname === "/auth") {
+    if (!authLoading && user && !hasRedirectedRef.current) {
+      hasRedirectedRef.current = true;
       if (isCliente) {
         toast.info("Você está conectado como Cliente. Por favor, acesse o Portal do Cliente.");
+        navigate({ to: "/portal/auth", replace: true });
       } else {
         navigate({ to: "/app", replace: true });
       }
