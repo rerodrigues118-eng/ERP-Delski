@@ -122,6 +122,7 @@ function AuthPage() {
 
       if (signInError) {
         toast.error(signInError.message || "Erro de autenticação. Verifique suas credenciais.");
+        setLoading(false);
         return;
       }
 

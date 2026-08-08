@@ -133,6 +133,7 @@ function ClientAuthPage() {
             toast.error(
               "Esta tela de acesso é exclusiva para Clientes. Utilize a área do ERP Delski.",
             );
+            setSubmitting(false);
             return;
           }
         }
