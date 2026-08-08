@@ -85,31 +85,6 @@ const fetchProfileFromDatabase = async (user: User): Promise<UserProfile | null>
       .maybeSingle();
 
     if (byId) {
-      if (
-        byId.full_name?.trim() &&
-        !byId.full_name.includes("@") &&
-        byId.full_name !== user.email?.split("@")[0]
-      ) {
-        return byId as UserProfile;
-      }
-
-      try {
-        const { data: clientByEmail } = await supabase
-          .from("clients")
-          .select("full_name")
-          .ilike("email", normalizedEmail)
-          .maybeSingle();
-
-        if (clientByEmail?.full_name?.trim()) {
-          const realName = clientByEmail.full_name.split("(")[0].trim();
-          await (supabase.from("profiles") as any)
-            .update({ full_name: realName })
-            .eq("id", user.id);
-          byId.full_name = realName;
-        }
-      } catch (err) {
-        console.warn("[useAuth] RLS permission check failed:", err);
-      }
       return byId as UserProfile;
     }
 
@@ -126,28 +101,6 @@ const fetchProfileFromDatabase = async (user: User): Promise<UserProfile | null>
       if (byEmail) {
         return { ...byEmail, id: user.id, auth_user_id: user.id } as UserProfile;
       }
-
-      let clientName = metadataFullName;
-      try {
-        const { data: clientByEmail } = await supabase
-          .from("clients")
-          .select("full_name")
-          .ilike("email", normalizedEmail)
-          .limit(1)
-          .maybeSingle();
-        if (clientByEmail?.full_name) {
-          clientName = clientByEmail.full_name.split("(")[0].trim();
-        }
-      } catch (err) {
-        console.warn("[useAuth] RLS permission check failed:", err);
-      }
-
-      return {
-        id: user.id,
-        full_name: clientName || metadataFullName,
-        email: user.email || "",
-        role: (user.user_metadata?.role as string) || "cliente",
-      } as UserProfile;
     }
 
     // 3. Fallback: Default profile object
@@ -170,26 +123,67 @@ function initAuthSingleton() {
   if (isAuthInitialized) return;
   isAuthInitialized = true;
 
-  const updateStateFromSession = async (session: Session | null) => {
-    if (session?.user) {
-      const profile = await fetchProfileFromDatabase(session.user);
-      const rawRole = (profile?.role || session.user.user_metadata?.role || "gestor").toString();
-      globalAuthState = {
-        user: session.user,
-        profile,
-        role: rawRole,
-        loading: false,
-        session,
-      };
-    } else {
-      globalAuthState = { user: null, profile: null, role: null, loading: false, session: null };
+  // Unblock UI after 1.5 seconds safety window if Supabase hangs
+  const safetyTimer = setTimeout(() => {
+    if (globalAuthState.loading) {
+      globalAuthState = { ...globalAuthState, loading: false };
+      notify();
     }
-    notify();
+  }, 1500);
+
+  const updateStateFromSession = (session: Session | null) => {
+    try {
+      if (session?.user) {
+        const rawRole = (session.user.user_metadata?.role || "gestor").toString();
+        
+        // Immediately set session and unblock UI
+        globalAuthState = {
+          user: session.user,
+          profile: globalAuthState.profile,
+          role: rawRole,
+          loading: false,
+          session,
+        };
+        notify();
+
+        // Fetch profile asynchronously in background without blocking UI
+        fetchProfileFromDatabase(session.user)
+          .then((profile) => {
+            if (profile) {
+              globalAuthState = {
+                ...globalAuthState,
+                profile,
+                role: (profile.role || globalAuthState.role || "gestor").toString(),
+              };
+              notify();
+            }
+          })
+          .catch((err) => {
+            console.warn("[useAuth] Profile background fetch failed:", err);
+          });
+      } else {
+        globalAuthState = { user: null, profile: null, role: null, loading: false, session: null };
+        notify();
+      }
+    } catch (err) {
+      console.error("[useAuth] Error updating state from session:", err);
+      globalAuthState = { user: null, profile: null, role: null, loading: false, session: null };
+      notify();
+    }
   };
 
-  supabase.auth.getSession().then(({ data: { session } }) => {
-    updateStateFromSession(session);
-  });
+  supabase.auth
+    .getSession()
+    .then(({ data: { session } }) => {
+      clearTimeout(safetyTimer);
+      updateStateFromSession(session);
+    })
+    .catch((err) => {
+      clearTimeout(safetyTimer);
+      console.warn("[useAuth] getSession error:", err);
+      globalAuthState = { user: null, profile: null, role: null, loading: false, session: null };
+      notify();
+    });
 
   supabase.auth.onAuthStateChange((_event, session) => {
     updateStateFromSession(session);
@@ -206,12 +200,14 @@ export function useAuth() {
   const logout = useCallback(async () => {
     globalAuthState = { ...globalAuthState, loading: true };
     notify();
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Logout failed:", error.message);
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.error("Logout failed:", error);
+    } finally {
+      globalAuthState = { user: null, profile: null, role: null, loading: false, session: null };
+      notify();
     }
-    globalAuthState = { user: null, profile: null, role: null, loading: false, session: null };
-    notify();
   }, []);
 
   const roleLower = (state.role || "").toLowerCase();
