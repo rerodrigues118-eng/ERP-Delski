@@ -54,10 +54,21 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const { user, isCliente, loading: authLoading } = useAuth();
+  const { user, session, isCliente, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  const hasRedirectedRef = useRef(false);
+
+  // Direct redirection ONLY if already logged in via Supabase
+  useEffect(() => {
+    if (!authLoading && (session || user)) {
+      if (isCliente) {
+        toast.info("Você está conectado como Cliente.");
+        navigate({ to: "/portal/auth", replace: true });
+      } else {
+        navigate({ to: "/app", replace: true });
+      }
+    }
+  }, [session, user, isCliente, authLoading, navigate]);
 
   // Form hooks for Login
   const {
@@ -86,19 +97,6 @@ function AuthPage() {
       confirmPassword: "",
     },
   });
-
-  // Direct redirection ONLY if already logged in via Supabase (guarded by useRef)
-  useEffect(() => {
-    if (!authLoading && user && !hasRedirectedRef.current) {
-      hasRedirectedRef.current = true;
-      if (isCliente) {
-        toast.info("Você está conectado como Cliente. Por favor, acesse o Portal do Cliente.");
-        navigate({ to: "/portal/auth", replace: true });
-      } else {
-        navigate({ to: "/app", replace: true });
-      }
-    }
-  }, [user, isCliente, authLoading, navigate]);
 
   // Clean, standard login handler
   const onLoginSubmit = async (data: LoginFormData, e?: React.BaseSyntheticEvent) => {

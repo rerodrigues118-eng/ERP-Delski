@@ -122,32 +122,26 @@ function AppHeader() {
 }
 
 function AppLayout() {
-  const { user, loading } = useAuth();
+  const { user, session, loading } = useAuth();
   const navigate = useNavigate();
-  const hasRedirectedRef = useRef(false);
 
   useEffect(() => {
-    if (!loading && !user && !hasRedirectedRef.current) {
-      hasRedirectedRef.current = true;
+    if (!loading && !session && !user) {
       navigate({ to: "/auth", replace: true });
     }
-  }, [user, loading, navigate]);
+  }, [session, user, loading, navigate]);
 
   if (loading) {
     return (
-      <div className="min-h-screen grid place-items-center bg-white">
-        <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="h-10 w-10 rounded-full border-2 border-blue-100" />
-            <div className="absolute inset-0 h-10 w-10 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
-          </div>
-          <p className="text-sm text-gray-400 font-medium">Carregando sua área...</p>
-        </div>
+      <div className="flex h-screen w-full items-center justify-center bg-white">
+        <p className="text-muted-foreground animate-pulse text-sm font-medium">Carregando sessão...</p>
       </div>
     );
   }
 
-  if (!user) return null;
+  if (!session && !user) {
+    return null; // Não renderiza nada enquanto o useEffect faz o redirect
+  }
 
   return (
     <div className="min-h-screen flex w-full bg-slate-50">
