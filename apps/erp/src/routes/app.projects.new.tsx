@@ -43,10 +43,14 @@ export const Route = createFileRoute("/app/projects/new")({
   component: NewProjectPage,
 });
 
+const newProjectResolver = zodResolver(newProjectSchema) as any;
+
 function NewProjectPage() {
   const navigate = useNavigate();
   const createProject = useCreateProject();
-  const { data: clients = [], isLoading: loadingClients } = useClients();
+  const clientsQuery = useClients();
+  const clients = useMemo(() => clientsQuery.data || [], [clientsQuery.data]);
+  const [submitting, setSubmitting] = useState(false);
 
   const {
     register,
@@ -55,7 +59,7 @@ function NewProjectPage() {
     watch,
     formState: { errors },
   } = useForm<NewProjectFormData>({
-    resolver: zodResolver(newProjectSchema) as any,
+    resolver: newProjectResolver,
     defaultValues: {
       title: "",
       service_type: "IA",

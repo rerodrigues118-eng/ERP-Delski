@@ -94,6 +94,9 @@ const taskSchema = z.object({
 
 type TaskFormData = z.infer<typeof taskSchema>;
 
+const editCandidaturaResolver = zodResolver(editCandidaturaSchema) as any;
+const taskResolver = zodResolver(taskSchema);
+
 function ProjectDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
@@ -164,7 +167,7 @@ function ProjectDetailPage() {
     reset: resetEditCandidatura,
     formState: { errors: editCandidaturaErrors },
   } = useForm<EditCandidaturaFormData>({
-    resolver: zodResolver(editCandidaturaSchema) as any,
+    resolver: editCandidaturaResolver,
     defaultValues: {
       freelancer_name: "",
       freelancer_email: "",
@@ -182,7 +185,7 @@ function ProjectDetailPage() {
     reset: resetTask,
     formState: { errors: taskErrors },
   } = useForm<TaskFormData>({
-    resolver: zodResolver(taskSchema),
+    resolver: taskResolver,
     defaultValues: {
       title: "",
       phase: "Fase 1: Alinhamento & Setup",

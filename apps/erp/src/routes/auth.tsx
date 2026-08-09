@@ -39,6 +39,9 @@ const registerSchema = z
 type LoginFormData = z.infer<typeof loginSchema>;
 type RegisterFormData = z.infer<typeof registerSchema>;
 
+const loginResolver = zodResolver(loginSchema);
+const registerResolver = zodResolver(registerSchema);
+
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -76,7 +79,7 @@ function AuthPage() {
     handleSubmit: handleSubmitLogin,
     formState: { errors: loginErrors },
   } = useForm<LoginFormData>({
-    resolver: zodResolver(loginSchema),
+    resolver: loginResolver,
     defaultValues: {
       email: "",
       password: "",
@@ -89,7 +92,7 @@ function AuthPage() {
     handleSubmit: handleSubmitSignUp,
     formState: { errors: registerErrors },
   } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+    resolver: registerResolver,
     defaultValues: {
       fullName: "",
       email: "",

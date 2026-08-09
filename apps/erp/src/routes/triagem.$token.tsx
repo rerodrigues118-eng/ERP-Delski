@@ -49,6 +49,8 @@ export const Route = createFileRoute("/triagem/$token")({
   component: TriagePage,
 });
 
+const triageResolver = zodResolver(triageSchema) as any;
+
 function TriagePage() {
   const { token } = Route.useParams();
   const { data: project, isLoading: loadingProject } = useProject(token);
@@ -64,7 +66,7 @@ function TriagePage() {
     watch,
     formState: { errors },
   } = useForm<TriageFormData>({
-    resolver: zodResolver(triageSchema) as any,
+    resolver: triageResolver,
     defaultValues: {
       fullName: "",
       email: "",
