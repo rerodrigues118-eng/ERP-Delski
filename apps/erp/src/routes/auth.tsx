@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,6 +62,10 @@ function AuthPage() {
   const [regEmail, setRegEmail] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regConfirmPassword, setRegConfirmPassword] = useState("");
+
+  const renderCount = useRef(0);
+  renderCount.current++;
+  console.log(`[AuthPage RENDER #${renderCount.current}] loginEmail: "${loginEmail}"`);
 
   // Direct redirection ONLY if already logged in via Supabase
   useEffect(() => {

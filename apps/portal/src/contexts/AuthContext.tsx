@@ -217,8 +217,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const logout = signOut;
-
   const roleLower = (role || "").toLowerCase();
   const isGestor =
     roleLower === "gestor" ||
@@ -229,8 +227,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isCliente = roleLower === "cliente" || roleLower === "client";
   const isAuthenticated = !isLoading && !!session && !!user;
 
-  return (
-    <AuthContext.Provider value={{
+  const value = React.useMemo(
+    () => ({
       session,
       user,
       profile,
@@ -238,12 +236,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isLoading,
       loading: isLoading,
       signOut,
-      logout,
+      logout: signOut,
       isGestor,
       isFreelancer,
       isCliente,
-      isAuthenticated
-    }}>
+      isAuthenticated,
+    }),
+    [session, user, profile, role, isLoading, isGestor, isFreelancer, isCliente, isAuthenticated, signOut]
+  );
+
+  return (
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
