@@ -53,19 +53,9 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
-  // Controlled states for Login
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-
-  // Controlled states for Register
-  const [regFullName, setRegFullName] = useState("");
-  const [regEmail, setRegEmail] = useState("");
-  const [regPassword, setRegPassword] = useState("");
-  const [regConfirmPassword, setRegConfirmPassword] = useState("");
-
   const renderCount = useRef(0);
   renderCount.current++;
-  console.log(`[AuthPage RENDER #${renderCount.current}] loginEmail: "${loginEmail}"`);
+  console.log(`[AuthPage RENDER #${renderCount.current}]`);
 
   const navigateRef = useRef(navigate);
   useEffect(() => {
@@ -84,9 +74,15 @@ function AuthPage() {
     }
   }, [isAuthenticated, isCliente, authLoading]);
 
-  const onLoginSubmit = async (e: React.FormEvent) => {
+  const onLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const result = loginSchema.safeParse({ email: loginEmail, password: loginPassword });
+    e.stopPropagation();
+
+    const formData = new FormData(e.currentTarget);
+    const email = String(formData.get("email") || "");
+    const password = String(formData.get("password") || "");
+
+    const result = loginSchema.safeParse({ email, password });
     if (!result.success) {
       toast.error(result.error.errors[0]?.message || "Preencha e-mail e senha.");
       return;
@@ -117,13 +113,21 @@ function AuthPage() {
     }
   };
 
-  const onRegisterSubmit = async (e: React.FormEvent) => {
+  const onRegisterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    const formData = new FormData(e.currentTarget);
+    const fullName = String(formData.get("fullName") || "");
+    const email = String(formData.get("email") || "");
+    const password = String(formData.get("password") || "");
+    const confirmPassword = String(formData.get("confirmPassword") || "");
+
     const result = registerSchema.safeParse({
-      fullName: regFullName,
-      email: regEmail,
-      password: regPassword,
-      confirmPassword: regConfirmPassword,
+      fullName,
+      email,
+      password,
+      confirmPassword,
     });
 
     if (!result.success) {
@@ -221,8 +225,7 @@ function AuthPage() {
                     autoComplete="off"
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="usuario@delski.co"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
+                    defaultValue=""
                   />
                 </div>
               </div>
@@ -238,8 +241,7 @@ function AuthPage() {
                     autoComplete="new-password"
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
+                    defaultValue=""
                   />
                 </div>
               </div>
@@ -275,15 +277,14 @@ function AuthPage() {
                 <Label htmlFor="fullName">Nome Completo</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
+                  <input
                     id="fullName"
                     name="fullName"
                     type="text"
                     autoComplete="off"
-                    className="pl-9"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="Ex: Maria Silva"
-                    value={regFullName}
-                    onChange={(e) => setRegFullName(e.target.value)}
+                    defaultValue=""
                   />
                 </div>
               </div>
@@ -292,32 +293,30 @@ function AuthPage() {
                 <Label htmlFor="reg-email">E-mail</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
+                  <input
                     id="reg-email"
                     name="email"
                     type="email"
                     autoComplete="off"
-                    className="pl-9"
-                    placeholder="seu.email@dominio.com"
-                    value={regEmail}
-                    onChange={(e) => setRegEmail(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    placeholder="seu.email@exemplo.com"
+                    defaultValue=""
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reg-password">Senha de acesso</Label>
+                <Label htmlFor="reg-password">Senha</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
+                  <input
                     id="reg-password"
                     name="password"
                     type="password"
                     autoComplete="new-password"
-                    className="pl-9"
-                    placeholder="No mínimo 6 caracteres"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    placeholder="••••••••"
+                    defaultValue=""
                   />
                 </div>
               </div>
@@ -326,15 +325,14 @@ function AuthPage() {
                 <Label htmlFor="confirmPassword">Confirmar Senha</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
+                  <input
                     id="confirmPassword"
                     name="confirmPassword"
                     type="password"
                     autoComplete="new-password"
-                    className="pl-9"
-                    placeholder="Repita sua senha"
-                    value={regConfirmPassword}
-                    onChange={(e) => setRegConfirmPassword(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    placeholder="••••••••"
+                    defaultValue=""
                   />
                 </div>
               </div>
