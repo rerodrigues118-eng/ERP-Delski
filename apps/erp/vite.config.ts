@@ -4,8 +4,23 @@ import tailwindcss from "@tailwindcss/vite";
 import { TanStackRouterVite } from "@tanstack/router-plugin/vite";
 import path from "node:path";
 
+const envMjsPlugin = {
+  name: "env-mjs-plugin",
+  configureServer(server: any) {
+    server.middlewares.use((req: any, res: any, next: any) => {
+      if (req.url === "/env.mjs" || req.url?.startsWith("/env.mjs?")) {
+        res.setHeader("Content-Type", "application/javascript");
+        res.end("export default {}; export const env = {};");
+        return;
+      }
+      next();
+    });
+  },
+};
+
 export default defineConfig({
   plugins: [
+    envMjsPlugin,
     tailwindcss(),
     TanStackRouterVite({ target: "react", autoCodeSplitting: true }),
     react(),

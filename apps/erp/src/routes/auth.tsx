@@ -200,7 +200,7 @@ function AuthPage() {
               </p>
             </div>
 
-            <form onSubmit={onLoginSubmit} autoComplete="off" className="space-y-4">
+            <form action="javascript:void(0)" method="post" onSubmit={onLoginSubmit} autoComplete="off" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail corporativo</Label>
                 <div className="relative">
@@ -261,7 +261,7 @@ function AuthPage() {
               </p>
             </div>
 
-            <form onSubmit={onRegisterSubmit} autoComplete="off" className="space-y-4">
+            <form action="javascript:void(0)" method="post" onSubmit={onRegisterSubmit} autoComplete="off" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome Completo</Label>
                 <div className="relative">
