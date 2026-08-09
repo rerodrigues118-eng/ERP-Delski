@@ -1,7 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -36,12 +34,6 @@ const registerSchema = z
     path: ["confirmPassword"],
   });
 
-type LoginFormData = z.infer<typeof loginSchema>;
-type RegisterFormData = z.infer<typeof registerSchema>;
-
-const loginResolver = zodResolver(loginSchema);
-const registerResolver = zodResolver(registerSchema);
-
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
@@ -61,6 +53,16 @@ function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
+  // Controlled states for Login
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
+  // Controlled states for Register
+  const [regFullName, setRegFullName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regPassword, setRegPassword] = useState("");
+  const [regConfirmPassword, setRegConfirmPassword] = useState("");
+
   // Direct redirection ONLY if already logged in via Supabase
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -73,54 +75,19 @@ function AuthPage() {
     }
   }, [isAuthenticated, isCliente, authLoading, navigate]);
 
-  // Form hooks for Login
-  const {
-    register: registerLogin,
-    handleSubmit: handleSubmitLogin,
-    formState: { errors: loginErrors },
-  } = useForm<LoginFormData>({
-    resolver: loginResolver,
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
-
-  // Form hooks for Register
-  const {
-    register: registerSignUp,
-    handleSubmit: handleSubmitSignUp,
-    formState: { errors: registerErrors },
-  } = useForm<RegisterFormData>({
-    resolver: registerResolver,
-    defaultValues: {
-      fullName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
-  });
-
-  // Clean, standard login handler
-  const onLoginSubmit = async (data: LoginFormData, e?: React.BaseSyntheticEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-
-    const email = data.email?.trim();
-    const password = data.password;
-
-    if (!email || !password) {
-      toast.error("Preencha e-mail e senha.");
+  const onLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = loginSchema.safeParse({ email: loginEmail, password: loginPassword });
+    if (!result.success) {
+      toast.error(result.error.errors[0]?.message || "Preencha e-mail e senha.");
       return;
     }
 
     setLoading(true);
     try {
       const { data: authData, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: result.data.email.trim(),
+        password: result.data.password,
       });
 
       if (signInError) {
@@ -141,20 +108,28 @@ function AuthPage() {
     }
   };
 
-  // Clean, standard register handler
-  const onRegisterSubmit = async (data: RegisterFormData, e?: React.BaseSyntheticEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
+  const onRegisterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = registerSchema.safeParse({
+      fullName: regFullName,
+      email: regEmail,
+      password: regPassword,
+      confirmPassword: regConfirmPassword,
+    });
+
+    if (!result.success) {
+      toast.error(result.error.errors[0]?.message || "Preencha os dados corretamente.");
+      return;
     }
+
     setLoading(true);
     try {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
-        email: data.email.trim(),
-        password: data.password,
+        email: result.data.email.trim(),
+        password: result.data.password,
         options: {
           data: {
-            full_name: data.fullName.trim(),
+            full_name: result.data.fullName.trim(),
             role: "freelancer",
           },
         },
@@ -167,8 +142,8 @@ function AuthPage() {
       if (authData.user) {
         await (supabase.from("profiles") as any).upsert({
           id: authData.user.id,
-          full_name: data.fullName.trim(),
-          email: data.email.trim(),
+          full_name: result.data.fullName.trim(),
+          email: result.data.email.trim(),
           role: "freelancer",
         });
 
@@ -225,11 +200,11 @@ function AuthPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmitLogin(onLoginSubmit)} autoComplete="off" className="space-y-4">
+            <form onSubmit={onLoginSubmit} autoComplete="off" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">E-mail corporativo</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="email"
                     name="email"
@@ -237,18 +212,16 @@ function AuthPage() {
                     autoComplete="off"
                     className="pl-9"
                     placeholder="usuario@delski.co"
-                    {...registerLogin("email")}
+                    value={loginEmail}
+                    onChange={(e) => setLoginEmail(e.target.value)}
                   />
                 </div>
-                {loginErrors.email && (
-                  <p className="text-xs text-destructive">{loginErrors.email.message}</p>
-                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Senha de acesso</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="password"
                     name="password"
@@ -256,12 +229,10 @@ function AuthPage() {
                     autoComplete="new-password"
                     className="pl-9"
                     placeholder="••••••••"
-                    {...registerLogin("password")}
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
                   />
                 </div>
-                {loginErrors.password && (
-                  <p className="text-xs text-destructive">{loginErrors.password.message}</p>
-                )}
               </div>
 
               <Button
@@ -290,11 +261,11 @@ function AuthPage() {
               </p>
             </div>
 
-            <form onSubmit={handleSubmitSignUp(onRegisterSubmit)} autoComplete="off" className="space-y-4">
+            <form onSubmit={onRegisterSubmit} autoComplete="off" className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="fullName">Nome Completo</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="fullName"
                     name="fullName"
@@ -302,18 +273,16 @@ function AuthPage() {
                     autoComplete="off"
                     className="pl-9"
                     placeholder="Ex: Maria Silva"
-                    {...registerSignUp("fullName")}
+                    value={regFullName}
+                    onChange={(e) => setRegFullName(e.target.value)}
                   />
                 </div>
-                {registerErrors.fullName && (
-                  <p className="text-xs text-destructive">{registerErrors.fullName.message}</p>
-                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="reg-email">E-mail</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="reg-email"
                     name="email"
@@ -321,18 +290,16 @@ function AuthPage() {
                     autoComplete="off"
                     className="pl-9"
                     placeholder="seu.email@dominio.com"
-                    {...registerSignUp("email")}
+                    value={regEmail}
+                    onChange={(e) => setRegEmail(e.target.value)}
                   />
                 </div>
-                {registerErrors.email && (
-                  <p className="text-xs text-destructive">{registerErrors.email.message}</p>
-                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="reg-password">Senha de acesso</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="reg-password"
                     name="password"
@@ -340,18 +307,16 @@ function AuthPage() {
                     autoComplete="new-password"
                     className="pl-9"
                     placeholder="No mínimo 6 caracteres"
-                    {...registerSignUp("password")}
+                    value={regPassword}
+                    onChange={(e) => setRegPassword(e.target.value)}
                   />
                 </div>
-                {registerErrors.password && (
-                  <p className="text-xs text-destructive">{registerErrors.password.message}</p>
-                )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Confirmar Senha</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <Input
                     id="confirmPassword"
                     name="confirmPassword"
@@ -359,14 +324,10 @@ function AuthPage() {
                     autoComplete="new-password"
                     className="pl-9"
                     placeholder="Repita sua senha"
-                    {...registerSignUp("confirmPassword")}
+                    value={regConfirmPassword}
+                    onChange={(e) => setRegConfirmPassword(e.target.value)}
                   />
                 </div>
-                {registerErrors.confirmPassword && (
-                  <p className="text-xs text-destructive">
-                    {registerErrors.confirmPassword.message}
-                  </p>
-                )}
               </div>
 
               <Button
@@ -375,7 +336,7 @@ function AuthPage() {
                 disabled={loading}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
-                {loading ? "Criando conta..." : "Criar Conta & Entrar no APP"}
+                {loading ? "Criando Conta..." : "Criar Conta e Acessar"}
               </Button>
             </form>
           </TabsContent>
@@ -383,8 +344,8 @@ function AuthPage() {
       </div>
 
       {/* Footer Rights */}
-      <div className="text-xs text-gray-400 pb-4 text-center">
-        © {new Date().getFullYear()} Delski Technology & Agency Operations. Todos os direitos reservados.
+      <div className="text-center text-xs text-gray-400 py-4">
+        &copy; {new Date().getFullYear()} Delski ERP — Sistema de Gestão Interna & Freelancers.
       </div>
     </div>
   );
