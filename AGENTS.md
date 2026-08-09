@@ -1,12 +1,18 @@
-<!-- LOVABLE:BEGIN -->
+# Diretrizes de Desenvolvimento — Delski ERP
 
-> [!IMPORTANT]
-> This project is connected to [Lovable](https://lovable.dev). Avoid rewriting
-> published git history — force pushing, or rebasing/amending/squashing commits
-> that are already pushed — as it rewrites history on Lovable's side and the
-> user will likely lose their project history.
->
-> Commits you push to the connected branch sync back to Lovable and show up in
-> the editor, so keep the branch in a working state.
-
-<!-- LOVABLE:END -->
+## Prevenção de CPU Lockup em Formulários (React Hook Form + Zod)
+> [!CRITICAL]
+> **NUNCA** instancie `zodResolver(schema)` inline dentro do corpo de um componente React (ex: `resolver: zodResolver(loginSchema)` dentro do `useForm`).
+> 
+> Instanciar o `zodResolver` inline cria uma nova referência de objeto a cada renderização do React. O `react-hook-form` detecta a nova referência de resolver e dispara uma re-validação síncrona interna que entra em um **loop infinito em 100% de CPU**, travando completamente o navegador.
+> 
+> **Padrão Obrigatório**:
+> Declare sempre o resolver fora do componente (no escopo do módulo):
+> ```typescript
+> const loginResolver = zodResolver(loginSchema);
+> 
+> function Componente() {
+>   const form = useForm({ resolver: loginResolver });
+>   // ...
+> }
+> ```

@@ -21,9 +21,22 @@ npm i
 npm run dev
 ```
 
-## Built with
-
 - TanStack Start
 - TypeScript
 - React
 - Tailwind CSS
+
+## Architecture & Code Guidelines
+
+### Form Validation (React Hook Form + Zod)
+Always declare `zodResolver` instances outside React component bodies as module-level constants:
+```typescript
+// ✅ Correct:
+const formResolver = zodResolver(formSchema);
+
+function MyForm() {
+  const form = useForm({ resolver: formResolver });
+}
+```
+*Never* instantiate `zodResolver` inline inside `useForm({ resolver: zodResolver(schema) })`, as creating new resolver function references on every render causes infinite re-validation loops in `react-hook-form`.
+
