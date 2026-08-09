@@ -215,7 +215,7 @@ function AuthPage() {
 
             <form action="javascript:void(0)" method="post" onSubmit={onLoginSubmit} autoComplete="off" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">E-mail corporativo</Label>
+                <label htmlFor="email" className="text-sm font-medium text-foreground">E-mail corporativo</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
@@ -231,7 +231,7 @@ function AuthPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Senha de acesso</Label>
+                <label htmlFor="password" className="text-sm font-medium text-foreground">Senha de acesso</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
@@ -274,7 +274,7 @@ function AuthPage() {
 
             <form action="javascript:void(0)" method="post" onSubmit={onRegisterSubmit} autoComplete="off" className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName">Nome Completo</Label>
+                <label htmlFor="fullName" className="text-sm font-medium text-foreground">Nome Completo</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
@@ -290,7 +290,7 @@ function AuthPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reg-email">E-mail</Label>
+                <label htmlFor="reg-email" className="text-sm font-medium text-foreground">E-mail</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
@@ -306,7 +306,7 @@ function AuthPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="reg-password">Senha</Label>
+                <label htmlFor="reg-password" className="text-sm font-medium text-foreground">Senha</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
@@ -322,7 +322,7 @@ function AuthPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">Confirmar Senha</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
