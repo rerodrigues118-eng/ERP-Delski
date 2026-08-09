@@ -26,17 +26,8 @@ function ClientAuthPage() {
   const { isAuthenticated, isCliente, isGestor, isFreelancer, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState(queryEmail || "");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [isFirstAccess, setIsFirstAccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (queryEmail) {
-      setEmail(queryEmail);
-    }
-  }, [queryEmail]);
 
   const navigateRef = useRef(navigate);
   useEffect(() => {
@@ -55,10 +46,16 @@ function ClientAuthPage() {
     }
   }, [isAuthenticated, isGestor, isFreelancer, isCliente, authLoading]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!email.trim() || !password) {
+
+    const formData = new FormData(e.currentTarget);
+    const emailVal = String(formData.get("email") || "");
+    const passwordVal = String(formData.get("password") || "");
+    const confirmPasswordVal = String(formData.get("confirmPassword") || "");
+
+    if (!emailVal.trim() || !passwordVal) {
       toast.error("Por favor, preencha todos os campos.");
       return;
     }
@@ -66,20 +63,20 @@ function ClientAuthPage() {
     setSubmitting(true);
     try {
       if (isFirstAccess) {
-        if (password.length < 6) {
+        if (passwordVal.length < 6) {
           toast.error("A senha deve conter no mínimo 6 caracteres.");
           setSubmitting(false);
           return;
         }
-        if (password !== confirmPassword) {
+        if (passwordVal !== confirmPasswordVal) {
           toast.error("As senhas informadas não coincidem.");
           setSubmitting(false);
           return;
         }
 
         const { error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password,
+          email: emailVal.trim(),
+          password: passwordVal,
           options: {
             data: {
               role: "cliente",
@@ -93,8 +90,8 @@ function ClientAuthPage() {
             error.message.toLowerCase().includes("exists")
           ) {
             const { error: signInErr } = await supabase.auth.signInWithPassword({
-              email: email.trim(),
-              password,
+              email: emailVal.trim(),
+              password: passwordVal,
             });
             if (signInErr) {
               toast.error("Sua conta já possui uma senha definida. Tente realizar o login comum.");
@@ -110,8 +107,8 @@ function ClientAuthPage() {
         toast.success("Senha cadastrada com sucesso! Bem-vindo(a) ao Portal.");
       } else {
         const { data, error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password,
+          email: emailVal.trim(),
+          password: passwordVal,
         });
 
         if (error) {
@@ -180,49 +177,52 @@ function ClientAuthPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form action="javascript:void(0)" method="post" onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-stone-700 block">E-mail Corporativo</label>
+              <label htmlFor="email" className="text-xs font-medium text-stone-700 block">E-mail Corporativo</label>
               <div className="relative">
                 <input
+                  id="email"
+                  name="email"
                   type="email"
                   required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  defaultValue={queryEmail || ""}
                   placeholder="seu.email@empresa.com"
-                  className="w-full h-10 px-3 text-sm bg-stone-50/50 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-800 focus:border-stone-800 transition-colors text-stone-900 placeholder:text-stone-400"
+                  className="w-full h-10 px-3 text-sm bg-stone-50/50 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus-ring-stone-800 focus:border-stone-800 transition-colors text-stone-900 placeholder:text-stone-400"
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-medium text-stone-700 block">
+                <label htmlFor="password" className="text-xs font-medium text-stone-700 block">
                   {isFirstAccess ? "Nova Senha" : "Senha de Acesso"}
                 </label>
               </div>
               <input
+                id="password"
+                name="password"
                 type="password"
                 required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                defaultValue=""
                 placeholder="••••••••"
-                className="w-full h-10 px-3 text-sm bg-stone-50/50 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-800 focus:border-stone-800 transition-colors text-stone-900 placeholder:text-stone-400"
+                className="w-full h-10 px-3 text-sm bg-stone-50/50 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus-ring-stone-800 focus:border-stone-800 transition-colors text-stone-900 placeholder:text-stone-400"
               />
             </div>
 
             {isFirstAccess && (
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-stone-700 block">
+                <label htmlFor="confirmPassword" className="text-xs font-medium text-stone-700 block">
                   Confirme a Nova Senha
                 </label>
                 <input
+                  id="confirmPassword"
+                  name="confirmPassword"
                   type="password"
                   required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  defaultValue=""
                   placeholder="••••••••"
-                  className="w-full h-10 px-3 text-sm bg-stone-50/50 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus:ring-stone-800 focus:border-stone-800 transition-colors text-stone-900 placeholder:text-stone-400"
+                  className="w-full h-10 px-3 text-sm bg-stone-50/50 border border-stone-200 rounded-md focus:outline-none focus:ring-1 focus-ring-stone-800 focus:border-stone-800 transition-colors text-stone-900 placeholder:text-stone-400"
                 />
               </div>
             )}

@@ -153,12 +153,16 @@ function AuthPage() {
       }
 
       if (authData.user) {
-        await (supabase.from("profiles") as any).upsert({
-          id: authData.user.id,
-          full_name: result.data.fullName.trim(),
-          email: result.data.email.trim(),
-          role: "freelancer",
-        });
+        try {
+          await (supabase.from("profiles") as any).upsert({
+            id: authData.user.id,
+            full_name: result.data.fullName.trim(),
+            email: result.data.email.trim(),
+            role: "freelancer",
+          });
+        } catch (profileErr) {
+          console.warn("Upsert de perfil falhou (possível RLS):", profileErr);
+        }
 
         toast.success("Conta criada com sucesso! Faça login para continuar.");
         setActiveTab("login");
