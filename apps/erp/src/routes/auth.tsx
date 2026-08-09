@@ -214,12 +214,12 @@ function AuthPage() {
                 <Label htmlFor="email">E-mail corporativo</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
+                  <input
                     id="email"
                     name="email"
                     type="email"
                     autoComplete="off"
-                    className="pl-9"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="usuario@delski.co"
                     value={loginEmail}
                     onChange={(e) => setLoginEmail(e.target.value)}
@@ -231,12 +231,12 @@ function AuthPage() {
                 <Label htmlFor="password">Senha de acesso</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  <Input
+                  <input
                     id="password"
                     name="password"
                     type="password"
                     autoComplete="new-password"
-                    className="pl-9"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="••••••••"
                     value={loginPassword}
                     onChange={(e) => setLoginPassword(e.target.value)}
