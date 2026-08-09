@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useSearch } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -38,6 +38,11 @@ function ClientAuthPage() {
     }
   }, [queryEmail]);
 
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  });
+
   // Guard: Role-based redirection if already logged in
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -45,10 +50,10 @@ function ClientAuthPage() {
         toast.info("Acesso interno detectado. Redirecionando...");
         window.location.href = "/auth";
       } else if (isCliente) {
-        navigate({ to: "/dashboard", replace: true });
+        navigateRef.current({ to: "/dashboard", replace: true });
       }
     }
-  }, [isAuthenticated, isGestor, isFreelancer, isCliente, authLoading, navigate]);
+  }, [isAuthenticated, isGestor, isFreelancer, isCliente, authLoading]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

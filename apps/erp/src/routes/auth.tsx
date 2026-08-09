@@ -67,6 +67,11 @@ function AuthPage() {
   renderCount.current++;
   console.log(`[AuthPage RENDER #${renderCount.current}] loginEmail: "${loginEmail}"`);
 
+  const navigateRef = useRef(navigate);
+  useEffect(() => {
+    navigateRef.current = navigate;
+  });
+
   // Direct redirection ONLY if already logged in via Supabase
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
@@ -74,10 +79,10 @@ function AuthPage() {
         toast.info("Você está conectado como Cliente.");
         window.location.href = "/portal/auth";
       } else {
-        navigate({ to: "/app", replace: true });
+        navigateRef.current({ to: "/app", replace: true });
       }
     }
-  }, [isAuthenticated, isCliente, authLoading, navigate]);
+  }, [isAuthenticated, isCliente, authLoading]);
 
   const onLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
