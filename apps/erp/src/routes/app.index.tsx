@@ -212,12 +212,22 @@ function Dashboard() {
     [projects],
   );
 
-  const byType = (["IA", "Trafego", "Sites"] as ServiceType[]).map((t) => ({
-    name: SERVICE_LABEL[t]?.split(" ")[0] || t,
+  // Per-service gradient definitions — match project badge colors
+  const SERVICE_GRADIENTS: Record<string, { id: string; from: string; to: string }> = {
+    IA: { id: "gradIA", from: "#7C3AED", to: "#A78BFA" },
+    Trafego: { id: "gradTrafego", from: "#D97706", to: "#FCD34D" },
+    Sites: { id: "gradSites", from: "#2563EB", to: "#60A5FA" },
+    "Social Media": { id: "gradSocialMedia", from: "#DB2777", to: "#F9A8D4" },
+  };
+
+  const byType = (["IA", "Trafego", "Sites", "Social Media"] as ServiceType[]).map((t) => ({
+    key: t,
+    name: t === "IA" ? "Automação" : t === "Trafego" ? "Tráfego" : t === "Sites" ? "Desenvolvimento" : "Social Media",
     total: visible.filter((p) => p.service_type === t).length,
     receita: visible
       .filter((p) => p.service_type === t)
       .reduce((acc, p) => acc + Number(p.budget || 0), 0),
+    gradId: SERVICE_GRADIENTS[t]?.id,
   }));
 
   const byStatus = STATUSES.map((s) => ({
@@ -473,18 +483,34 @@ function Dashboard() {
           <ChartCard title={isGestor ? "Receita por Tipo de Serviço" : "Projetos por Tipo de Serviço"} className="lg:col-span-3 min-w-0">
             <div className="w-full min-w-0 h-[220px]">
               <ResponsiveContainer width="100%" height="100%" debounce={50} minWidth={100}>
-                <BarChart data={byType} barSize={32}>
+                <BarChart data={byType} barSize={28}>
                   <CartesianGrid strokeDasharray="2 4" stroke="#F3F4F6" vertical={false} />
-                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#9CA3AF" }} axisLine={false} tickLine={false} interval={0} />
                   <YAxis tick={{ fontSize: 11, fill: "#D1D5DB" }} axisLine={false} tickLine={false} allowDecimals={false} />
                   <Tooltip content={<ChartTooltip />} cursor={{ fill: "#F9FAFB" }} />
                   <defs>
-                    <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient id="gradIA" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#7C3AED" />
+                      <stop offset="100%" stopColor="#A78BFA" />
+                    </linearGradient>
+                    <linearGradient id="gradTrafego" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#D97706" />
+                      <stop offset="100%" stopColor="#FCD34D" />
+                    </linearGradient>
+                    <linearGradient id="gradSites" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#2563EB" />
                       <stop offset="100%" stopColor="#60A5FA" />
                     </linearGradient>
+                    <linearGradient id="gradSocialMedia" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#DB2777" />
+                      <stop offset="100%" stopColor="#F9A8D4" />
+                    </linearGradient>
                   </defs>
-                  <Bar dataKey={isGestor ? "receita" : "total"} name={isGestor ? "Receita (R$)" : "Projetos"} fill="url(#blueGrad)" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey={isGestor ? "receita" : "total"} name={isGestor ? "Receita (R$)" : "Projetos"} radius={[6, 6, 0, 0]}>
+                    {byType.map((entry) => (
+                      <Cell key={entry.key} fill={`url(#${entry.gradId})`} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
