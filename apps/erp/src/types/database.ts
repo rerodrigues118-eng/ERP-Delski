@@ -5,6 +5,11 @@ export interface ProfilesRow {
   full_name: string;
   email: string;
   role: "gestor" | "freelancer" | "cliente";
+  avatar_url?: string | null;
+  cargo?: string | null;
+  phone?: string | null;
+  cpf_cnpj?: string | null;
+  contract_field_values?: Record<string, unknown> | null;
   created_at: string;
 }
 
@@ -13,6 +18,11 @@ export interface ProfilesInsert {
   full_name: string;
   email: string;
   role?: "gestor" | "freelancer" | "cliente";
+  avatar_url?: string | null;
+  cargo?: string | null;
+  phone?: string | null;
+  cpf_cnpj?: string | null;
+  contract_field_values?: Record<string, unknown> | null;
   created_at?: string;
 }
 
@@ -20,6 +30,11 @@ export interface ProfilesUpdate {
   full_name?: string;
   email?: string;
   role?: "gestor" | "freelancer" | "cliente";
+  avatar_url?: string | null;
+  cargo?: string | null;
+  phone?: string | null;
+  cpf_cnpj?: string | null;
+  contract_field_values?: Record<string, unknown> | null;
   created_at?: string;
 }
 

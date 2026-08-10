@@ -84,7 +84,7 @@ function NavLink({ item, isActive, isCollapsed }: { item: NavItem; isActive: boo
       to={item.url}
       title={isCollapsed ? item.title : undefined}
       className={[
-        "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-150 select-none",
+        "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium select-none",
         isCollapsed ? "justify-center px-0 h-10 w-10 mx-auto" : "",
         isActive
           ? isCollapsed
@@ -180,45 +180,79 @@ export function AppSidebar() {
   const displayName = profile?.full_name || user?.email?.split("@")[0] || "Gestor Delski";
   const displayRole =
     role === "gestor" ? "Gestor" : role === "freelancer" ? "Freelancer" : "Cliente";
-  const avatarUrl = (profile as any)?.avatar_url || (user?.user_metadata as any)?.avatar_url;
+  const avatarUrl =
+    (profile as any)?.avatar_url ||
+    (user?.user_metadata as any)?.avatar_url ||
+    (typeof window !== "undefined" && user?.id
+      ? (() => {
+          try {
+            return (
+              localStorage.getItem(`delski_avatar_${user.id}`) ||
+              JSON.parse(localStorage.getItem(`delski_profile_${user.id}`) || "{}").avatar_url ||
+              ""
+            );
+          } catch (e) {
+            return "";
+          }
+        })()
+      : "");
 
   return (
     <>
       {/* Sidebar */}
       <aside
-        className="fixed inset-y-0 left-0 z-30 flex flex-col bg-white border-r border-gray-100 transition-all duration-200"
+        className="fixed inset-y-0 left-0 z-30 flex flex-col bg-white border-r border-gray-100"
         style={{ width: "var(--sidebar-width, 220px)" }}
       >
         {/* Logo & Toggle Header */}
-        <div className="flex items-center justify-between px-3 h-14 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center gap-2.5 overflow-hidden pl-1">
-            <div className="flex items-center justify-center w-8 h-8 rounded-xl bg-blue-600 flex-shrink-0 shadow-sm">
-              <Target className="h-4 w-4 text-white" strokeWidth={2.5} />
+        <div
+          className={`flex items-center h-14 border-b border-gray-100 flex-shrink-0 ${
+            isCollapsed ? "justify-center px-0" : "justify-between px-3"
+          }`}
+        >
+          {/* Logo */}
+          <div
+            className={`flex items-center gap-2.5 ${
+              isCollapsed ? "" : "overflow-hidden pl-1"
+            }`}
+          >
+            <div className="flex items-center justify-center w-9 h-9 flex-shrink-0">
+              <img src="/logo.png" alt="Delski Logo" className="h-9 w-9 object-contain" />
             </div>
             {!isCollapsed && (
               <div className="flex items-baseline gap-1.5 whitespace-nowrap">
                 <span className="text-[15px] font-bold text-gray-900 tracking-tight">Delski</span>
-                <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-md tracking-wider">
+                <span className="text-[10px] font-bold text-gray-900 tracking-wider">
                   ERP
                 </span>
               </div>
             )}
           </div>
 
-          {/* Minimize / Expand Toggle Button */}
+          {/* Toggle button — only visible when expanded */}
+          {!isCollapsed && (
+            <button
+              type="button"
+              onClick={() => setIsCollapsed((prev) => !prev)}
+              className="flex items-center justify-center h-7 w-7 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+              title="Minimizar menu lateral"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Expand button — centered below logo when collapsed */}
+        {isCollapsed && (
           <button
             type="button"
             onClick={() => setIsCollapsed((prev) => !prev)}
-            className="flex items-center justify-center h-7 w-7 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-            title={isCollapsed ? "Expandir menu lateral" : "Minimizar menu lateral"}
+            className="flex items-center justify-center mx-auto mt-2 h-7 w-7 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100"
+            title="Expandir menu lateral"
           >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4" />
-            ) : (
-              <ChevronLeft className="h-4 w-4" />
-            )}
+            <ChevronRight className="h-4 w-4" />
           </button>
-        </div>
+        )}
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto px-2 pt-4 pb-2 space-y-0 scrollbar-none">
@@ -236,12 +270,12 @@ export function AppSidebar() {
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className={`flex items-center gap-2.5 w-full p-2 rounded-xl hover:bg-gray-50 transition-colors duration-150 group ${
+                className={`flex items-center gap-2.5 w-full p-2 rounded-xl hover:bg-gray-50 group ${
                   isCollapsed ? "justify-center" : ""
                 }`}
                 title={isCollapsed ? displayName : undefined}
               >
-                <Avatar className="h-8 w-8 flex-shrink-0 ring-2 ring-blue-100">
+                <Avatar className="h-9 w-9 flex-shrink-0 ring-2 ring-indigo-100">
                   {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} className="object-cover" />}
                   <AvatarFallback className="bg-blue-600 text-white font-bold text-xs">
                     {displayName.charAt(0).toUpperCase()}

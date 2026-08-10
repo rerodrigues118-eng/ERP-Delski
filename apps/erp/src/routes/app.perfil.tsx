@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCompanySettings, useUpsertCompanySettings } from "@/hooks/useCompanySettings";
 import { DEFAULT_COMPANY_SETTINGS } from "@/hooks/useContractFieldResolver";
@@ -16,14 +16,13 @@ import {
   Building2,
   Settings,
   Save,
-  CheckCircle2,
   Loader2,
-  FileSignature,
   CreditCard,
   MapPin,
   Mail,
   Phone,
-  ShieldCheck,
+  Upload,
+  Trash2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/perfil")({
@@ -52,9 +51,12 @@ function GestorProfileSettingsPage() {
   const [gestorCargo, setGestorCargo] = useState("");
   const [gestorPhone, setGestorPhone] = useState("");
   const [gestorCpfCnpj, setGestorCpfCnpj] = useState("");
-  const [gestorAvatarUrl, setGestorAvatarUrl] = useState("");
+  const [gestorAvatarUrl, setGestorAvatarUrl] = useState(""); // saved URL in DB
+  const [avatarFile, setAvatarFile] = useState<File | null>(null); // pending upload file
+  const [avatarPreview, setAvatarPreview] = useState(""); // local object URL for preview
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Company and System settings form state
   const [companyForm, setCompanyForm] = useState(companySettings);
@@ -62,7 +64,6 @@ function GestorProfileSettingsPage() {
   useEffect(() => {
     if (profile || user) {
       const metadata = user?.user_metadata || {};
-      const fieldValues = (profile as any)?.contract_field_values || {};
 
       setGestorName(
         profile?.full_name ||
@@ -74,20 +75,21 @@ function GestorProfileSettingsPage() {
       setGestorEmail(profile?.email || user?.email || "");
       setGestorCargo(
         (profile as any)?.cargo ||
-          fieldValues.cargo ||
           (metadata as any).cargo ||
           "Gestor de Contas",
       );
       setGestorPhone(
-        (profile as any)?.phone || fieldValues.telefone || (metadata as any).phone || "",
+        (profile as any)?.phone || (metadata as any).phone || "",
       );
-      setGestorCpfCnpj((profile as any)?.cpf_cnpj || fieldValues.cpf_cnpj || "");
-      setGestorAvatarUrl(
+      setGestorCpfCnpj((profile as any)?.cpf_cnpj || "");
+
+      // avatar_url from DB is the source of truth (isolated per user.id)
+      const dbAvatar =
         (profile as any)?.avatar_url ||
-          (metadata as any).avatar_url ||
-          (metadata as any).picture ||
-          "",
-      );
+        (metadata as any)?.avatar_url ||
+        "";
+      setGestorAvatarUrl(dbAvatar);
+      setAvatarPreview(dbAvatar);
     }
   }, [profile, user]);
 
@@ -95,57 +97,116 @@ function GestorProfileSettingsPage() {
     setCompanyForm(companySettings);
   }, [companySettings]);
 
+  const handleAvatarFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor, selecione uma imagem válida (PNG, JPG, WEBP).");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("A imagem deve ter no máximo 5MB.");
+      return;
+    }
+
+    setAvatarFile(file);
+    // Show local preview immediately without uploading yet
+    const objectUrl = URL.createObjectURL(file);
+    setAvatarPreview(objectUrl);
+    toast.info("Foto selecionada. Clique em 'Salvar Dados do Gestor' para confirmar.");
+  };
+
+  const handleRemoveAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview("");
+    setGestorAvatarUrl("");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  /**
+   * Uploads avatar to Supabase Storage: avatars/{userId}/avatar.{ext}
+   * Returns the public URL or null on failure.
+   */
+  const uploadAvatarToStorage = async (file: File, userId: string): Promise<string | null> => {
+    const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+    const filePath = `${userId}/avatar.${ext}`;
+    setUploadingAvatar(true);
+    try {
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(filePath, file, { upsert: true, contentType: file.type });
+
+      if (uploadError) {
+        console.error("[Avatar Upload]", uploadError);
+        toast.error(`Erro ao fazer upload da foto: ${uploadError.message}`);
+        return null;
+      }
+
+      const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+      // Append timestamp cache-bust so browser reloads after update
+      return `${data.publicUrl}?t=${Date.now()}`;
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const handleSaveGestorProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
     setSavingProfile(true);
     try {
-      // 1. Update Supabase User Metadata
+      let finalAvatarUrl = gestorAvatarUrl;
+
+      // 1. If a new file was selected, upload it to Supabase Storage first
+      if (avatarFile) {
+        const uploaded = await uploadAvatarToStorage(avatarFile, user.id);
+        if (uploaded) {
+          finalAvatarUrl = uploaded;
+          setGestorAvatarUrl(uploaded);
+          setAvatarPreview(uploaded);
+          setAvatarFile(null);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+      }
+
+      // 2. Update Supabase Auth user metadata
       await supabase.auth.updateUser({
         data: {
           full_name: gestorName.trim(),
           cargo: gestorCargo.trim(),
           phone: gestorPhone.trim(),
-          avatar_url: gestorAvatarUrl.trim(),
+          avatar_url: finalAvatarUrl || null,
         },
       });
 
-      // 2. Update Profile row in database
-      const extraFieldValues = {
-        cargo: gestorCargo.trim(),
-        telefone: gestorPhone.trim(),
-        cpf_cnpj: gestorCpfCnpj.trim(),
-      };
-
-      await (supabase.from("profiles") as any).upsert({
+      // 3. Upsert profile row in DB with ALL fields
+      const { error: upsertError } = await (supabase.from("profiles") as any).upsert({
         id: user.id,
         full_name: gestorName.trim(),
         email: gestorEmail.trim(),
-        avatar_url: gestorAvatarUrl.trim() || null,
+        avatar_url: finalAvatarUrl || null,
         role: (profile?.role as any) || "gestor",
-        contract_field_values: extraFieldValues,
+        cargo: gestorCargo.trim() || null,
+        phone: gestorPhone.trim() || null,
+        cpf_cnpj: gestorCpfCnpj.trim() || null,
+        contract_field_values: {
+          cargo: gestorCargo.trim(),
+          telefone: gestorPhone.trim(),
+          cpf_cnpj: gestorCpfCnpj.trim(),
+        },
       });
 
-      // Local storage fallback for immediate contract resolution
-      if (typeof window !== "undefined") {
-        localStorage.setItem(
-          "delski_gestor_profile",
-          JSON.stringify({
-            id: user.id,
-            full_name: gestorName.trim(),
-            email: gestorEmail.trim(),
-            avatar_url: gestorAvatarUrl.trim(),
-            cargo: gestorCargo.trim(),
-            phone: gestorPhone.trim(),
-            cpf_cnpj: gestorCpfCnpj.trim(),
-          }),
-        );
+      if (upsertError) {
+        console.error("[Profile Upsert Error]", upsertError);
+        toast.error(`Erro ao salvar no banco: ${upsertError.message}`);
+        return;
       }
 
       toast.success("Perfil do Gestor atualizado com sucesso!");
     } catch (err: any) {
-      console.error(err);
+      console.error("[handleSaveGestorProfile]", err);
       toast.error(err?.message || "Erro ao salvar perfil do Gestor.");
     } finally {
       setSavingProfile(false);
@@ -161,20 +222,24 @@ function GestorProfileSettingsPage() {
     }
   };
 
+  // Display avatar: prefer live preview (newly selected file), then saved DB URL
+  const displayAvatar = avatarPreview || gestorAvatarUrl;
+  const isSaving = savingProfile || uploadingAvatar;
+
   return (
     <div className="space-y-8 pb-16">
       {/* Top Banner */}
       <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-sm">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {gestorAvatarUrl ? (
+          <div className="flex items-center gap-5">
+            {displayAvatar ? (
               <img
-                src={gestorAvatarUrl}
+                src={displayAvatar}
                 alt={gestorName}
-                className="h-14 w-14 rounded-2xl object-cover ring-2 ring-blue-100 border border-gray-200"
+                className="h-24 w-24 rounded-2xl object-cover ring-4 ring-indigo-50 border border-gray-200 shadow-md flex-shrink-0"
               />
             ) : (
-              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-indigo-600/10 text-indigo-600 font-bold text-xl border border-indigo-500/20">
+              <div className="grid h-24 w-24 place-items-center rounded-2xl bg-indigo-600/10 text-indigo-600 font-bold text-3xl border border-indigo-500/20 shadow-sm flex-shrink-0">
                 {gestorName.charAt(0).toUpperCase() || "G"}
               </div>
             )}
@@ -296,28 +361,58 @@ function GestorProfileSettingsPage() {
                   </div>
 
                   <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="gestorAvatarUrl" className="text-xs font-semibold text-stone-700">
-                      Foto de Perfil (URL da Imagem)
+                    <Label className="text-xs font-semibold text-stone-700">
+                      Foto de Perfil
                     </Label>
-                    <div className="flex gap-3 items-center">
-                      {gestorAvatarUrl ? (
+                    <div className="flex items-center gap-4 bg-stone-50/50 p-4 rounded-xl border border-stone-200">
+                      {/* Avatar preview */}
+                      {displayAvatar ? (
                         <img
-                          src={gestorAvatarUrl}
-                          alt="Preview"
-                          className="h-10 w-10 rounded-xl object-cover ring-1 ring-gray-200 border"
+                          src={displayAvatar}
+                          alt="Foto de perfil"
+                          className="h-24 w-24 rounded-2xl object-cover ring-4 ring-indigo-50 border border-gray-200 shadow-md flex-shrink-0"
                         />
                       ) : (
-                        <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">
+                        <div className="h-24 w-24 rounded-2xl bg-indigo-600/10 text-indigo-600 font-bold text-3xl flex items-center justify-center border border-indigo-500/20 shadow-sm flex-shrink-0">
                           {gestorName.charAt(0).toUpperCase() || "G"}
                         </div>
                       )}
-                      <Input
-                        id="gestorAvatarUrl"
-                        value={gestorAvatarUrl}
-                        onChange={(e) => setGestorAvatarUrl(e.target.value)}
-                        placeholder="https://exemplo.com/sua-foto.jpg ou cola o link da imagem"
-                        className="bg-stone-50/50 flex-1"
-                      />
+                      <div className="space-y-1.5">
+                        <div className="flex flex-wrap gap-2">
+                          <label className="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium transition-colors shadow-sm">
+                            {uploadingAvatar ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Upload className="h-3.5 w-3.5" />
+                            )}
+                            {avatarFile ? "Foto Selecionada ✓" : "Selecionar Foto"}
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="image/png,image/jpeg,image/jpg,image/webp"
+                              className="hidden"
+                              onChange={handleAvatarFileSelect}
+                              disabled={isSaving}
+                            />
+                          </label>
+                          {displayAvatar && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="text-xs text-red-600 border-red-200 hover:bg-red-50 gap-1"
+                              onClick={handleRemoveAvatar}
+                              disabled={isSaving}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                              Remover
+                            </Button>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          PNG, JPG ou WEBP até 5 MB. A foto é salva no banco de dados e vinculada exclusivamente à sua conta.
+                        </p>
+                      </div>
                     </div>
                   </div>
 
@@ -341,15 +436,15 @@ function GestorProfileSettingsPage() {
                 <div className="pt-4 border-t border-stone-100 flex items-center justify-end gap-3">
                   <Button
                     type="submit"
-                    disabled={savingProfile}
+                    disabled={isSaving}
                     className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold gap-2 h-10 px-6 shadow-sm"
                   >
-                    {savingProfile ? (
+                    {isSaving ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
                       <Save className="h-4 w-4" />
                     )}
-                    <span>Salvar Dados do Gestor</span>
+                    <span>{uploadingAvatar ? "Enviando foto…" : "Salvar Dados do Gestor"}</span>
                   </Button>
                 </div>
               </form>

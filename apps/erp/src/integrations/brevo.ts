@@ -1,8 +1,6 @@
 import { toast } from "sonner";
 
-const BREVO_API_KEY =
-  import.meta.env.VITE_BREVO_API_KEY ||
-  "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";
+const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY || "";
 
 const SENDER_EMAIL =
   import.meta.env.VITE_BREVO_SENDER_EMAIL ||
@@ -21,6 +19,11 @@ async function sendBrevoEmail(payload: {
   subject: string;
   htmlContent: string;
 }): Promise<SendEmailResult> {
+  if (!BREVO_API_KEY) {
+    console.warn("[Brevo API] Chave VITE_BREVO_API_KEY ausente no ambiente frontend.");
+    return { success: false, error: "Chave do serviço de e-mail não configurada." };
+  }
+
   try {
     const res = await fetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",

@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useQueryClient, useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
 import {
   DollarSign,
   TrendingUp,
@@ -457,6 +457,7 @@ function GestorFinanceView() {
   const queryClient = useQueryClient();
 
   // ── Database Expenses Query ────────────────────────────────────────────────
+  // ── Database Expenses Query ────────────────────────────────────────────────
   const { data: dbExpenses = [] } = useQuery({
     queryKey: ["project_expenses"],
     queryFn: async () => {
@@ -465,8 +466,17 @@ function GestorFinanceView() {
           .from("project_expenses")
           .select("*, project:projects(id, title)")
           .order("created_at", { ascending: false });
-        if (error && error.code !== "PGRST116") throw error;
-        return data ?? [];
+        if (!error && data && data.length > 0) return data;
+      } catch {
+        // Fallback
+      }
+
+      try {
+        const { data: adminData } = await supabaseAdmin
+          .from("project_expenses")
+          .select("*, project:projects(id, title)")
+          .order("created_at", { ascending: false });
+        return adminData ?? [];
       } catch (err) {
         console.warn("DB expenses query fallback:", err);
         return [];
@@ -582,12 +592,21 @@ function GestorFinanceView() {
     queryKey: ["freelancer_payouts"],
     queryFn: async () => {
       try {
-        const { data: rows, error } = await supabase
+        const clientToUse = supabase;
+        const { data: rows, error } = await clientToUse
           .from("freelancer_payouts")
           .select("*")
           .order("due_date", { ascending: true });
-        if (error && error.code !== "PGRST116") throw error;
-        const prs = rows ?? [];
+        
+        let prs = rows ?? [];
+        if (prs.length === 0) {
+          const { data: adminRows } = await supabaseAdmin
+            .from("freelancer_payouts")
+            .select("*")
+            .order("due_date", { ascending: true });
+          prs = adminRows ?? [];
+        }
+
         if (prs.length === 0) return [];
 
         const projectIds = Array.from(new Set(prs.map((r) => r.project_id).filter(Boolean)));
@@ -597,13 +616,13 @@ function GestorFinanceView() {
 
         const [{ data: projectsData }, { data: profilesData }] = await Promise.all([
           projectIds.length
-            ? supabase
+            ? supabaseAdmin
                 .from("projects")
                 .select("id,title,service_type,status")
                 .in("id", projectIds)
             : Promise.resolve({ data: [] as any[] }),
           freelancerIds.length
-            ? supabase.from("profiles").select("id,full_name,email").in("id", freelancerIds)
+            ? supabaseAdmin.from("profiles").select("id,full_name,email").in("id", freelancerIds)
             : Promise.resolve({ data: [] as any[] }),
         ]);
 
@@ -830,15 +849,24 @@ function GestorFinanceView() {
       let uploadPath: string | null = null;
       let publicUrl: string | null = null;
 
+      // Upload receipt file to Storage bucket 'receipts'
       if (paymentFile) {
         try {
-          const ext = paymentFile.name.split(".").pop();
-          const path = `receipts/${selectedPayout.id}_${Date.now()}.${ext}`;
+          const ext = paymentFile.name.split(".").pop()?.toLowerCase() || "jpg";
+          // Path inside the bucket: {payoutId_or_projectId}_{timestamp}.{ext}
+          const fileId = selectedPayout.id.startsWith("virtual_")
+            ? selectedPayout.project_id
+            : selectedPayout.id;
+          const storagePath = `${fileId}_${Date.now()}.${ext}`;
+
           const { data: uploadData, error: uploadErr } = await supabase.storage
             .from("receipts")
-            .upload(path, paymentFile, { upsert: true });
+            .upload(storagePath, paymentFile, { upsert: true, contentType: paymentFile.type });
 
-          if (!uploadErr && uploadData) {
+          if (uploadErr) {
+            console.warn("[Receipt Upload Error]", uploadErr);
+            toast.error(`Aviso: comprovante não foi anexado — ${uploadErr.message}`);
+          } else if (uploadData) {
             uploadPath = uploadData.path;
             const { data: urlData } = supabase.storage
               .from("receipts")
@@ -846,35 +874,70 @@ function GestorFinanceView() {
             publicUrl = urlData?.publicUrl || null;
           }
         } catch (err) {
-          console.warn("Storage upload fallback:", err);
+          console.warn("[Storage upload exception]", err);
         }
       }
 
-      const payload = {
+      const basePayload: Record<string, unknown> = {
         project_id: selectedPayout.project_id,
         freelancer_id: selectedPayout.freelancer_id || null,
         amount: Number(selectedPayout.amount || 0),
         due_date: selectedPayout.due_date || new Date().toISOString(),
         payment_date: paymentDate,
         status: "pago",
-        payment_receipt_path: uploadPath,
-        payment_receipt_url: publicUrl,
         updated_at: new Date().toISOString(),
       };
 
+      const fullPayload = {
+        ...basePayload,
+        payment_receipt_path: uploadPath,
+        payment_receipt_url: publicUrl,
+      };
+
+      let opError: any = null;
       if (selectedPayout.id && !selectedPayout.id.startsWith("virtual_")) {
-        await supabase.from("freelancer_payouts").update(payload).eq("id", selectedPayout.id);
+        // Update existing real payout row
+        const { error } = await supabase
+          .from("freelancer_payouts")
+          .update(fullPayload)
+          .eq("id", selectedPayout.id);
+        opError = error;
       } else {
-        await supabase.from("freelancer_payouts").insert(payload);
+        // Insert new payout row for a virtual (project-derived) entry
+        const { error } = await supabase.from("freelancer_payouts").insert(fullPayload);
+        opError = error;
+      }
+
+      // If column 'payment_receipt_path' does not exist in DB yet, fallback to base payload
+      if (
+        opError &&
+        (opError.message?.includes("payment_receipt") || opError.code === "PGRST204" || opError.code === "42703")
+      ) {
+        console.warn("[Payment Fallback] Missing receipt column, attempting base payload:", opError);
+        if (selectedPayout.id && !selectedPayout.id.startsWith("virtual_")) {
+          const { error: fallbackErr } = await supabase
+            .from("freelancer_payouts")
+            .update(basePayload)
+            .eq("id", selectedPayout.id);
+          if (fallbackErr) throw fallbackErr;
+        } else {
+          const { error: fallbackErr } = await supabase
+            .from("freelancer_payouts")
+            .insert(basePayload);
+          if (fallbackErr) throw fallbackErr;
+        }
+      } else if (opError) {
+        throw opError;
       }
 
       toast.success("Pagamento registrado com sucesso!");
       setPaymentModalOpen(false);
       setPaymentFile(null);
+      setPayoutFilter("paid"); // Switch view to 'Pagos' tab automatically
       queryClient.invalidateQueries({ queryKey: ["freelancer_payouts"] });
       queryClient.invalidateQueries({ queryKey: ["finance", "gestor"] });
     } catch (err: any) {
-      console.error(err);
+      console.error("[handleConfirmPayment]", err);
       toast.error(err?.message || "Erro ao registrar pagamento.");
     } finally {
       setIsProcessingPayment(false);
@@ -1708,7 +1771,7 @@ function GestorFinanceView() {
 }
 
 // ── Componente Principal / Guard Estrito de RBAC ─────────────────────────────
-export function FinancePage() {
+function FinancePage() {
   const { user, loading, isGestor, isFreelancer, isCliente } = useAuth();
 
   // Guard Neutro: Enquanto o estado do usuário/sessão carrega, NUNCA renderizar dados

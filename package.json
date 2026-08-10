@@ -11,14 +11,12 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "npm run dev:erp",
+    "dev": "npm --prefix apps/erp run dev",
     "dev:erp": "npm --prefix apps/erp run dev",
-    "dev:portal": "npm --prefix apps/portal run dev",
-    "build": "npm run build:erp && npm run build:portal",
+    "build": "npm --prefix apps/erp run build",
     "build:erp": "npm --prefix apps/erp run build",
-    "build:portal": "npm --prefix apps/portal run build",
+    "preview": "npm --prefix apps/erp run preview",
     "preview:erp": "npm --prefix apps/erp run preview",
-    "preview:portal": "npm --prefix apps/portal run preview",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
@@ -66,7 +64,7 @@
     "embla-carousel-react": "^8.6.0",
     "file-saver": "^2.0.5",
     "input-otp": "^1.4.2",
-    "jspdf": "^2.5.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.575.0",
     "mammoth": "^1.7.6",
     "pizzip": "^3.0.6",

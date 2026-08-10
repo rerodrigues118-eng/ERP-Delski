@@ -22,7 +22,7 @@ export const Route = createFileRoute("/app/risks")({
   component: RisksPage,
 });
 
-export function RisksPage() {
+function RisksPage() {
   const projects = useStore((s) => s.projects);
   const freelancers = useStore((s) => s.freelancers);
 

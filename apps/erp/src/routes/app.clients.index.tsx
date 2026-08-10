@@ -7,22 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Plus,
   Mail,
@@ -58,13 +44,7 @@ import {
   type LeadStage,
   type ServiceType,
 } from "@/mocks/types";
-import {
-  Command,
-  CommandInput,
-  CommandList,
-  CommandItem,
-  CommandEmpty,
-} from "@/components/ui/command";
+// Command removed: was causing CPU lockup when rendered inline inside Dialog
 
 export const Route = createFileRoute("/app/clients/")({
   head: () => ({
@@ -120,10 +100,7 @@ function ClientsPage() {
 
   // Client Modal state
   const [openModal, setOpenModal] = useState(false);
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [companyName, setCompanyName] = useState("");
-  const [phone, setPhone] = useState("");
+  // selectedLead state for importing CRM lead data into client form
   const [selectedLead, setSelectedLead] = useState<any | null>(null);
 
   useEffect(() => {
@@ -160,32 +137,30 @@ function ClientsPage() {
   const invitedClients = clients.filter((c) => c.status === "convidado").length;
   const blockedClients = clients.filter((c) => c.status === "bloqueado").length;
 
-  const handleCreateSubmit = async (e: React.FormEvent) => {
+  const handleCreateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!fullName.trim() || !email.trim()) {
+    const fd = new FormData(e.currentTarget);
+    const fullNameVal = (fd.get("fullName") as string || "").trim();
+    const emailVal = (fd.get("email") as string || "").trim();
+    const companyNameVal = (fd.get("companyName") as string || "").trim();
+    const phoneVal = (fd.get("phone") as string || "").trim();
+    if (!fullNameVal || !emailVal) {
       return toast.error("Preencha nome e e-mail do cliente.");
     }
     createClient.mutate(
       {
-        full_name: fullName.trim(),
-        email: email.trim(),
-        company_name: companyName.trim() || undefined,
-        phone: phone.trim() || undefined,
-        // pass lead_id optionally (hook will ignore unknown fields safely)
+        full_name: fullNameVal,
+        email: emailVal,
+        company_name: companyNameVal || undefined,
+        phone: phoneVal || undefined,
         lead_id: selectedLead?.id,
       } as any,
       {
         onSuccess: () => {
-          // If a lead was selected, mark it as converted in the local CRM store
           if (selectedLead?.id) {
             updateStage(selectedLead.id, "Fechado");
           }
-
           setOpenModal(false);
-          setFullName("");
-          setEmail("");
-          setCompanyName("");
-          setPhone("");
           setSelectedLead(null);
         },
       },
@@ -251,7 +226,7 @@ function ClientsPage() {
         </div>
 
         {activeTab === "diretorio" ? (
-          <Dialog open={openModal} onOpenChange={setOpenModal}>
+          <Dialog open={openModal} onOpenChange={(v) => { setOpenModal(v); if (!v) setSelectedLead(null); }}>
             <DialogTrigger asChild>
               <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-none gap-1.5">
                 <Plus className="h-4 w-4" /> Novo Cliente
@@ -269,112 +244,82 @@ function ClientsPage() {
               </DialogHeader>
 
               <form onSubmit={handleCreateSubmit} className="space-y-4 py-2">
-                {/* Lead Import (Autocomplete) */}
-                <div className="space-y-1.5">
-                  <Label>Importar dados de um Lead do CRM (Opcional)</Label>
-                  <div className="relative">
-                    <Command>
-                      <CommandInput placeholder="Pesquisar lead por nome, empresa ou e-mail..." />
-                      <CommandList>
-                        {leads.length === 0 ? (
-                          <CommandEmpty>Nenhum lead disponível</CommandEmpty>
-                        ) : (
-                          leads.map((l) => (
-                            <CommandItem
-                              key={l.id}
-                              value={l.id}
-                              onSelect={() => {
-                                setSelectedLead(l);
-                                // Lead shape: { name, contact }
-                                const contact = (l.contact || "").trim();
-                                const name = (l.name || "").trim();
-
-                                // If contact looks like an email, set email. If it's a phone, set phone.
-                                const emailCandidate = contact.includes("@") ? contact : "";
-                                const phoneCandidate = /\d{8,}/.test(contact) ? contact : "";
-
-                                // Populate fields: fullName -> contact (person), companyName -> name
-                                setFullName(contact || name || "");
-                                setEmail(emailCandidate);
-                                setCompanyName(name || "");
-                                setPhone(phoneCandidate);
-                              }}
-                            >
-                              <div className="flex flex-col">
-                                <span className="font-medium text-sm">{l.contact || l.name}</span>
-                                <span className="text-xs text-stone-500">
-                                  {l.name} · {l.contact}
-                                </span>
-                              </div>
-                            </CommandItem>
-                          ))
-                        )}
-                      </CommandList>
-                    </Command>
-
+                {/* Lead Import (simple native select — Command removed due to CPU lockup) */}
+                {leads.length > 0 && (
+                  <div className="space-y-1.5">
+                    <Label>Importar dados de um Lead do CRM (Opcional)</Label>
+                    <select
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                      value={selectedLead?.id ?? ""}
+                      onChange={(e) => {
+                        const lead = leads.find((l) => l.id === e.target.value) ?? null;
+                        setSelectedLead(lead);
+                      }}
+                    >
+                      <option value="">— Nenhum lead selecionado —</option>
+                      {leads.map((l) => (
+                        <option key={l.id} value={l.id}>
+                          {l.name} · {l.contact}
+                        </option>
+                      ))}
+                    </select>
                     {selectedLead && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedLead(null);
-                          setFullName("");
-                          setEmail("");
-                          setCompanyName("");
-                          setPhone("");
-                        }}
-                        className="absolute right-2 top-2 text-xs text-stone-500 hover:text-stone-700"
-                      >
-                        Limpar
-                      </button>
+                      <p className="text-xs text-stone-500">
+                        Lead selecionado: {selectedLead.name || selectedLead.contact}
+                      </p>
                     )}
                   </div>
-                  {selectedLead && (
-                    <p className="text-xs text-stone-500">
-                      Lead selecionado: {selectedLead.name || selectedLead.contact}
-                    </p>
-                  )}
-                </div>
+                )}
+
                 <div className="space-y-1.5">
-                  <Label>Nome Completo / Contato Principal *</Label>
+                  <Label htmlFor="fullName">Nome Completo / Contato Principal *</Label>
                   <Input
+                    id="fullName"
+                    name="fullName"
                     placeholder="Ex: Carlos Eduardo Silva"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
+                    defaultValue={selectedLead ? (selectedLead.contact || selectedLead.name || "") : ""}
+                    key={selectedLead?.id ?? "none"}
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>E-mail Corporativo *</Label>
+                  <Label htmlFor="email">E-mail Corporativo *</Label>
                   <Input
+                    id="email"
+                    name="email"
                     type="email"
                     placeholder="carlos@empresa.com.br"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    defaultValue={selectedLead?.contact?.includes("@") ? selectedLead.contact : ""}
+                    key={(selectedLead?.id ?? "none") + "-email"}
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>Nome da Empresa / Organização (Opcional)</Label>
+                  <Label htmlFor="companyName">Nome da Empresa / Organização (Opcional)</Label>
                   <Input
+                    id="companyName"
+                    name="companyName"
                     placeholder="Ex: Studio Lumina Mídia"
-                    value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
+                    defaultValue={selectedLead?.name ?? ""}
+                    key={(selectedLead?.id ?? "none") + "-company"}
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label>Telefone / WhatsApp (Opcional)</Label>
+                  <Label htmlFor="phone">Telefone / WhatsApp (Opcional)</Label>
                   <Input
+                    id="phone"
+                    name="phone"
                     placeholder="(11) 98888-7777"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    defaultValue={selectedLead?.contact && /\d{8,}/.test(selectedLead.contact) ? selectedLead.contact : ""}
+                    key={(selectedLead?.id ?? "none") + "-phone"}
                   />
                 </div>
 
                 <DialogFooter className="pt-3">
-                  <Button type="button" variant="outline" onClick={() => setOpenModal(false)}>
+                  <Button type="button" variant="outline" onClick={() => { setOpenModal(false); setSelectedLead(null); }}>
                     Cancelar
                   </Button>
                   <Button

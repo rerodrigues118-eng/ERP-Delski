@@ -40,7 +40,7 @@ export const Route = createFileRoute("/app/projects/")({
   component: ProjectsListPage,
 });
 
-export function ProjectsListPage() {
+function ProjectsListPage() {
   const { profile, loading } = useAuth();
 
   if (loading) {

@@ -12,7 +12,9 @@ dist
 dist-ssr
 .output
 .vinxi
+.tanstack
 .tanstack/**
+inspect_db.mjs
 .nitro
 *.local
 .env

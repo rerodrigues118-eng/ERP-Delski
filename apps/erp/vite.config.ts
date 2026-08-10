@@ -8,10 +8,13 @@ const envMjsPlugin = {
   name: "env-mjs-plugin",
   configureServer(server: any) {
     server.middlewares.use((req: any, res: any, next: any) => {
-      if (req.url === "/env.mjs" || req.url?.startsWith("/env.mjs?")) {
+      if (req.url?.includes("env.mjs")) {
         res.setHeader("Content-Type", "application/javascript");
         res.end("export default {}; export const env = {};");
         return;
+      }
+      if (req.url === "/client.tsx" || req.url?.startsWith("/client.tsx?")) {
+        req.url = req.url.replace("/client.tsx", "/src/client.tsx");
       }
       next();
     });
@@ -28,6 +31,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "/client.tsx": path.resolve(__dirname, "./src/client.tsx"),
+      "client.tsx": path.resolve(__dirname, "./src/client.tsx"),
     },
   },
   build: {

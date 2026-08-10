@@ -12,11 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { FileText, Sparkles, AlertCircle } from "lucide-react";
+import { FileText, AlertCircle, CheckCircle2 } from "lucide-react";
 import {
   useContractModels,
   useGenerateContract,
-  usePreviewContractTemplate,
 } from "@/hooks/useContractModels";
 import { useProjects } from "@/hooks/useProjects";
 import { useFreelancers } from "@/hooks/useProfiles";
@@ -44,7 +43,6 @@ function ContractGeneratorPage() {
   const { data: projects = [] } = useProjects();
   const { data: freelancers = [] } = useFreelancers();
   const { data: companySettings = DEFAULT_COMPANY_SETTINGS } = useCompanySettings();
-  const previewContract = usePreviewContractTemplate();
   const generateContract = useGenerateContract();
 
   const [selectedModelId, setSelectedModelId] = useState<string>("");
@@ -55,7 +53,6 @@ function ContractGeneratorPage() {
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [autoFields, setAutoFields] = useState<Record<string, boolean>>({});
 
-  const [previewHtml, setPreviewHtml] = useState<string>("");
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
 
   // ── ALL hooks must be declared before any conditional return ──────────────
@@ -88,7 +85,6 @@ function ContractGeneratorPage() {
       setValues({});
       setTouched({});
       setAutoFields({});
-      setPreviewHtml("");
       setGeneratedUrl(null);
       return;
     }
@@ -105,7 +101,6 @@ function ContractGeneratorPage() {
 
     setValues(resolved.values);
     setAutoFields(resolved.autoFields);
-    setPreviewHtml("");
     setGeneratedUrl(null);
   }, [selectedModelId, companySettings, profile]);
 
@@ -180,22 +175,6 @@ function ContractGeneratorPage() {
     setValues((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handlePreview = async () => {
-    if (!selectedModel?.docx_path) {
-      toast.error("Escolha um modelo com arquivo .docx vinculado para pré-visualizar.");
-      return;
-    }
-
-    try {
-      const result = await previewContract.mutateAsync(selectedModel.docx_path);
-      setPreviewHtml(result.html);
-      toast.success("Pré-visualização carregada.");
-    } catch (error) {
-      console.error(error);
-      toast.error("Falha ao carregar pré-visualização.");
-    }
-  };
-
   const handleGenerate = async () => {
     if (!selectedModel?.docx_path) {
       toast.error("Selecione um modelo com arquivo .docx para gerar o contrato.");
@@ -257,18 +236,10 @@ function ContractGeneratorPage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button
-            onClick={handlePreview}
-            className="gap-2 bg-stone-900 hover:bg-stone-800 text-white font-medium rounded-md shadow-none text-xs h-9 px-4"
-            disabled={!selectedModel || previewContract.isPending}
-          >
-            <Sparkles className="h-4 w-4" /> Pré-visualizar Template
-          </Button>
-
           <div className="flex flex-col sm:items-end">
             <Button
               onClick={handleGenerate}
-              className="gap-2 bg-blue-900 hover:bg-blue-950 text-white font-medium rounded-md shadow-none text-xs h-9 px-4"
+              className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md shadow-sm text-xs h-9 px-4"
               disabled={!canGenerate}
             >
               <FileText className="h-4 w-4" /> Gerar Contrato
@@ -405,7 +376,7 @@ function ContractGeneratorPage() {
               Preencha ou revise os valores do modelo antes de gerar o contrato final.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-6">
             <ContractValuesForm
               variableMap={variableMap}
               values={values}
@@ -413,83 +384,100 @@ function ContractGeneratorPage() {
               onChange={handleChangeValue}
               missingCount={missingFieldsCount}
             />
-          </CardContent>
-        </Card>
-      </div>
 
-      {/* Preview & Result Section */}
-      <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
-        <Card className="space-y-4 shadow-sm">
-          <CardHeader>
-            <CardTitle>Preview do Modelo</CardTitle>
-            <CardDescription>Pré-visualização do `.docx` convertido para HTML.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {previewHtml ? (
-              <div className="rounded-2xl border border-border bg-white p-4">
-                <div
-                  className="prose prose-slate max-w-none text-slate-800"
-                  dangerouslySetInnerHTML={{ __html: previewHtml }}
-                />
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-border bg-muted p-6 text-sm text-muted-foreground">
-                Clique em "Pré-visualizar Template" para carregar o HTML do documento.
+            {variableMap && variableMap.length > 0 && (
+              <div className="pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                  {!selectedModel ? (
+                    <span className="text-xs text-muted-foreground">Selecione um modelo</span>
+                  ) : !selectedProjectId ? (
+                    <span className="text-xs text-muted-foreground">Selecione um projeto</span>
+                  ) : missingFieldsCount > 0 ? (
+                    <span className="text-xs text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                      <AlertCircle className="h-4 w-4 inline" /> {missingFieldsCount}{" "}
+                      {missingFieldsCount === 1 ? "campo pendente" : "campos pendentes"}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                      <CheckCircle2 className="h-4 w-4 inline" /> Todos os campos preenchidos
+                    </span>
+                  )}
+                </div>
+
+                <Button
+                  onClick={handleGenerate}
+                  className="w-full sm:w-auto gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs h-10 px-6 shadow-sm"
+                  disabled={!canGenerate}
+                >
+                  <FileText className="h-4 w-4" /> Gerar Contrato
+                </Button>
               </div>
             )}
           </CardContent>
         </Card>
-
-        <Card className="space-y-4 shadow-sm">
-          <CardHeader>
-            <CardTitle>Resultado</CardTitle>
-            <CardDescription>Link e status do contrato gerado.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="rounded-2xl border border-border bg-muted/40 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Modelo</p>
-                <p className="mt-1 text-sm font-semibold">
-                  {selectedModel?.name ?? "Nenhum modelo"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-muted/40 p-4">
-                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Projeto</p>
-                <p className="mt-1 text-sm font-semibold">
-                  {selectedProject?.title ?? "Nenhum projeto"}
-                </p>
-              </div>
-              {selectedFreelancer && (
-                <div className="rounded-2xl border border-border bg-muted/40 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                    Freelancer
-                  </p>
-                  <p className="mt-1 text-sm font-semibold">{selectedFreelancer.full_name}</p>
-                </div>
-              )}
-              {generatedUrl ? (
-                <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400 font-semibold">
-                    URL Gerada
-                  </p>
-                  <a
-                    href={generatedUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="mt-2 block text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
-                  >
-                    Abrir contrato gerado (.pdf)
-                  </a>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
-                  O contrato gerado será exibido aqui com link direto para download.
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Result Section */}
+      <Card className="space-y-4 shadow-sm">
+        <CardHeader>
+          <CardTitle>Resultado</CardTitle>
+          <CardDescription>Link e status do contrato gerado.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="rounded-2xl border border-border bg-muted/40 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Modelo</p>
+              <p className="mt-1 text-sm font-semibold">
+                {selectedModel?.name ?? "Nenhum modelo"}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-muted/40 p-4">
+              <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Projeto</p>
+              <p className="mt-1 text-sm font-semibold">
+                {selectedProject?.title ?? "Nenhum projeto"}
+              </p>
+            </div>
+            {selectedFreelancer && (
+              <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Freelancer
+                </p>
+                <p className="mt-1 text-sm font-semibold">{selectedFreelancer.full_name}</p>
+              </div>
+            )}
+          </div>
+
+          {generatedUrl ? (
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-400 font-semibold">
+                  URL Gerada
+                </p>
+                <a
+                  href={generatedUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-1 block text-sm font-semibold text-emerald-600 dark:text-emerald-400 hover:underline"
+                >
+                  Abrir contrato gerado (.docx)
+                </a>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open(generatedUrl, "_blank")}
+                className="text-xs border-emerald-300 text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100"
+              >
+                Baixar Novamente
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed border-border bg-muted p-4 text-sm text-muted-foreground">
+              O contrato gerado será exibido aqui com link direto para download.
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

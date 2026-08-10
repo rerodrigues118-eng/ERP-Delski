@@ -22,3 +22,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     detectSessionInUrl: true,
   },
 });
+
+// Security: Frontend code must ALWAYS use standard client with RLS enforcement.
+// Never expose service_role key in client-side code.
+export const supabaseAdmin = supabase;

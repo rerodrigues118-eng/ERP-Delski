@@ -6,9 +6,10 @@ import "./styles.css";
 
 const router = getRouter();
 
-const rootElement = document.getElementById("root")!;
-if (!rootElement.innerHTML) {
-  const root = createRoot(rootElement);
+const rootElement = document.getElementById("root");
+if (rootElement) {
+  const root = (rootElement as any)._reactRoot || createRoot(rootElement);
+  (rootElement as any)._reactRoot = root;
   root.render(
     <StrictMode>
       <RouterProvider router={router} />

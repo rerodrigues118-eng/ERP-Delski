@@ -469,45 +469,49 @@ function Dashboard() {
 
       {/* ── Charts ───────────────────────────────────────── */}
       {!loadingProjects && (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          <ChartCard title={isGestor ? "Receita por Tipo de Serviço" : "Projetos por Tipo de Serviço"} className="lg:col-span-3">
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={byType} barSize={32}>
-                <CartesianGrid strokeDasharray="2 4" stroke="#F3F4F6" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: "#D1D5DB" }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip content={<ChartTooltip />} cursor={{ fill: "#F9FAFB" }} />
-                <defs>
-                  <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#2563EB" />
-                    <stop offset="100%" stopColor="#60A5FA" />
-                  </linearGradient>
-                </defs>
-                <Bar dataKey={isGestor ? "receita" : "total"} name={isGestor ? "Receita (R$)" : "Projetos"} fill="url(#blueGrad)" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 min-w-0">
+          <ChartCard title={isGestor ? "Receita por Tipo de Serviço" : "Projetos por Tipo de Serviço"} className="lg:col-span-3 min-w-0">
+            <div className="w-full min-w-0 h-[220px]">
+              <ResponsiveContainer width="100%" height="100%" debounce={50} minWidth={100}>
+                <BarChart data={byType} barSize={32}>
+                  <CartesianGrid strokeDasharray="2 4" stroke="#F3F4F6" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#9CA3AF" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: "#D1D5DB" }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip content={<ChartTooltip />} cursor={{ fill: "#F9FAFB" }} />
+                  <defs>
+                    <linearGradient id="blueGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563EB" />
+                      <stop offset="100%" stopColor="#60A5FA" />
+                    </linearGradient>
+                  </defs>
+                  <Bar dataKey={isGestor ? "receita" : "total"} name={isGestor ? "Receita (R$)" : "Projetos"} fill="url(#blueGrad)" radius={[6, 6, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </ChartCard>
 
-          <ChartCard title="Distribuição por Status" className="lg:col-span-2">
+          <ChartCard title="Distribuição por Status" className="lg:col-span-2 min-w-0">
             {byStatus.length > 0 ? (
               <>
-                <ResponsiveContainer width="100%" height={180}>
-                  <PieChart>
-                    <Pie
-                      data={byStatus}
-                      dataKey="value"
-                      nameKey="name"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={3}
-                    >
-                      {byStatus.map((entry, i) => (
-                        <Cell key={i} fill={entry.color || CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={0} />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<ChartTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
+                <div className="w-full min-w-0 h-[180px]">
+                  <ResponsiveContainer width="100%" height="100%" debounce={50} minWidth={100}>
+                    <PieChart>
+                      <Pie
+                        data={byStatus}
+                        dataKey="value"
+                        nameKey="name"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={3}
+                      >
+                        {byStatus.map((entry, i) => (
+                          <Cell key={i} fill={entry.color || CHART_COLORS[i % CHART_COLORS.length]} strokeWidth={0} />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<ChartTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
                 <div className="flex flex-col gap-2 mt-2">
                   {byStatus.map((d, i) => (
                     <div key={d.name} className="flex items-center justify-between text-xs">

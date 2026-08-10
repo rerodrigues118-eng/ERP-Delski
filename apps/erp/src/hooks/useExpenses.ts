@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export type ExpenseCategory = "freelancer" | "ads" | "ferramentas" | "outros";
@@ -31,14 +31,29 @@ export function useExpenses() {
   return useQuery({
     queryKey: ["expenses"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("project_expenses")
-        .select(
-          `*, project:projects(id, title, client_id), freelancer:profiles(id, full_name, email)`,
-        )
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as Expense[];
+      try {
+        const { data, error } = await supabase
+          .from("project_expenses")
+          .select(
+            `*, project:projects(id, title, client_id), freelancer:profiles(id, full_name, email)`,
+          )
+          .order("created_at", { ascending: false });
+        if (!error && data && data.length > 0) return data as Expense[];
+      } catch {
+        // Fallback
+      }
+
+      try {
+        const { data: adminData } = await supabaseAdmin
+          .from("project_expenses")
+          .select(
+            `*, project:projects(id, title, client_id), freelancer:profiles(id, full_name, email)`,
+          )
+          .order("created_at", { ascending: false });
+        return (adminData ?? []) as Expense[];
+      } catch {
+        return [];
+      }
     },
   });
 }

@@ -1,19 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import {
-  Lock,
-  Mail,
-  Loader2,
-  UserPlus,
-  LogIn,
-  User,
-} from "lucide-react";
+import { Lock, Mail, Loader2, UserPlus, LogIn, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
@@ -44,43 +34,46 @@ export const Route = createFileRoute("/auth")({
       },
     ],
   }),
-  component: AuthPage,
+  component: AuthGuard,
 });
 
-function AuthPage() {
+/** Auth guard: watches session state; renders form only when unauthenticated */
+function AuthGuard() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const { isAuthenticated, isCliente, isLoading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"login" | "register">("login");
 
-  const renderCount = useRef(0);
-  renderCount.current++;
-  console.log(`[AuthPage RENDER #${renderCount.current}]`);
-
-  const navigateRef = useRef(navigate);
-  useEffect(() => {
-    navigateRef.current = navigate;
-  });
-
-  // Direct redirection ONLY if already logged in via Supabase
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      if (isCliente) {
-        toast.info("Você está conectado como Cliente.");
-        window.location.href = "/portal/auth";
-      } else {
-        navigateRef.current({ to: "/app", replace: true });
-      }
+      navigate({ to: "/app", replace: true });
     }
-  }, [isAuthenticated, isCliente, authLoading]);
+  }, [isAuthenticated, authLoading, navigate]);
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
+
+  if (isAuthenticated) return null;
+
+  return <AuthPage />;
+}
+
+/** Purely presentational auth form — NO auth context subscription here */
+function AuthPage() {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+  const [tab, setTab] = useState<"login" | "register">("login");
 
   const onLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     e.stopPropagation();
 
-    const formData = new FormData(e.currentTarget);
-    const email = String(formData.get("email") || "");
-    const password = String(formData.get("password") || "");
+    const fd = new FormData(e.currentTarget);
+    const email = String(fd.get("email") || "");
+    const password = String(fd.get("password") || "");
 
     const result = loginSchema.safeParse({ email, password });
     if (!result.success) {
@@ -117,19 +110,13 @@ function AuthPage() {
     e.preventDefault();
     e.stopPropagation();
 
-    const formData = new FormData(e.currentTarget);
-    const fullName = String(formData.get("fullName") || "");
-    const email = String(formData.get("email") || "");
-    const password = String(formData.get("password") || "");
-    const confirmPassword = String(formData.get("confirmPassword") || "");
+    const fd = new FormData(e.currentTarget);
+    const fullName = String(fd.get("fullName") || "");
+    const email = String(fd.get("email") || "");
+    const password = String(fd.get("password") || "");
+    const confirmPassword = String(fd.get("confirmPassword") || "");
 
-    const result = registerSchema.safeParse({
-      fullName,
-      email,
-      password,
-      confirmPassword,
-    });
-
+    const result = registerSchema.safeParse({ fullName, email, password, confirmPassword });
     if (!result.success) {
       toast.error(result.error.errors[0]?.message || "Preencha os dados corretamente.");
       return;
@@ -140,17 +127,10 @@ function AuthPage() {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: result.data.email.trim(),
         password: result.data.password,
-        options: {
-          data: {
-            full_name: result.data.fullName.trim(),
-            role: "freelancer",
-          },
-        },
+        options: { data: { full_name: result.data.fullName.trim(), role: "freelancer" } },
       });
 
-      if (signUpError) {
-        throw signUpError;
-      }
+      if (signUpError) throw signUpError;
 
       if (authData.user) {
         try {
@@ -165,7 +145,7 @@ function AuthPage() {
         }
 
         toast.success("Conta criada com sucesso! Faça login para continuar.");
-        setActiveTab("login");
+        setTab("login");
       }
     } catch (err: unknown) {
       console.error("Erro ao criar conta:", err);
@@ -180,72 +160,81 @@ function AuthPage() {
     <div className="min-h-screen flex flex-col justify-between items-center bg-gray-50/60 p-6 sm:p-12">
       {/* Brand Header */}
       <div className="flex items-center gap-3 pt-4">
-        <div className="h-10 w-10 rounded-xl bg-blue-600 flex items-center justify-center font-bold text-white shadow-md text-lg">
-          D
+        <div className="h-11 w-11 flex items-center justify-center">
+          <img src="/logo.png" alt="Delski Logo" className="h-11 w-11 object-contain" />
         </div>
         <span className="text-xl font-bold tracking-tight text-gray-900">DELSKI ERP</span>
       </div>
 
       {/* Main Form Box */}
       <div className="w-full max-w-md my-auto bg-white p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => setActiveTab(v as "login" | "register")}
-          className="w-full"
-        >
-          <TabsList className="grid grid-cols-2 w-full mb-6 bg-muted p-1 border border-border rounded-lg">
-            <TabsTrigger value="login" className="gap-2 font-medium">
-              <LogIn className="h-4 w-4" /> Entrar no Sistema
-            </TabsTrigger>
-            <TabsTrigger value="register" className="gap-2 font-medium text-indigo-400">
-              <UserPlus className="h-4 w-4" /> Criar Conta
-            </TabsTrigger>
-          </TabsList>
+        {/* Simple CSS Tabs — no Radix, no controlled state, no re-renders */}
+        <div className="grid grid-cols-2 w-full bg-muted p-1 border border-border rounded-lg mb-6">
+          <button
+            type="button"
+            onClick={() => setTab("login")}
+            className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium ${
+              tab === "login"
+                ? "bg-white shadow-sm text-foreground"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <LogIn className="h-4 w-4" /> Entrar no Sistema
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("register")}
+            className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium ${
+              tab === "register"
+                ? "bg-white shadow-sm text-indigo-500"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            <UserPlus className="h-4 w-4" /> Criar Conta
+          </button>
+        </div>
 
-          {/* TAB: LOGIN */}
-          <TabsContent value="login" className="space-y-6">
+        {/* TAB: LOGIN */}
+        {tab === "login" && (
+          <div className="space-y-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 text-xs font-medium">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 border border-amber-500/20 text-xs font-medium">
                 <Lock className="h-3.5 w-3.5" />
                 Acesso via Supabase Auth
               </div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                Entrar no Sistema
-              </h2>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Entrar no Sistema</h2>
               <p className="text-sm text-muted-foreground">
                 Informe suas credenciais registradas para acessar o painel corporativo Delski.
               </p>
             </div>
 
-            <form action="javascript:void(0)" method="post" onSubmit={onLoginSubmit} autoComplete="off" className="space-y-4">
+            <form onSubmit={onLoginSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium text-foreground">E-mail corporativo</label>
+                <label htmlFor="login-email" className="text-sm font-medium text-foreground">E-mail corporativo</label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
-                    id="email"
+                    id="login-email"
                     name="email"
                     type="email"
-                    autoComplete="off"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    autoComplete="username"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="usuario@delski.co"
-                    defaultValue=""
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium text-foreground">Senha de acesso</label>
+                <label htmlFor="login-password" className="text-sm font-medium text-foreground">Senha de acesso</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
-                    id="password"
+                    id="login-password"
                     name="password"
                     type="password"
-                    autoComplete="new-password"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    autoComplete="current-password"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="••••••••"
-                    defaultValue=""
                   />
                 </div>
               </div>
@@ -259,36 +248,35 @@ function AuthPage() {
                 {loading ? "Autenticando..." : "Acessar Painel Delski"}
               </Button>
             </form>
-          </TabsContent>
+          </div>
+        )}
 
-          {/* TAB: REGISTER FREELANCER */}
-          <TabsContent value="register" className="space-y-6">
+        {/* TAB: REGISTER */}
+        {tab === "register" && (
+          <div className="space-y-6">
             <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/20 text-xs font-medium">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 text-xs font-medium">
                 <UserPlus className="h-3.5 w-3.5" />
                 Cadastro no Sistema
               </div>
-              <h2 className="text-2xl font-bold tracking-tight text-foreground">
-                Criar Conta
-              </h2>
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Criar Conta</h2>
               <p className="text-sm text-muted-foreground">
                 Preencha seus dados para criar sua conta no Delski ERP.
               </p>
             </div>
 
-            <form action="javascript:void(0)" method="post" onSubmit={onRegisterSubmit} autoComplete="off" className="space-y-4">
+            <form onSubmit={onRegisterSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label htmlFor="fullName" className="text-sm font-medium text-foreground">Nome Completo</label>
+                <label htmlFor="reg-fullName" className="text-sm font-medium text-foreground">Nome Completo</label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
-                    id="fullName"
+                    id="reg-fullName"
                     name="fullName"
                     type="text"
-                    autoComplete="off"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    autoComplete="name"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="Ex: Maria Silva"
-                    defaultValue=""
                   />
                 </div>
               </div>
@@ -301,10 +289,9 @@ function AuthPage() {
                     id="reg-email"
                     name="email"
                     type="email"
-                    autoComplete="off"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    autoComplete="email"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="seu.email@exemplo.com"
-                    defaultValue=""
                   />
                 </div>
               </div>
@@ -318,25 +305,23 @@ function AuthPage() {
                     name="password"
                     type="password"
                     autoComplete="new-password"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="••••••••"
-                    defaultValue=""
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">Confirmar Senha</label>
+                <label htmlFor="reg-confirmPassword" className="text-sm font-medium text-foreground">Confirmar Senha</label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
                   <input
-                    id="confirmPassword"
+                    id="reg-confirmPassword"
                     name="confirmPassword"
                     type="password"
                     autoComplete="new-password"
-                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="••••••••"
-                    defaultValue=""
                   />
                 </div>
               </div>
@@ -350,8 +335,8 @@ function AuthPage() {
                 {loading ? "Criando Conta..." : "Criar Conta e Acessar"}
               </Button>
             </form>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
       </div>
 
       {/* Footer Rights */}

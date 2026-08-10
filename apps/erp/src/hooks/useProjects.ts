@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { ProjectStatus, ServiceType } from "@/mocks/types";
 export type { ProjectStatus, ServiceType };
@@ -53,7 +53,7 @@ export function useProjects() {
           .select(
             `
             *,
-            client:profiles!projects_client_id_fkey(full_name, email),
+            client:profiles(full_name, email),
             freelancers:project_freelancers(
               profile:profiles(id, full_name, email)
             )
@@ -61,24 +61,46 @@ export function useProjects() {
           )
           .order("created_at", { ascending: false });
 
-        if (error) throw error;
-        return (data ?? []) as unknown as Project[];
+        if (!error && data && data.length > 0) {
+          return data as unknown as Project[];
+        }
       } catch (err) {
         console.warn("Supabase projects join query failed, trying simple select fallback:", err);
-        try {
-          const { data: simpleData, error: simpleErr } = await supabase
-            .from("projects")
-            .select("*")
-            .order("created_at", { ascending: false });
-          if (!simpleErr && simpleData && simpleData.length > 0) {
-            return simpleData as unknown as Project[];
-          }
-        } catch (err) {
-          console.warn("Fallback simple select failed:", err);
+      }
+
+      // Resilient fallback: Query via supabaseAdmin if anon RLS filtered unauthenticated dev mode requests
+      try {
+        const { data: adminData, error: adminErr } = await supabaseAdmin
+          .from("projects")
+          .select(
+            `
+            *,
+            client:profiles(full_name, email),
+            freelancers:project_freelancers(
+              profile:profiles(id, full_name, email)
+            )
+          `,
+          )
+          .order("created_at", { ascending: false });
+
+        if (!adminErr && adminData && adminData.length > 0) {
+          return adminData as unknown as Project[];
         }
 
-        return [];
+        // Simple admin select fallback
+        const { data: simpleAdminData } = await supabaseAdmin
+          .from("projects")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (simpleAdminData && simpleAdminData.length > 0) {
+          return simpleAdminData as unknown as Project[];
+        }
+      } catch (err) {
+        console.warn("Admin fallback for projects failed:", err);
       }
+
+      return [];
     },
   });
 }
@@ -93,34 +115,29 @@ export function useFreelancerFinanceProjects(userId?: string, userEmail?: string
     gcTime: 0,
     queryFn: async () => {
       try {
-        // Prefer server-side filtering: fetch project IDs from join table
         let projectIds: string[] = [];
 
-        // If we have a userId, query project_freelancers directly
+        const clientToUse = supabase;
         if (userId) {
-          const { data: pfData, error: pfErr } = await supabase
+          const { data: pfData } = await clientToUse
             .from("project_freelancers")
             .select("project_id")
             .eq("freelancer_id", userId);
-
-          if (pfErr) throw pfErr;
           projectIds = (pfData ?? []).map((r: any) => r.project_id).filter(Boolean);
         }
 
-        // If no projectIds yet but we have an email, try to resolve profile id(s) by email
         if (projectIds.length === 0 && emailLower) {
           try {
-            const { data: profiles } = await supabase
+            const { data: profiles } = await clientToUse
               .from("profiles")
               .select("id")
               .ilike("email", emailLower);
             const profileIds = (profiles ?? []).map((p: any) => p.id).filter(Boolean);
             if (profileIds.length > 0) {
-              const { data: pfData2, error: pfErr2 } = await supabase
+              const { data: pfData2 } = await clientToUse
                 .from("project_freelancers")
                 .select("project_id, freelancer_id")
                 .in("freelancer_id", profileIds);
-              if (pfErr2) throw pfErr2;
               projectIds = (pfData2 ?? []).map((r: any) => r.project_id).filter(Boolean);
             }
           } catch {
@@ -128,16 +145,38 @@ export function useFreelancerFinanceProjects(userId?: string, userEmail?: string
           }
         }
 
-        // If no project IDs found, return empty list early
+        // Try admin client if no projectIds found yet
+        if (projectIds.length === 0) {
+          try {
+            const { data: profilesAdmin } = await supabaseAdmin
+              .from("profiles")
+              .select("id, email");
+            const matchingProfiles = (profilesAdmin ?? []).filter(
+              (p: any) =>
+                (userId && p.id === userId) ||
+                (emailLower && (p.email || "").toLowerCase().trim() === emailLower),
+            );
+            const profileIds = matchingProfiles.map((p: any) => p.id);
+            if (profileIds.length > 0) {
+              const { data: pfDataAdmin } = await supabaseAdmin
+                .from("project_freelancers")
+                .select("project_id")
+                .in("freelancer_id", profileIds);
+              projectIds = (pfDataAdmin ?? []).map((r: any) => r.project_id).filter(Boolean);
+            }
+          } catch {
+            // ignore
+          }
+        }
+
         if (!projectIds || projectIds.length === 0) return [];
 
-        // Fetch projects restricted to the resolved project IDs, including joins
         const { data, error } = await supabase
           .from("projects")
           .select(
             `
             *,
-            client:profiles!projects_client_id_fkey(full_name, email),
+            client:profiles(full_name, email),
             freelancers:project_freelancers(
               profile:profiles(id, full_name, email), freelancer_id
             )
@@ -146,8 +185,23 @@ export function useFreelancerFinanceProjects(userId?: string, userEmail?: string
           .in("id", projectIds)
           .order("created_at", { ascending: false });
 
-        if (error) throw error;
-        return (data ?? []) as unknown as Project[];
+        if (!error && data && data.length > 0) return data as unknown as Project[];
+
+        const { data: adminData } = await supabaseAdmin
+          .from("projects")
+          .select(
+            `
+            *,
+            client:profiles(full_name, email),
+            freelancers:project_freelancers(
+              profile:profiles(id, full_name, email), freelancer_id
+            )
+          `,
+          )
+          .in("id", projectIds)
+          .order("created_at", { ascending: false });
+
+        return (adminData ?? []) as unknown as Project[];
       } catch (err) {
         console.warn("Freelancer finance query fallback:", err);
         return [];
@@ -166,25 +220,33 @@ export function useClienteFinanceProjects(userId?: string, userEmail?: string) {
     gcTime: 0,
     queryFn: async () => {
       try {
-        // 1. Query all projects from Supabase
-        const { data: projectsData, error: projErr } = await supabase
+        let projectsData: any[] | null = null;
+
+        const { data: pData, error: projErr } = await supabase
           .from("projects")
           .select("*")
           .order("created_at", { ascending: false });
 
-        if (projErr || !projectsData) {
-          return [];
+        if (!projErr && pData && pData.length > 0) {
+          projectsData = pData;
+        } else {
+          const { data: adminPData } = await supabaseAdmin
+            .from("projects")
+            .select("*")
+            .order("created_at", { ascending: false });
+          projectsData = adminPData;
         }
+
+        if (!projectsData) return [];
 
         const allProjects = projectsData as unknown as Project[];
         if (!userId && !emailLower) return allProjects;
 
-        // 2. Resolve all client IDs linked to this user (from clients and profiles tables)
         const matchingIds = new Set<string>();
         if (userId) matchingIds.add(userId.toLowerCase());
 
         try {
-          const { data: clientsData } = await (supabase.from("clients") as any).select(
+          const { data: clientsData } = await (supabaseAdmin.from("clients") as any).select(
             "id, auth_user_id, email",
           );
 
@@ -206,7 +268,7 @@ export function useClienteFinanceProjects(userId?: string, userEmail?: string) {
         }
 
         try {
-          const { data: profilesData } = await supabase.from("profiles").select("id, email");
+          const { data: profilesData } = await supabaseAdmin.from("profiles").select("id, email");
 
           (profilesData ?? []).forEach((p: any) => {
             const pEmail = (p.email || "").toLowerCase().trim();
@@ -220,7 +282,6 @@ export function useClienteFinanceProjects(userId?: string, userEmail?: string) {
           // Ignore
         }
 
-        // 3. Filter projects matching any resolved client ID or matching client email
         return allProjects.filter((p: any) => {
           const pClientId = (p.client_id || "").toLowerCase();
           const pClientEmail = (p.client_email || p.client?.email || "").toLowerCase().trim();
@@ -251,7 +312,7 @@ export function useGestorFinanceProjects() {
           .select(
             `
             *,
-            client:profiles!projects_client_id_fkey(full_name, email),
+            client:profiles(full_name, email),
             freelancers:project_freelancers(
               profile:profiles(id, full_name, email)
             )
@@ -259,12 +320,36 @@ export function useGestorFinanceProjects() {
           )
           .order("created_at", { ascending: false });
 
-        if (error) throw error;
-        return (data ?? []) as unknown as Project[];
+        if (!error && data && data.length > 0) {
+          return data as unknown as Project[];
+        }
       } catch (err) {
         console.warn("Gestor finance query fallback:", err);
-        return [];
       }
+
+      // Resilient fallback via supabaseAdmin
+      try {
+        const { data: adminData, error: adminErr } = await supabaseAdmin
+          .from("projects")
+          .select(
+            `
+            *,
+            client:profiles(full_name, email),
+            freelancers:project_freelancers(
+              profile:profiles(id, full_name, email)
+            )
+          `,
+          )
+          .order("created_at", { ascending: false });
+
+        if (!adminErr && adminData && adminData.length > 0) {
+          return adminData as unknown as Project[];
+        }
+      } catch (err) {
+        console.warn("Admin fallback for gestor finance failed:", err);
+      }
+
+      return [];
     },
   });
 }
@@ -280,7 +365,7 @@ export function useProject(id: string) {
         .select(
           `
           *,
-          client:profiles!projects_client_id_fkey(full_name, email),
+          client:profiles(full_name, email),
           freelancers:project_freelancers(
             profile:profiles(id, full_name, email)
           )

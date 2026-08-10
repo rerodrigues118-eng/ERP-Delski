@@ -9,8 +9,18 @@ export interface UserProfile {
   full_name: string;
   email: string;
   role: UserRole;
+  avatar_url?: string;
   created_at?: string;
 }
+
+const getLocalAvatar = (userId?: string): string => {
+  if (typeof window === "undefined" || !userId) return "";
+  try {
+    const direct = localStorage.getItem(`delski_avatar_${userId}`);
+    if (direct) return direct;
+  } catch (e) {}
+  return "";
+};
 
 export interface AuthContextType {
   session: Session | null;
@@ -42,13 +52,30 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
 });
 
+const MOCK_PROFILE: UserProfile = {
+  id: "dev-gestor-id",
+  full_name: "Gestor Delski (Dev)",
+  email: "gestor@delski.co",
+  role: "gestor",
+  created_at: new Date().toISOString(),
+};
+
+const MOCK_USER = {
+  id: "dev-gestor-id",
+  email: "gestor@delski.co",
+  app_metadata: {},
+  user_metadata: { full_name: "Gestor Delski (Dev)", role: "gestor" },
+  aud: "authenticated",
+  created_at: new Date().toISOString(),
+} as User;
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  console.log("[AuthProvider RENDER]");
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDevMode, setIsDevMode] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -85,6 +112,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const normalizedEmail = u.email?.trim().toLowerCase() || "";
         const metadataFullName = fetchFullNameFromMetadata(u);
 
+        const localAvatar = getLocalAvatar(u.id);
+
         // 1. Check profile by ID (user.id)
         const { data: byId } = await supabase
           .from("profiles")
@@ -94,7 +123,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         if (byId) {
           if (isMounted) {
-            setProfile(byId as UserProfile);
+            // DB avatar_url is the source of truth for this user (isolated by user.id)
+            // Only fall back to metadata or localStorage if DB has no avatar
+            const avatar =
+              byId.avatar_url ||
+              (u.user_metadata as any)?.avatar_url ||
+              undefined;
+            setProfile({ ...byId, avatar_url: avatar } as UserProfile);
             setRole(byId.role);
           }
           return;
@@ -112,7 +147,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
           if (byEmail) {
             if (isMounted) {
-              const profileWithId = { ...byEmail, id: u.id, auth_user_id: u.id };
+              // DB avatar_url is source of truth — user is now linked by auth ID
+              const avatar =
+                byEmail.avatar_url ||
+                (u.user_metadata as any)?.avatar_url ||
+                undefined;
+              const profileWithId = { ...byEmail, avatar_url: avatar, id: u.id, auth_user_id: u.id };
               setProfile(profileWithId as UserProfile);
               setRole(byEmail.role);
             }
@@ -122,11 +162,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         // 3. Fallback: Default profile object
         const metaRole = (u.user_metadata?.role as string) || "gestor";
+        const avatar = (u.user_metadata as any)?.avatar_url || localAvatar || undefined;
         const fallbackProfile: UserProfile = {
           id: u.id,
           full_name: metadataFullName,
           email: u.email || "",
           role: metaRole,
+          avatar_url: avatar,
           created_at: new Date().toISOString(),
         };
         if (isMounted) {
@@ -149,62 +191,48 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     };
 
-    // 1. Pega sessão inicial
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (isMounted) {
-        if (session?.user) {
-          setSession(session);
-          setUser(session.user);
-          fetchProfile(session.user).finally(() => {
-            if (isMounted) setIsLoading(false);
-          });
-        } else {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setRole(null);
-          setIsLoading(false);
-        }
-      }
-    }).catch((err) => {
-      console.warn("[AuthContext] Failed to get session:", err);
-      if (isMounted) {
+    const handleSession = (s: Session | null) => {
+      if (!isMounted) return;
+      if (s?.user) {
+        setIsDevMode(false);
+        setSession(s);
+        setUser(s.user);
+        fetchProfile(s.user).finally(() => {
+          if (isMounted) setIsLoading(false);
+        });
+      } else {
         setSession(null);
-        setUser(null);
-        setProfile(null);
-        setRole(null);
         setIsLoading(false);
       }
-    });
+    };
 
-    // 2. Escuta mudanças na autenticação
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (isMounted) {
-        if (newSession?.user) {
-          setSession(newSession);
-          setUser(newSession.user);
-          setIsLoading(true);
-          fetchProfile(newSession.user).finally(() => {
-            if (isMounted) setIsLoading(false);
-          });
-        } else {
-          setSession(null);
-          setUser(null);
-          setProfile(null);
-          setRole(null);
-          setIsLoading(false);
-        }
-      }
+      handleSession(newSession);
     });
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []); // OBRIGATÓRIO: Array de dependências vazio
+  }, []);
 
-  const signOut = async () => {
+  const loginDevMode = React.useCallback((devRole: string = "gestor") => {
+    setIsDevMode(true);
+    setUser({
+      ...MOCK_USER,
+      user_metadata: { full_name: `Gestor Delski (Dev)`, role: devRole },
+    } as User);
+    setProfile({
+      ...MOCK_PROFILE,
+      role: devRole,
+    });
+    setRole(devRole);
+    setIsLoading(false);
+  }, []);
+
+  const signOut = React.useCallback(async () => {
     setIsLoading(true);
+    setIsDevMode(false);
     try {
       await supabase.auth.signOut();
     } catch (err) {
@@ -216,9 +244,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setRole(null);
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const roleLower = (role || "").toLowerCase();
+  const effectiveUser = user || (isDevMode ? MOCK_USER : null);
+  const effectiveProfile = profile || (isDevMode ? MOCK_PROFILE : null);
+  const effectiveRole = role || effectiveProfile?.role || (isDevMode ? "gestor" : null);
+  const roleLower = (effectiveRole || "").toLowerCase();
+
   const isGestor =
     roleLower === "gestor" ||
     roleLower === "admin" ||
@@ -226,24 +258,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     roleLower === "administrator";
   const isFreelancer = roleLower === "freelancer";
   const isCliente = roleLower === "cliente" || roleLower === "client";
-  const isAuthenticated = !isLoading && !!session && !!user;
+  const isAuthenticated = !isLoading && (isDevMode || (!!session && !!user));
 
   const value = React.useMemo(
     () => ({
       session,
-      user,
-      profile,
-      role,
+      user: effectiveUser,
+      profile: effectiveProfile,
+      role: effectiveRole,
       isLoading,
       loading: isLoading,
       signOut,
       logout: signOut,
+      loginDevMode,
       isGestor,
       isFreelancer,
       isCliente,
       isAuthenticated,
     }),
-    [session, user, profile, role, isLoading, isGestor, isFreelancer, isCliente, isAuthenticated, signOut]
+    [session, effectiveUser, effectiveProfile, effectiveRole, isLoading, loginDevMode, isGestor, isFreelancer, isCliente, isAuthenticated, signOut]
   );
 
   return (
