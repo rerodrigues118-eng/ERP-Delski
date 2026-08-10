@@ -197,11 +197,7 @@ function AuthPage() {
         {/* TAB: LOGIN */}
         {tab === "login" && (
           <div className="space-y-6">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-amber-500/10 text-amber-600 border border-amber-500/20 text-xs font-medium">
-                <Lock className="h-3.5 w-3.5" />
-                Acesso via Supabase Auth
-              </div>
+            <div className="space-y-1">
               <h2 className="text-2xl font-bold tracking-tight text-foreground">Entrar no Sistema</h2>
               <p className="text-sm text-muted-foreground">
                 Informe suas credenciais registradas para acessar o painel corporativo Delski.

@@ -74,7 +74,8 @@ export const Route = createFileRoute("/app/finance")({
   component: FinancePage,
 });
 
-const money = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`;
+const money = (n: number) =>
+  `R$\u00A0${(n || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 type PayoutStatus = "pendente" | "pago" | "agendado";
 
@@ -1083,14 +1084,14 @@ function GestorFinanceView() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card className="bg-card">
           <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
                 <div className="text-xs text-muted-foreground font-medium">Receita total</div>
-                <div className="mt-2 text-3xl font-bold text-foreground">
+                <div className="mt-2 text-xl sm:text-2xl lg:text-3xl font-bold text-foreground whitespace-nowrap overflow-hidden text-ellipsis">
                   {money(totals.revenue)}
                 </div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500/10 text-indigo-400">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-500/10 text-indigo-400">
                 <DollarSign className="h-5 w-5" />
               </div>
             </div>
@@ -1099,14 +1100,14 @@ function GestorFinanceView() {
 
         <Card className="bg-card">
           <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
                 <div className="text-xs text-muted-foreground font-medium">Já pago</div>
-                <div className="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                <div className="mt-2 text-xl sm:text-2xl lg:text-3xl font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap overflow-hidden text-ellipsis">
                   {money(payoutTotals.paid)}
                 </div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
                 <Wallet className="h-5 w-5" />
               </div>
             </div>
@@ -1115,14 +1116,14 @@ function GestorFinanceView() {
 
         <Card className="bg-card">
           <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
                 <div className="text-xs text-muted-foreground font-medium">A pagar (freelas)</div>
-                <div className="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-400">
+                <div className="mt-2 text-xl sm:text-2xl lg:text-3xl font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap overflow-hidden text-ellipsis">
                   {money(payoutTotals.owed)}
                 </div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-400">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-400">
                 <TrendingDown className="h-5 w-5" />
               </div>
             </div>
@@ -1131,14 +1132,14 @@ function GestorFinanceView() {
 
         <Card className="bg-card">
           <CardContent className="p-5">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="min-w-0 flex-1">
                 <div className="text-xs text-muted-foreground font-medium">Lucro estimado</div>
-                <div className="mt-2 text-3xl font-bold text-indigo-600 dark:text-indigo-400">
+                <div className="mt-2 text-xl sm:text-2xl lg:text-3xl font-bold text-indigo-600 dark:text-indigo-400 whitespace-nowrap overflow-hidden text-ellipsis">
                   {money(totals.profit)}
                 </div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500/10 text-indigo-400">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-500/10 text-indigo-400">
                 <TrendingUp className="h-5 w-5" />
               </div>
             </div>

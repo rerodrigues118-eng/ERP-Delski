@@ -277,15 +277,24 @@ function GestorProfileSettingsPage() {
 
       {/* Tabs Navigation */}
       <Tabs defaultValue="gestor" className="w-full space-y-6">
-        <TabsList className="grid grid-cols-1 sm:grid-cols-3 w-full max-w-2xl bg-stone-100 p-1 border border-stone-200 rounded-xl">
-          <TabsTrigger value="gestor" className="gap-2 font-semibold text-xs py-2">
-            <UserCheck className="h-4 w-4" /> Dados do Gestor
+        <TabsList className="inline-flex h-auto items-center justify-start gap-1 bg-stone-100/90 p-1 border border-stone-200/80 rounded-xl w-full sm:w-auto">
+          <TabsTrigger
+            value="gestor"
+            className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm"
+          >
+            <UserCheck className="h-4 w-4 text-indigo-600" /> Dados do Gestor
           </TabsTrigger>
-          <TabsTrigger value="empresa" className="gap-2 font-semibold text-xs py-2">
-            <Building2 className="h-4 w-4" /> Dados da Empresa
+          <TabsTrigger
+            value="empresa"
+            className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm"
+          >
+            <Building2 className="h-4 w-4 text-indigo-600" /> Dados da Empresa
           </TabsTrigger>
-          <TabsTrigger value="sistema" className="gap-2 font-semibold text-xs py-2">
-            <Settings className="h-4 w-4" /> Padrões do Sistema
+          <TabsTrigger
+            value="sistema"
+            className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm"
+          >
+            <Settings className="h-4 w-4 text-indigo-600" /> Padrões do Sistema
           </TabsTrigger>
         </TabsList>
 
