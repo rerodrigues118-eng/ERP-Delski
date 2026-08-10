@@ -258,7 +258,7 @@ function Dashboard() {
             <h1 className="page-title">Olá, {userName}!</h1>
             <p className="text-sm text-gray-400 mt-1">Acompanhe seus projetos, prazos e métricas.</p>
           </div>
-          <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-none gap-1.5">
+          <Button asChild className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white rounded-xl shadow-xs gap-1.5 border-0">
             <Link to="/app/projects">Ver Projetos <ArrowRight className="h-4 w-4" /></Link>
           </Button>
         </div>
@@ -383,7 +383,7 @@ function Dashboard() {
               : "Visão consolidada da operação Delski."}
           </p>
         </div>
-        <Button asChild className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-none gap-1.5">
+        <Button asChild className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white rounded-xl shadow-xs gap-1.5 border-0">
           <Link to="/app/projects">
             Ver Projetos <ArrowRight className="h-4 w-4" />
           </Link>

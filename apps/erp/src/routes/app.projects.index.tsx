@@ -374,7 +374,7 @@ function GestorProjectsView() {
         {isGestor && (
           <Button
             asChild
-            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-none gap-1.5"
+            className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white rounded-xl shadow-xs gap-1.5 border-0"
           >
             <Link to="/app/projects/new">
               <PlusCircle className="h-4 w-4" /> Novo Projeto
@@ -399,9 +399,9 @@ function GestorProjectsView() {
             <button
               key={service}
               onClick={() => setSelectedService(service)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 selectedService === service
-                  ? "bg-blue-600 text-white"
+                  ? "bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] text-white shadow-xs"
                   : "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
               }`}
             >

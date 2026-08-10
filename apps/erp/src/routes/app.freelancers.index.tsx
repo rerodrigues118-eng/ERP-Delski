@@ -146,7 +146,7 @@ function FreelancersPage() {
         </div>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-none gap-1.5">
+            <Button className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white rounded-xl shadow-xs gap-1.5 border-0">
               <Plus className="h-4 w-4" /> Novo Freelancer
             </Button>
           </DialogTrigger>
@@ -184,7 +184,7 @@ function FreelancersPage() {
               <Button
                 onClick={submit}
                 disabled={saving}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl gap-2"
+                className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white rounded-xl gap-2 shadow-xs border-0"
               >
                 {saving && <Loader2 className="h-4 w-4 animate-spin" />}
                 Cadastrar

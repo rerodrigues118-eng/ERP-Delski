@@ -272,7 +272,7 @@ function AuthPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
+                className="w-full bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium gap-2 shadow-sm transition-all"
                 disabled={loading}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -285,11 +285,7 @@ function AuthPage() {
         {/* TAB: REGISTER */}
         {tab === "register" && (
           <div className="space-y-6">
-            <div className="space-y-2">
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-indigo-500/10 text-indigo-500 border border-indigo-500/20 text-xs font-medium">
-                <UserPlus className="h-3.5 w-3.5" />
-                Cadastro no Sistema
-              </div>
+            <div className="space-y-1">
               <h2 className="text-2xl font-bold tracking-tight text-foreground">Criar Conta</h2>
               <p className="text-sm text-muted-foreground">
                 Preencha seus dados para criar sua conta no Delski ERP.
@@ -359,7 +355,7 @@ function AuthPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
+                className="w-full bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium gap-2 shadow-sm transition-all"
                 disabled={loading}
               >
                 {loading && <Loader2 className="h-4 w-4 animate-spin" />}

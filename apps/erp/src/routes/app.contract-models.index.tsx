@@ -267,7 +267,7 @@ function ContractModelsPage() {
         <div className="flex flex-wrap gap-2">
           <Button
             onClick={handleCreateEmptyModel}
-            className="gap-2 bg-blue-900 hover:bg-blue-950 text-white font-medium rounded-md shadow-none text-xs h-9 px-4"
+            className="gap-2 bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium rounded-md shadow-xs text-xs h-9 px-4 border-0"
           >
             <FilePlus className="h-4 w-4" /> Novo Modelo em Branco
           </Button>

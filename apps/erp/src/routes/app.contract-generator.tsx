@@ -265,7 +265,7 @@ function ContractGeneratorPage() {
           <div className="flex flex-col sm:items-end">
             <Button
               onClick={handleGenerate}
-              className="gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-md shadow-sm text-xs h-9 px-4"
+              className="gap-2 bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium rounded-md shadow-xs text-xs h-9 px-4 border-0"
               disabled={!canGenerate}
             >
               <FileText className="h-4 w-4" /> Gerar Contrato
@@ -292,9 +292,9 @@ function ContractGeneratorPage() {
           <button
             type="button"
             onClick={() => setContractParty("freelancer")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-all ${
               contractParty === "freelancer"
-                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                ? "bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] text-white border-blue-900 shadow-xs"
                 : "bg-background text-foreground border-border hover:border-indigo-400"
             }`}
           >
@@ -504,7 +504,7 @@ function ContractGeneratorPage() {
 
                 <Button
                   onClick={handleGenerate}
-                  className="w-full sm:w-auto gap-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs h-10 px-6 shadow-sm"
+                  className="w-full sm:w-auto gap-2 bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-semibold text-xs h-10 px-6 shadow-xs border-0"
                   disabled={!canGenerate}
                 >
                   <FileText className="h-4 w-4" /> Gerar Contrato

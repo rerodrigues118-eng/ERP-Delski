@@ -356,7 +356,7 @@ function NewProjectPage() {
               <Button
                 type="submit"
                 disabled={createProject.isPending}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
+                className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium gap-2 shadow-xs border-0"
               >
                 {createProject.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                 Salvar Projeto

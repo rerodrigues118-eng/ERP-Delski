@@ -204,11 +204,11 @@ function SupportPage() {
             <button
               key={status}
               onClick={() => setSelectedStatus(status)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 selectedStatus === status
                   ? status === "Aberto" ? "bg-red-100 text-red-700" :
                     status === "Em Andamento" ? "bg-blue-100 text-blue-700" :
-                    status === "Resolvido" ? "bg-green-100 text-green-700" : "bg-blue-600 text-white"
+                    status === "Resolvido" ? "bg-green-100 text-green-700" : "bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] text-white shadow-xs"
                   : "bg-gray-100 text-gray-500 hover:bg-gray-200"
               }`}
             >

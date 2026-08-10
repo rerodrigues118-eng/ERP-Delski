@@ -1089,7 +1089,7 @@ function ProjectDetailPage() {
                       handleAssignFreelancer(directAssignFreelancerId);
                       setDirectAssignFreelancerId("");
                     }}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs h-9 px-4 shrink-0 shadow-xs"
+                    className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium text-xs h-9 px-4 shrink-0 shadow-xs border-0"
                   >
                     Atribuir
                   </Button>
@@ -1401,7 +1401,7 @@ function ProjectDetailPage() {
             </Button>
             <Button
               onClick={handleSendTriageInvite}
-              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white border-0"
             >
               Enviar Convite via Brevo
             </Button>
@@ -1496,7 +1496,7 @@ function ProjectDetailPage() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" className="bg-indigo-600 hover:bg-indigo-700 text-white">
+              <Button type="submit" className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white border-0">
                 Salvar Alterações
               </Button>
             </DialogFooter>
