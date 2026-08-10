@@ -36,7 +36,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useProjects } from "@/hooks/useProjects";
 import { useFreelancers } from "@/hooks/useProfiles";
-import { FreelancerOnboardingSection } from "@/components/FreelancerOnboardingSection";
+
 
 export const Route = createFileRoute("/app/")({
   head: () => ({
@@ -361,8 +361,6 @@ function Dashboard() {
           )}
         </div>
 
-        {/* Onboarding section */}
-        <FreelancerOnboardingSection hideSection1 hideBanner />
       </div>
     );
   }
