@@ -821,66 +821,6 @@ function ProjectDetailPage() {
             }}
           />
 
-          {/* Contract Section for assigned Freelancer */}
-          {isFreelancer && currentFreelancer && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base">Contrato de Prestação de Serviços</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Baixe o modelo do contrato preenchido com os dados do projeto e envie a versão
-                  assinada.
-                </p>
-                <div className="mt-3 flex items-center gap-3">
-                  <Button variant="outline" onClick={generateContractPDF} size="sm">
-                    Gerar Modelo de Contrato (PDF)
-                  </Button>
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept="application/pdf,image/*"
-                      onChange={handleContractUpload}
-                      className="hidden"
-                    />
-                    <Button variant="ghost" size="sm" disabled={contractUploading}>
-                      {contractUploading ? "Enviando..." : "Enviar Contrato Assinado"}
-                    </Button>
-                  </label>
-                </div>
-
-                {contractRecord ? (
-                  <div className="mt-4 border border-border p-3 rounded-md">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <div className="font-medium">
-                          {contractRecord.file_path?.split("/").pop() || "Contrato enviado"}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Status: {contractRecord.status}
-                        </div>
-                      </div>
-                      {contractRecord.file_url && (
-                        <a
-                          href={contractRecord.file_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-indigo-400 hover:underline text-xs"
-                        >
-                          Visualizar Contrato
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="mt-4 text-sm text-muted-foreground">
-                    Nenhum contrato enviado ainda.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
           {/* Manager / Client view of latest freelancer contract */}
           {(isGestor || isCliente) && (
             <Card>

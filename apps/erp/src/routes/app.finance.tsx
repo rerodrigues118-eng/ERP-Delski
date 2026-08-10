@@ -158,17 +158,41 @@ function FinanceSkeleton() {
 function FreelancerFinanceView({ user }: { user: any }) {
   const { data: projects = [], isLoading } = useFreelancerFinanceProjects(user?.id, user?.email);
 
+  // Fetch this freelancer's payout records to show real payment status
+  const { data: payouts = [] } = useQuery<any[]>({
+    queryKey: ["freelancer_payouts_self", user?.id],
+    enabled: !!user?.id,
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("freelancer_payouts")
+        .select("*")
+        .eq("freelancer_id", user.id);
+      return data ?? [];
+    },
+  });
+
+  // Map project_id -> payout record for quick lookup
+  const payoutByProject = useMemo(() => {
+    const map = new Map<string, any>();
+    payouts.forEach((p: any) => map.set(p.project_id, p));
+    return map;
+  }, [payouts]);
+
   const totalFreelancerCost = useMemo(() => {
     return projects.reduce((a, p) => a + Number(p.freelancer_cost || 0), 0);
   }, [projects]);
 
-  const completedFreelancerCost = useMemo(() => {
+  // Paid amount = sum of projects whose payout status is "pago"
+  const paidFreelancerCost = useMemo(() => {
     return projects
-      .filter((p) => p.status === "Concluido")
+      .filter((p) => {
+        const payout = payoutByProject.get(p.id);
+        return payout?.status === "pago" || p.status === "Concluido";
+      })
       .reduce((a, p) => a + Number(p.freelancer_cost || 0), 0);
-  }, [projects]);
+  }, [projects, payoutByProject]);
 
-  const pendingFreelancerCost = totalFreelancerCost - completedFreelancerCost;
+  const pendingFreelancerCost = totalFreelancerCost - paidFreelancerCost;
 
   if (isLoading) return <FinanceSkeleton />;
 
@@ -207,10 +231,10 @@ function FreelancerFinanceView({ user }: { user: any }) {
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted-foreground font-medium">
-                  Recebido / Concluído
+                  Recebido / Pago
                 </div>
                 <div className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
-                  {money(completedFreelancerCost)}
+                  {money(paidFreelancerCost)}
                 </div>
               </div>
               <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600">
@@ -287,15 +311,32 @@ function FreelancerFinanceView({ user }: { user: any }) {
                       {money(Number(p.freelancer_cost || 0))}
                     </td>
                     <td className="px-4 py-3.5 text-right">
-                      <Badge
-                        className={`text-xs ${
-                          p.status === "Concluido"
-                            ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                            : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
-                        }`}
-                      >
-                        {p.status === "Concluido" ? "Liberado / Quitado" : "A Receber na Conclusão"}
-                      </Badge>
+                      {(() => {
+                        const payout = payoutByProject.get(p.id);
+                        const isPago = payout?.status === "pago";
+                        const paymentDate = payout?.payment_date
+                          ? new Date(payout.payment_date).toLocaleDateString("pt-BR")
+                          : null;
+                        return (
+                          <Badge
+                            className={`text-xs ${
+                              isPago
+                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                                : p.status === "Concluido"
+                                ? "bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30"
+                                : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                            }`}
+                          >
+                            {isPago
+                              ? paymentDate
+                                ? `Pago em ${paymentDate}`
+                                : "Pago"
+                              : p.status === "Concluido"
+                              ? "Liberado / Quitado"
+                              : "A Receber na Conclusão"}
+                          </Badge>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}

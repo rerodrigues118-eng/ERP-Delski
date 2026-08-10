@@ -362,7 +362,7 @@ function Dashboard() {
         </div>
 
         {/* Onboarding section */}
-        <FreelancerOnboardingSection />
+        <FreelancerOnboardingSection hideSection1 hideBanner />
       </div>
     );
   }

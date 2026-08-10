@@ -48,7 +48,12 @@ import {
 } from "@/hooks/useFreelancerContractFields";
 import { useAuth } from "@/hooks/useAuth";
 
-export function FreelancerOnboardingSection() {
+interface FreelancerOnboardingSectionProps {
+  hideBanner?: boolean;
+  hideSection1?: boolean;
+}
+
+export function FreelancerOnboardingSection({ hideBanner = false, hideSection1 = false }: FreelancerOnboardingSectionProps = {}) {
   const { user, profile } = useAuth();
   const freelancerId = profile?.id || user?.id;
 
@@ -224,110 +229,114 @@ export function FreelancerOnboardingSection() {
   return (
     <div className="space-y-8 pb-12">
       {/* Header Banner */}
-      <Card className="border-indigo-500/20 bg-indigo-500/5">
-        <CardContent className="pt-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="space-y-1">
-              <h3 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                <ShieldCheck className="h-6 w-6 text-indigo-600" /> Área de Contrato & Documentação
-                do Freelancer
-              </h3>
-              <p className="text-xs text-muted-foreground">
-                Complete seus dados para elaboração contratual, envie seus documentos pessoais e
-                assine os contratos emitidos pela agência Delski.
-              </p>
+      {!hideBanner && (
+        <Card className="border-indigo-500/20 bg-indigo-500/5">
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <h3 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                  <ShieldCheck className="h-6 w-6 text-indigo-600" /> Área de Contrato & Documentação
+                  do Freelancer
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  Complete seus dados para elaboração contratual, envie seus documentos pessoais e
+                  assine os contratos emitidos pela agência Delski.
+                </p>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* BLOCO 1: Dados para Contrato */}
-      <Card className="border-border bg-card shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-            <div className="space-y-1">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <FileText className="h-5 w-5 text-indigo-500" /> 1. Dados para Contrato
-              </CardTitle>
-              <CardDescription className="text-xs">
-                Informações cadastrais e contratuais reutilizadas em todas as minutas e termos.
-              </CardDescription>
+      {!hideSection1 && (
+        <Card className="border-border bg-card shadow-sm">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="space-y-1">
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-indigo-500" /> 1. Dados para Contrato
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Informações cadastrais e contratuais reutilizadas em todas as minutas e termos.
+                </CardDescription>
+              </div>
+
+              {isContractFieldsLocked ? (
+                <Badge
+                  variant="outline"
+                  className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 gap-1 text-xs"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5" /> Dados Preenchidos e Travados
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="bg-amber-500/15 text-amber-700 border-amber-500/30 gap-1 text-xs"
+                >
+                  <Clock className="h-3.5 w-3.5" /> Preenchimento Pendente
+                </Badge>
+              )}
             </div>
+          </CardHeader>
+
+          <CardContent className="space-y-6">
+            {variables.length === 0 ? (
+              <div className="rounded-xl border border-dashed p-4 text-center bg-muted/30">
+                <p className="text-xs text-muted-foreground italic">
+                  Nenhum campo de contrato de freelancer exigido no momento.
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-2">
+                {variables.map((v) => {
+                  const val = fieldValues[v.name] ?? "";
+                  return (
+                    <div key={v.name} className="space-y-1.5">
+                      <Label className="text-xs font-semibold">{v.label || v.name}</Label>
+                      <Input
+                        value={val}
+                        disabled={isContractFieldsLocked}
+                        onChange={(e) => handleFieldChange(v.name, e.target.value)}
+                        placeholder={v.defaultValue || `Informe ${v.label || v.name}`}
+                        className="text-xs h-9"
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {isContractFieldsLocked ? (
-              <Badge
-                variant="outline"
-                className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 gap-1 text-xs"
-              >
-                <CheckCircle2 className="h-3.5 w-3.5" /> Dados Preenchidos e Travados
-              </Badge>
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Lock className="h-4 w-4 text-indigo-400" /> Dados confirmados. Para efetuar
+                  alterações, solicite ao Gestor.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setOpenRequestEditModal(true)}
+                  className="text-xs gap-1.5"
+                >
+                  <Info className="h-3.5 w-3.5" /> Solicitar alteração
+                </Button>
+              </div>
             ) : (
-              <Badge
-                variant="outline"
-                className="bg-amber-500/15 text-amber-700 border-amber-500/30 gap-1 text-xs"
-              >
-                <Clock className="h-3.5 w-3.5" /> Preenchimento Pendente
-              </Badge>
+              <div className="flex justify-end pt-4 border-t border-border">
+                <Button
+                  onClick={handleSaveFields}
+                  disabled={saveFields.isPending || variables.length === 0}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs gap-2"
+                >
+                  {saveFields.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Salvar Dados de Contrato
+                </Button>
+              </div>
             )}
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-6">
-          {variables.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-4 text-center bg-muted/30">
-              <p className="text-xs text-muted-foreground italic">
-                Nenhum campo de contrato de freelancer exigido no momento.
-              </p>
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {variables.map((v) => {
-                const val = fieldValues[v.name] ?? "";
-                return (
-                  <div key={v.name} className="space-y-1.5">
-                    <Label className="text-xs font-semibold">{v.label || v.name}</Label>
-                    <Input
-                      value={val}
-                      disabled={isContractFieldsLocked}
-                      onChange={(e) => handleFieldChange(v.name, e.target.value)}
-                      placeholder={v.defaultValue || `Informe ${v.label || v.name}`}
-                      className="text-xs h-9"
-                    />
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {isContractFieldsLocked ? (
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-border">
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Lock className="h-4 w-4 text-indigo-400" /> Dados confirmados. Para efetuar
-                alterações, solicite ao Gestor.
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setOpenRequestEditModal(true)}
-                className="text-xs gap-1.5"
-              >
-                <Info className="h-3.5 w-3.5" /> Solicitar alteração
-              </Button>
-            </div>
-          ) : (
-            <div className="flex justify-end pt-4 border-t border-border">
-              <Button
-                onClick={handleSaveFields}
-                disabled={saveFields.isPending || variables.length === 0}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs gap-2"
-              >
-                {saveFields.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Salvar Dados de Contrato
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Modal Aviso Solicitar Alteração */}
       <Dialog open={openRequestEditModal} onOpenChange={setOpenRequestEditModal}>

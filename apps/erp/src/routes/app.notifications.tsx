@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Bell, Clock, CheckCircle2, AlertTriangle, Users, FileWarning, Send } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useFreelancers, useProfiles } from "@/hooks/useProfiles";
@@ -251,13 +251,8 @@ function NotificationsPage() {
         </Card>
       )}
 
-      <Tabs defaultValue="received" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="received">Recebidas</TabsTrigger>
-          <TabsTrigger value="sent">Enviadas</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="received" className="space-y-4">
+      <div className="space-y-4">
+        <div className="space-y-4">
           {inboxItems.length === 0 && (
             <Card>
               <CardContent className="py-12 text-center text-sm text-muted-foreground">
@@ -302,49 +297,8 @@ function NotificationsPage() {
               </CardContent>
             </Card>
           ))}
-        </TabsContent>
-
-        <TabsContent value="sent" className="space-y-4">
-          {sentItems.length === 0 && (
-            <Card>
-              <CardContent className="py-12 text-center text-sm text-muted-foreground">
-                Nenhuma notificação enviada pelo gestor.
-              </CardContent>
-            </Card>
-          )}
-
-          {sentItems.map((item) => (
-            <Card key={item.id}>
-              <CardContent className="p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold">{item.title}</span>
-                      <Badge variant="secondary" className={kindStyle[item.type]}>
-                        {item.type}
-                      </Badge>
-                    </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{item.message}</p>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Destinatário: {item.user_id || "Todos"}
-                    </div>
-                  </div>
-                  <div className="space-y-1 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      {new Date(item.created_at).toLocaleString("pt-BR")}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      {item.read ? "Lida" : "Não lida"}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-      </Tabs>
+        </div>
+      </div>
     </div>
   );
 }
