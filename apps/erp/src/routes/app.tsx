@@ -116,7 +116,7 @@ function AppHeader() {
         </span>
       </div>
 
-      {/* Right: notifications + avatar */}
+      {/* Right: notifications */}
       <div className="flex items-center gap-2">
         <Link
           to="/app/notifications"
@@ -124,15 +124,6 @@ function AppHeader() {
         >
           <Bell className="h-4.5 w-4.5" strokeWidth={1.75} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
-        </Link>
-
-        <Link to="/app/perfil">
-          <Avatar className="h-8 w-8 ring-2 ring-blue-100 cursor-pointer">
-            {avatarUrl && <AvatarImage src={avatarUrl} alt={displayName} className="object-cover" />}
-            <AvatarFallback className="bg-blue-600 text-white font-bold text-xs">
-              {displayName.charAt(0).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
         </Link>
       </div>
     </header>
