@@ -74,15 +74,11 @@ export function ProjectContractFieldsSection({
     <Card className="border-indigo-500/20 bg-card shadow-sm space-y-4">
       <CardHeader className="pb-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="space-y-1">
+          <div>
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <FileText className="h-4 w-4 text-indigo-500" />
               Dados para Contrato
             </CardTitle>
-            <CardDescription className="text-xs">
-              Variáveis técnicas exigidas pelos modelos de contrato ativos na vertical de{" "}
-              <strong>{serviceType}</strong>.
-            </CardDescription>
           </div>
 
           {projectVariables.length > 0 && (

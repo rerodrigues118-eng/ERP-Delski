@@ -65,7 +65,8 @@ function AuthGuard() {
 function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<"login" | "register">("login");
+  const [tab, setTab] = useState<"login" | "register" | "forgot">("login");
+  const [resetSent, setResetSent] = useState(false);
 
   const onLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -101,6 +102,30 @@ function AuthPage() {
     } catch (err: unknown) {
       console.error("Erro inesperado no login:", err);
       toast.error("Erro de conexão com o servidor de autenticação.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onForgotSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const fd = new FormData(e.currentTarget);
+    const email = String(fd.get("forgot-email") || "").trim();
+    if (!email) {
+      toast.error("Informe o seu e-mail para redefinir a senha.");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth`,
+      });
+      if (error) throw error;
+      setResetSent(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao enviar o e-mail de redefinição.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -235,6 +260,16 @@ function AuthPage() {
                 </div>
               </div>
 
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setTab("forgot"); setResetSent(false); }}
+                  className="text-xs text-indigo-500 hover:text-indigo-700 hover:underline transition-colors"
+                >
+                  Esqueci minha senha
+                </button>
+              </div>
+
               <Button
                 type="submit"
                 className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
@@ -331,6 +366,69 @@ function AuthPage() {
                 {loading ? "Criando Conta..." : "Criar Conta e Acessar"}
               </Button>
             </form>
+          </div>
+        )}
+        {/* TAB: FORGOT PASSWORD */}
+        {tab === "forgot" && (
+          <div className="space-y-6">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Redefinir Senha</h2>
+              <p className="text-sm text-muted-foreground">
+                Informe seu e-mail e enviaremos um link para redefinir sua senha.
+              </p>
+            </div>
+
+            {resetSent ? (
+              <div className="rounded-xl bg-emerald-50 border border-emerald-200 p-4 text-center space-y-2">
+                <p className="text-sm font-semibold text-emerald-700">E-mail enviado!</p>
+                <p className="text-xs text-emerald-600">
+                  Verifique sua caixa de entrada e clique no link para redefinir sua senha.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => { setTab("login"); setResetSent(false); }}
+                  className="text-xs text-indigo-500 hover:underline mt-2"
+                >
+                  Voltar ao login
+                </button>
+              </div>
+            ) : (
+              <form onSubmit={onForgotSubmit} className="space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="forgot-email" className="text-sm font-medium text-foreground">Seu e-mail</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    <input
+                      id="forgot-email"
+                      name="forgot-email"
+                      type="email"
+                      autoComplete="email"
+                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                      placeholder="usuario@delski.co"
+                    />
+                  </div>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
+                  disabled={loading}
+                >
+                  {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  {loading ? "Enviando..." : "Enviar Link de Redefinição"}
+                </Button>
+
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setTab("login")}
+                    className="text-xs text-muted-foreground hover:text-foreground hover:underline transition-colors"
+                  >
+                    ← Voltar ao login
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         )}
       </div>

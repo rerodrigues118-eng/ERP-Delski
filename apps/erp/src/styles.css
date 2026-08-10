@@ -175,9 +175,17 @@
     background-color: #EFF6FF;
     color: #1D4ED8;
     font-weight: 600;
-    border-left: 2px solid #2563EB;
+    border-left: 2px solid #1d4ed8;
     border-radius: 0 0.5rem 0.5rem 0;
     padding-left: calc(0.75rem - 2px);
+  }
+}
+
+/* ── Primary Button Gradient ────────────────────────────── */
+@layer utilities {
+  .btn-gradient {
+    background-image: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 60%, #2563eb 100%);
+    background-color: transparent;
   }
 }
 
@@ -197,10 +205,10 @@
   --popover: #FFFFFF;
   --popover-foreground: #111827;
 
-  /* Primary: Blue Royal #2563EB */
-  --primary: #2563EB;
+  /* Primary: Dark Royal Blue */
+  --primary: #1d4ed8;
   --primary-foreground: #FFFFFF;
-  --brand: #2563EB;
+  --brand: #1d4ed8;
   --brand-foreground: #FFFFFF;
 
   --secondary: #F8FAFC;
@@ -213,7 +221,7 @@
   --destructive-foreground: #FFFFFF;
   --border: #E5E7EB;
   --input: #E5E7EB;
-  --ring: #2563EB;
+  --ring: #1d4ed8;
 
   /* Charts */
   --chart-1: #2563EB;

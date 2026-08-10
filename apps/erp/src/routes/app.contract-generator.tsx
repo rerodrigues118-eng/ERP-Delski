@@ -12,19 +12,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { FileText, AlertCircle, CheckCircle2 } from "lucide-react";
+import { FileText, AlertCircle, CheckCircle2, Users, Briefcase } from "lucide-react";
 import {
   useContractModels,
   useGenerateContract,
 } from "@/hooks/useContractModels";
 import { useProjects } from "@/hooks/useProjects";
 import { useFreelancers } from "@/hooks/useProfiles";
+import { useClientsList } from "@/hooks/useClients";
 import {
   resolveAllContractFields,
   DEFAULT_COMPANY_SETTINGS,
 } from "@/hooks/useContractFieldResolver";
 import { useCompanySettings } from "@/hooks/useCompanySettings";
 import { ContractValuesForm } from "@/components/ContractValuesForm";
+import type { ContractTargetType } from "@/types/contract-models";
 
 export const Route = createFileRoute("/app/contract-generator")({
   head: () => ({
@@ -37,25 +39,32 @@ function ContractGeneratorPage() {
   const navigate = useNavigate();
   const { profile, isGestor, loading: authLoading } = useAuth();
   const { data: models = [] } = useContractModels();
-  // Only active models appear in the generator dropdown; all models are still managed on the Models page
-  const activeModels = models.filter((m) => m.is_active);
-
   const { data: projects = [] } = useProjects();
   const { data: freelancers = [] } = useFreelancers();
+  const { data: clients = [] } = useClientsList();
   const { data: companySettings = DEFAULT_COMPANY_SETTINGS } = useCompanySettings();
   const generateContract = useGenerateContract();
+
+  // ── "Emitir contrato para" toggle ─────────────────────────────────────────
+  const [contractParty, setContractParty] = useState<ContractTargetType>("freelancer");
 
   const [selectedModelId, setSelectedModelId] = useState<string>("");
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [selectedFreelancerId, setSelectedFreelancerId] = useState<string>("");
+  const [selectedClientId, setSelectedClientId] = useState<string>("");
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [autoFields, setAutoFields] = useState<Record<string, boolean>>({});
-
   const [generatedUrl, setGeneratedUrl] = useState<string | null>(null);
 
   // ── ALL hooks must be declared before any conditional return ──────────────
+
+  /** Only active models matching the selected contract party */
+  const activeModels = useMemo(
+    () => models.filter((m) => m.is_active && (m.target_type ?? "freelancer") === contractParty),
+    [models, contractParty],
+  );
 
   const selectedModel = useMemo(
     () => models.find((model) => model.id === selectedModelId),
@@ -68,8 +77,13 @@ function ContractGeneratorPage() {
   );
 
   const selectedFreelancer = useMemo(
-    () => freelancers.find((freelancer) => freelancer.id === selectedFreelancerId),
+    () => freelancers.find((f) => f.id === selectedFreelancerId),
     [freelancers, selectedFreelancerId],
+  );
+
+  const selectedClient = useMemo(
+    () => clients.find((c) => c.id === selectedClientId),
+    [clients, selectedClientId],
   );
 
   const variableMap = selectedModel?.variable_map ?? [];
@@ -78,6 +92,15 @@ function ContractGeneratorPage() {
     if (!variableMap || variableMap.length === 0) return 0;
     return variableMap.filter((v) => !(values[v.name] ?? "").trim()).length;
   }, [variableMap, values]);
+
+  // Reset model selection when party changes to avoid cross-type model selection
+  useEffect(() => {
+    setSelectedModelId("");
+    setValues({});
+    setTouched({});
+    setAutoFields({});
+    setGeneratedUrl(null);
+  }, [contractParty]);
 
   // When model changes, reset and resolve initial values
   useEffect(() => {
@@ -97,6 +120,7 @@ function ContractGeneratorPage() {
       companySettings,
       profile,
       selectedModel,
+      selectedClient,
     );
 
     setValues(resolved.values);
@@ -104,7 +128,7 @@ function ContractGeneratorPage() {
     setGeneratedUrl(null);
   }, [selectedModelId, companySettings, profile]);
 
-  // When project or freelancer changes, update unresolved/untouched fields
+  // When project/freelancer/client changes, update unresolved/untouched fields
   useEffect(() => {
     if (!selectedModel || !selectedModel.variable_map) return;
 
@@ -115,6 +139,7 @@ function ContractGeneratorPage() {
       companySettings,
       profile,
       selectedModel,
+      selectedClient,
     );
 
     setValues((prevValues) => {
@@ -136,16 +161,16 @@ function ContractGeneratorPage() {
       });
       return nextAuto;
     });
-  }, [selectedProjectId, selectedFreelancerId, companySettings]);
+  }, [selectedProjectId, selectedFreelancerId, selectedClientId, companySettings]);
 
-  // Auth redirect effect — must also be with other hooks, before any return
+  // Auth redirect effect
   useEffect(() => {
     if (!authLoading && !isGestor) {
       navigate({ to: "/app/projects", replace: true });
     }
   }, [isGestor, authLoading, navigate]);
 
-  // ── Now it is safe to have conditional returns ────────────────────────────
+  // ── Conditional returns ───────────────────────────────────────────────────
 
   if (authLoading) {
     return (
@@ -158,7 +183,7 @@ function ContractGeneratorPage() {
 
   if (!isGestor) return null;
 
-  // ── Derived values & handlers (not hooks, safe after returns) ────────────
+  // ── Derived values & handlers (safe after returns) ────────────────────────
 
   const canGenerate =
     Boolean(selectedModel) &&
@@ -198,7 +223,8 @@ function ContractGeneratorPage() {
         filename: generatedFilename,
         model_id: selectedModel.id,
         project_id: selectedProjectId,
-        freelancer_id: selectedFreelancerId || undefined,
+        freelancer_id: contractParty === "freelancer" ? selectedFreelancerId || undefined : undefined,
+        client_id: contractParty === "client" ? selectedClientId || undefined : undefined,
       });
 
       if (result.docx_url) {
@@ -257,13 +283,53 @@ function ContractGeneratorPage() {
         </div>
       </div>
 
+      {/* Party Selector */}
+      <div className="flex items-center gap-4 p-4 rounded-2xl border border-border bg-muted/40">
+        <span className="text-sm font-semibold text-foreground whitespace-nowrap">
+          Emitir contrato para:
+        </span>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setContractParty("freelancer")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
+              contractParty === "freelancer"
+                ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+                : "bg-background text-foreground border-border hover:border-indigo-400"
+            }`}
+          >
+            <Briefcase className="h-4 w-4" />
+            Freelancer
+          </button>
+          <button
+            type="button"
+            onClick={() => setContractParty("client")}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition-colors ${
+              contractParty === "client"
+                ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                : "bg-background text-foreground border-border hover:border-emerald-400"
+            }`}
+          >
+            <Users className="h-4 w-4" />
+            Cliente
+          </button>
+        </div>
+        <span className="text-xs text-muted-foreground ml-2">
+          {contractParty === "freelancer"
+            ? "Mostrando modelos do tipo Freelancer"
+            : "Mostrando modelos do tipo Cliente"}
+        </span>
+      </div>
+
       {/* Top Configuration & Dynamic Form Section */}
       <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
         <Card className="space-y-4 shadow-sm">
           <CardHeader>
             <CardTitle>Configuração do Contrato</CardTitle>
             <CardDescription>
-              Selecione o modelo, projeto e freelancer para carregar os dados automáticos.
+              Selecione o modelo, projeto e{" "}
+              {contractParty === "freelancer" ? "freelancer" : "cliente"} para carregar os dados
+              automáticos.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -275,11 +341,19 @@ function ContractGeneratorPage() {
                     <SelectValue placeholder="Selecione um modelo" />
                   </SelectTrigger>
                   <SelectContent>
-                    {activeModels.map((model) => (
-                      <SelectItem key={model.id} value={model.id}>
-                        {model.name}
-                      </SelectItem>
-                    ))}
+                    {activeModels.length === 0 ? (
+                      <div className="px-3 py-2 text-xs text-muted-foreground">
+                        Nenhum modelo{" "}
+                        {contractParty === "client" ? "de Cliente" : "de Freelancer"} ativo
+                        cadastrado.
+                      </div>
+                    ) : (
+                      activeModels.map((model) => (
+                        <SelectItem key={model.id} value={model.id}>
+                          {model.name}
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
@@ -301,54 +375,78 @@ function ContractGeneratorPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="freelancer">Freelancer (opcional)</Label>
-              <Select
-                value={selectedFreelancerId}
-                onValueChange={(val) => setSelectedFreelancerId(val === "none" ? "" : val)}
-              >
-                <SelectTrigger id="freelancer" className="w-full">
-                  <SelectValue placeholder="Selecione um freelancer" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum (não vinculado)</SelectItem>
-                  {freelancers.map((freelancer) => {
-                    const isPending =
-                      freelancer.contract_fields_status !== "completo" ||
-                      freelancer.documents_status !== "aprovado";
-                    return (
-                      <SelectItem key={freelancer.id} value={freelancer.id}>
-                        {freelancer.full_name} {isPending ? "⚠️ (Pendentes)" : "✅ (Apto)"}
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+            {/* Freelancer or Client selector — switches based on contractParty */}
+            {contractParty === "freelancer" ? (
+              <div className="space-y-2">
+                <Label htmlFor="freelancer">Freelancer (opcional)</Label>
+                <Select
+                  value={selectedFreelancerId}
+                  onValueChange={(val) => setSelectedFreelancerId(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger id="freelancer" className="w-full">
+                    <SelectValue placeholder="Selecione um freelancer" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum (não vinculado)</SelectItem>
+                    {freelancers.map((freelancer) => {
+                      const isPending =
+                        freelancer.contract_fields_status !== "completo" ||
+                        freelancer.documents_status !== "aprovado";
+                      return (
+                        <SelectItem key={freelancer.id} value={freelancer.id}>
+                          {freelancer.full_name} {isPending ? "⚠️ (Pendentes)" : "✅ (Apto)"}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
 
-              {selectedFreelancer &&
-                (selectedFreelancer.contract_fields_status !== "completo" ||
-                  selectedFreelancer.documents_status !== "aprovado") && (
-                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 space-y-1">
-                    <div className="font-semibold flex items-center gap-1.5">
-                      <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
-                      ⚠️ Freelancer com cadastro/documentos pendentes
+                {selectedFreelancer &&
+                  (selectedFreelancer.contract_fields_status !== "completo" ||
+                    selectedFreelancer.documents_status !== "aprovado") && (
+                    <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-800 dark:text-amber-300 space-y-1">
+                      <div className="font-semibold flex items-center gap-1.5">
+                        <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                        ⚠️ Freelancer com cadastro/documentos pendentes
+                      </div>
+                      <p className="text-[11px] text-amber-700 dark:text-amber-400">
+                        Dados de contrato:{" "}
+                        {selectedFreelancer.contract_fields_status === "completo"
+                          ? "Completo"
+                          : "Pendente"}{" "}
+                        | Documentos:{" "}
+                        {selectedFreelancer.documents_status === "aprovado"
+                          ? "Aprovado"
+                          : selectedFreelancer.documents_status === "em_analise"
+                            ? "Em Análise"
+                            : "Pendente"}
+                        .
+                      </p>
                     </div>
-                    <p className="text-[11px] text-amber-700 dark:text-amber-400">
-                      Dados de contrato:{" "}
-                      {selectedFreelancer.contract_fields_status === "completo"
-                        ? "Completo"
-                        : "Pendente"}{" "}
-                      | Documentos:{" "}
-                      {selectedFreelancer.documents_status === "aprovado"
-                        ? "Aprovado"
-                        : selectedFreelancer.documents_status === "em_analise"
-                          ? "Em Análise"
-                          : "Pendente"}
-                      .
-                    </p>
-                  </div>
-                )}
-            </div>
+                  )}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="client">Cliente</Label>
+                <Select
+                  value={selectedClientId}
+                  onValueChange={(val) => setSelectedClientId(val === "none" ? "" : val)}
+                >
+                  <SelectTrigger id="client" className="w-full">
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum (não vinculado)</SelectItem>
+                    {clients.map((client) => (
+                      <SelectItem key={client.id} value={client.id}>
+                        {client.full_name}
+                        {client.company_name ? ` — ${client.company_name}` : ""}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="rounded-2xl border border-dashed border-border bg-muted/50 p-4 space-y-1">
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -437,12 +535,23 @@ function ContractGeneratorPage() {
                 {selectedProject?.title ?? "Nenhum projeto"}
               </p>
             </div>
-            {selectedFreelancer && (
+            {contractParty === "freelancer" && selectedFreelancer && (
               <div className="rounded-2xl border border-border bg-muted/40 p-4">
                 <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
                   Freelancer
                 </p>
                 <p className="mt-1 text-sm font-semibold">{selectedFreelancer.full_name}</p>
+              </div>
+            )}
+            {contractParty === "client" && selectedClient && (
+              <div className="rounded-2xl border border-border bg-muted/40 p-4">
+                <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                  Cliente
+                </p>
+                <p className="mt-1 text-sm font-semibold">
+                  {selectedClient.full_name}
+                  {selectedClient.company_name ? ` — ${selectedClient.company_name}` : ""}
+                </p>
               </div>
             )}
           </div>

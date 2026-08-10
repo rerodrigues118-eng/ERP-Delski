@@ -19,15 +19,22 @@ import {
   useUpdateContractModel,
   useDeleteContractModel,
 } from "@/hooks/useContractModels";
-import type { ContractModelVariable, ContractModality } from "@/types/contract-models";
+import type { ContractModelVariable, ContractModality, ContractTargetType } from "@/types/contract-models";
 
-const ORIGIN_LABELS: Record<ContractModelVariable["origin"], string> = {
+const FREELANCER_ORIGIN_LABELS: Record<ContractModelVariable["origin"], string> = {
   company: "Empresa",
   gestor: "Gestor",
   freelancer: "Freelancer",
+  client: "Cliente",
   project: "Projeto",
   manual: "Manual",
   system: "Sistema",
+};
+
+/** When target_type='client' we show 'Cliente' instead of 'Freelancer' in the origin dropdown */
+const CLIENT_ORIGIN_LABELS: Record<ContractModelVariable["origin"], string> = {
+  ...FREELANCER_ORIGIN_LABELS,
+  freelancer: "Cliente", // reuse freelancer slot but label it as Cliente
 };
 
 export const Route = createFileRoute("/app/contract-models/$id")({
@@ -48,6 +55,7 @@ function ContractModelDetailPage() {
   const [name, setName] = useState("");
   const [serviceType, setServiceType] = useState<"IA" | "Trafego" | "Sites" | "Social Media">("IA");
   const [contractType, setContractType] = useState<ContractModality>("PJ");
+  const [targetType, setTargetType] = useState<ContractTargetType>("freelancer");
   const [editingMap, setEditingMap] = useState<ContractModelVariable[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -56,6 +64,7 @@ function ContractModelDetailPage() {
     setName(model.name);
     setServiceType((model.service_type as "IA" | "Trafego" | "Sites" | "Social Media") ?? "IA");
     setContractType((model.contract_type as ContractModality) || "PJ");
+    setTargetType((model.target_type as ContractTargetType) || "freelancer");
     setEditingMap(Array.isArray(model.variable_map) ? model.variable_map : []);
   }, [model]);
 
@@ -94,6 +103,7 @@ function ContractModelDetailPage() {
         name: name.trim() || model.name,
         service_type: serviceType,
         contract_type: contractType,
+        target_type: targetType,
         variable_map: editingMap,
       });
       toast.success("Modelo atualizado com sucesso.");
@@ -184,20 +194,24 @@ function ContractModelDetailPage() {
             <CardDescription>Nome, tipo de serviço, modalidade e arquivo vinculado.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="name">Nome do Modelo</Label>
-                <Input id="name" value={name} onChange={(event) => setName(event.target.value)} />
+            <div className="grid gap-3 sm:grid-cols-4 items-end">
+              <div className="flex flex-col justify-end space-y-2 h-full">
+                <Label htmlFor="name" className="text-xs font-medium text-muted-foreground truncate" title="Nome do Modelo">
+                  Nome do Modelo
+                </Label>
+                <Input id="name" value={name} onChange={(event) => setName(event.target.value)} className="h-9 text-xs" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="service_type">Tipo de Serviço</Label>
+              <div className="flex flex-col justify-end space-y-2 h-full">
+                <Label htmlFor="service_type" className="text-xs font-medium text-muted-foreground truncate" title="Tipo de Serviço">
+                  Tipo de Serviço
+                </Label>
                 <Select
                   value={serviceType}
                   onValueChange={(value) =>
                     setServiceType(value as "IA" | "Trafego" | "Sites" | "Social Media")
                   }
                 >
-                  <SelectTrigger id="service_type" className="w-full">
+                  <SelectTrigger id="service_type" className="w-full h-9 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -208,13 +222,15 @@ function ContractModelDetailPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="contract_type">Modalidade do Contrato</Label>
+              <div className="flex flex-col justify-end space-y-2 h-full">
+                <Label htmlFor="contract_type" className="text-xs font-medium text-muted-foreground truncate" title="Modalidade do Contrato">
+                  Modalidade do Contrato
+                </Label>
                 <Select
                   value={contractType}
                   onValueChange={(value) => setContractType(value as ContractModality)}
                 >
-                  <SelectTrigger id="contract_type" className="w-full">
+                  <SelectTrigger id="contract_type" className="w-full h-9 text-xs">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -222,6 +238,23 @@ function ContractModelDetailPage() {
                     <SelectItem value="CLT">CLT</SelectItem>
                     <SelectItem value="Estágio">Estágio</SelectItem>
                     <SelectItem value="Aprendiz">Aprendiz</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col justify-end space-y-2 h-full">
+                <Label htmlFor="target_type" className="text-xs font-medium text-muted-foreground truncate" title="Destino do Contrato">
+                  Destino do Contrato
+                </Label>
+                <Select
+                  value={targetType}
+                  onValueChange={(value) => setTargetType(value as ContractTargetType)}
+                >
+                  <SelectTrigger id="target_type" className="w-full h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="freelancer">Freelancer</SelectItem>
+                    <SelectItem value="client">Cliente</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -266,7 +299,9 @@ function ContractModelDetailPage() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {Object.entries(ORIGIN_LABELS).map(([origin, label]) => (
+                          {Object.entries(
+                            targetType === "client" ? CLIENT_ORIGIN_LABELS : FREELANCER_ORIGIN_LABELS,
+                          ).map(([origin, label]) => (
                             <SelectItem key={origin} value={origin}>
                               {label}
                             </SelectItem>

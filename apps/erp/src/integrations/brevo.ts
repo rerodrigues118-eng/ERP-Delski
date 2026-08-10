@@ -1,10 +1,15 @@
 import { toast } from "sonner";
 
-const BREVO_API_KEY = import.meta.env.VITE_BREVO_API_KEY || "";
+// SECURITY: Brevo API key must NEVER be in a VITE_ variable (client bundle).
+// Read from process.env (server-only). On the client this will be undefined — intentional.
+const BREVO_API_KEY =
+  (typeof process !== "undefined" && process.env?.BREVO_API_KEY) ||
+  (typeof process !== "undefined" && process.env?.VITE_BREVO_API_KEY) ||
+  "";
 
 const SENDER_EMAIL =
-  import.meta.env.VITE_BREVO_SENDER_EMAIL ||
-  import.meta.env.BREVO_SENDER_EMAIL ||
+  (typeof process !== "undefined" && process.env?.BREVO_SENDER_EMAIL) ||
+  (typeof process !== "undefined" && process.env?.VITE_BREVO_SENDER_EMAIL) ||
   "delski.contato@gmail.com";
 
 const SENDER_NAME = "Delski Gestão";
@@ -20,8 +25,8 @@ async function sendBrevoEmail(payload: {
   htmlContent: string;
 }): Promise<SendEmailResult> {
   if (!BREVO_API_KEY) {
-    console.warn("[Brevo API] Chave VITE_BREVO_API_KEY ausente no ambiente frontend.");
-    return { success: false, error: "Chave do serviço de e-mail não configurada." };
+    console.warn("[Brevo API] Chave BREVO_API_KEY ausente. E-mail não enviado.");
+    return { success: false, error: "Serviço de e-mail não configurado no servidor." };
   }
 
   try {

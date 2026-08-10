@@ -42,10 +42,22 @@ const variableOriginSuggestions: Record<string, ContractModelVariable["origin"]>
 
 const ORIGIN_LABELS: Record<ContractModelVariable["origin"], string> = {
   company: "Empresa",
+  gestor: "Gestor",
   freelancer: "Freelancer",
+  client: "Cliente",
   project: "Projeto",
   manual: "Manual",
   system: "Sistema",
+};
+
+const TARGET_TYPE_LABELS: Record<"freelancer" | "client", string> = {
+  freelancer: "Freelancer",
+  client: "Cliente",
+};
+
+const TARGET_TYPE_BADGE_CLASSES: Record<"freelancer" | "client", string> = {
+  freelancer: "bg-indigo-500/15 text-indigo-700 border-indigo-500/30",
+  client: "bg-emerald-500/15 text-emerald-700 border-emerald-500/30",
 };
 
 const defaultVariableMap: ContractModelVariable[] = [
@@ -91,6 +103,7 @@ interface PendingFile {
   name: string;
   service_type: "IA" | "Trafego" | "Sites" | "Social Media";
   contract_type: ContractModality;
+  target_type: "freelancer" | "client";
   variables: string[];
   isExtracting: boolean;
   error?: string;
@@ -131,6 +144,7 @@ function ContractModelsPage() {
         .trim(),
       service_type: "IA",
       contract_type: "PJ",
+      target_type: "freelancer",
       variables: [],
       isExtracting: true,
     }));
@@ -161,7 +175,7 @@ function ContractModelsPage() {
 
   const handleUpdatePendingField = (
     id: string,
-    field: "name" | "service_type" | "contract_type",
+    field: "name" | "service_type" | "contract_type" | "target_type",
     value: string,
   ) => {
     setPendingFiles((current) => current.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
@@ -201,6 +215,7 @@ function ContractModelsPage() {
           name: item.name.trim(),
           service_type: item.service_type,
           contract_type: item.contract_type,
+          target_type: item.target_type,
           docx_path: upload.path,
           variable_map: variableMap,
           is_active: false,
@@ -227,6 +242,7 @@ function ContractModelsPage() {
       name: modelName,
       service_type: "IA",
       contract_type: "PJ",
+      target_type: "freelancer",
       docx_path: "",
       variable_map: defaultVariableMap,
       is_active: false,
@@ -361,7 +377,7 @@ function ContractModelsPage() {
                         </div>
                       </div>
 
-                      <div className="grid gap-2 sm:grid-cols-3">
+                      <div className="grid gap-2 sm:grid-cols-4">
                         <div className="space-y-1">
                           <Label className="text-[11px] text-muted-foreground">
                             Nome do Modelo
@@ -417,6 +433,26 @@ function ContractModelsPage() {
                               <SelectItem value="CLT">CLT</SelectItem>
                               <SelectItem value="Estágio">Estágio</SelectItem>
                               <SelectItem value="Aprendiz">Aprendiz</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <Label className="text-[11px] text-muted-foreground">
+                            Tipo de Contrato
+                          </Label>
+                          <Select
+                            value={item.target_type}
+                            onValueChange={(val) =>
+                              handleUpdatePendingField(item.id, "target_type", val as any)
+                            }
+                          >
+                            <SelectTrigger className="h-8 text-xs w-full">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="freelancer">Freelancer</SelectItem>
+                              <SelectItem value="client">Cliente</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -478,6 +514,16 @@ function ContractModelsPage() {
                           <p className="font-semibold text-sm">{model.name}</p>
                           <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
                             {model.contract_type || "PJ"}
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className={`text-[10px] px-1.5 py-0 border ${
+                              TARGET_TYPE_BADGE_CLASSES[(model as any).target_type as "freelancer" | "client"] ??
+                              TARGET_TYPE_BADGE_CLASSES.freelancer
+                            }`}
+                          >
+                            {TARGET_TYPE_LABELS[(model as any).target_type as "freelancer" | "client"] ??
+                              "Freelancer"}
                           </Badge>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">

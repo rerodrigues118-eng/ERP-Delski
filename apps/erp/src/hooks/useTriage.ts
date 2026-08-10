@@ -3,12 +3,33 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { sendDelegationEmail, sendOnboardingEmail } from "@/integrations/brevo";
 
+export interface TriageFormFieldConfig {
+  field_key: string;
+  label: string;
+  type: "padrao" | "customizado";
+  input_type?: "text" | "textarea" | "number";
+  enabled: boolean;
+  order: number;
+}
+
+export const DEFAULT_TRIAGE_FORM_CONFIG: TriageFormFieldConfig[] = [
+  { field_key: "full_name", label: "Seu Nome Completo", type: "padrao", input_type: "text", enabled: true, order: 1 },
+  { field_key: "email", label: "E-mail de Contrato / Contato", type: "padrao", input_type: "text", enabled: true, order: 2 },
+  { field_key: "phone", label: "Telefone / WhatsApp", type: "padrao", input_type: "text", enabled: true, order: 3 },
+  { field_key: "availability_hours", label: "Disponibilidade (Horas / Semana)", type: "padrao", input_type: "number", enabled: true, order: 4 },
+  { field_key: "portfolio_url", label: "Link do Portfólio / GitHub / LinkedIn", type: "padrao", input_type: "text", enabled: true, order: 5 },
+  { field_key: "expected_rate", label: "Pretensão de Valor (R$)", type: "padrao", input_type: "number", enabled: true, order: 6 },
+  { field_key: "experience_summary", label: "Resumo de Experiência Relevante", type: "padrao", input_type: "textarea", enabled: true, order: 7 },
+  { field_key: "notes", label: "Considerações Técnicas & Observações", type: "padrao", input_type: "textarea", enabled: true, order: 8 },
+];
+
 export interface Candidatura {
   id: string;
   project_id: string;
-  token: string;
+  token?: string;
   freelancer_name: string;
   freelancer_email: string;
+  phone?: string | null;
   skills: string[] | null;
   availability_hours: number | null;
   portfolio_url: string | null;
@@ -16,6 +37,7 @@ export interface Candidatura {
   experience_summary: string | null;
   considerations: string | null;
   notes: string | null;
+  custom_answers?: Record<string, string> | null;
   status: "Rascunho" | "Enviado" | "Aprovado" | "Rejeitado";
   score: number;
   created_at: string;
@@ -25,13 +47,15 @@ export interface SubmitCandidaturaInput {
   project_id: string;
   freelancer_name: string;
   freelancer_email: string;
+  phone?: string;
   skills?: string[];
-  availability_hours: number;
+  availability_hours?: number;
   portfolio_url?: string;
   proposed_rate?: number;
   experience_summary?: string;
   considerations?: string;
   notes?: string;
+  custom_answers?: Record<string, string>;
   score?: number;
 }
 
@@ -39,12 +63,14 @@ export interface UpdateCandidaturaInput {
   id: string;
   freelancer_name?: string;
   freelancer_email?: string;
+  phone?: string;
   availability_hours?: number;
   portfolio_url?: string;
   proposed_rate?: number;
   experience_summary?: string;
   considerations?: string;
   notes?: string;
+  custom_answers?: Record<string, string>;
 }
 
 // ── Query: Fetch candidaturas for a specific project ────────────────────────
@@ -104,12 +130,14 @@ export function useUpdateCandidatura() {
         .update({
           freelancer_name: input.freelancer_name,
           freelancer_email: input.freelancer_email,
+          phone: input.phone,
           availability_hours: input.availability_hours,
           portfolio_url: input.portfolio_url,
           proposed_rate: input.proposed_rate,
           experience_summary: input.experience_summary,
           considerations: input.considerations,
           notes: input.notes,
+          custom_answers: input.custom_answers,
         })
         .eq("id", input.id)
         .select()

@@ -19,13 +19,15 @@ import { useCreateProject, type ServiceType } from "@/hooks/useProjects";
 import { useClients } from "@/hooks/useProfiles";
 import { supabase } from "@/integrations/supabase/client";
 import { sendClientInvite } from "@/integrations/brevo";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { ProjectContractFieldsSection } from "@/components/ProjectContractFieldsSection";
 
 const newProjectSchema = z.object({
   title: z.string().min(2, "Título do projeto / cliente é obrigatório"),
-  service_type: z.enum(["IA", "Trafego", "Sites", "Social Media"]),
+  service_type: z.enum(["IA", "Trafego", "Sites", "Social Media"], {
+    errorMap: () => ({ message: "Selecione uma vertical de serviço" }),
+  }),
   briefing_content: z.string().min(10, "Descreva brevemente o projeto (mín. 10 caracteres)"),
   budget: z.coerce.number().min(100, "Orçamento deve ser no mínimo R$ 100"),
   freelancer_cost: z.coerce.number().min(0, "Custo do freelancer deve ser válido"),
@@ -50,6 +52,7 @@ function NewProjectPage() {
   const createProject = useCreateProject();
   const clientsQuery = useClients();
   const clients = useMemo(() => clientsQuery.data || [], [clientsQuery.data]);
+  const loadingClients = clientsQuery.isLoading;
   const [submitting, setSubmitting] = useState(false);
 
   const {
@@ -62,7 +65,7 @@ function NewProjectPage() {
     resolver: newProjectResolver,
     defaultValues: {
       title: "",
-      service_type: "IA",
+      service_type: "" as any,
       briefing_content: "",
       budget: 5000,
       freelancer_cost: 1800,
@@ -84,6 +87,10 @@ function NewProjectPage() {
   const selectedClientId = watch("client_id");
 
   const onSubmit = (data: NewProjectFormData) => {
+    if (!data.service_type || (data.service_type as string) === "") {
+      toast.error("Por favor, selecione uma Vertical de Serviço antes de salvar.");
+      return;
+    }
     const publicToken = sendClientAccess ? crypto.randomUUID() : undefined;
     createProject.mutate(
       {
@@ -168,30 +175,26 @@ function NewProjectPage() {
         <CardHeader>
           <CardTitle className="text-xl font-bold flex items-center gap-2">
             <FolderPlus className="h-5 w-5 text-indigo-500" />
-            Cadastrar Novo Projeto no Banco Supabase
+            Cadastrar Novo Projeto
           </CardTitle>
-          <CardDescription>
-            Preencha os detalhes do projeto, escopo inicial, restrições financeiras e vinculação
-            opcional de cliente.
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Título do Projeto / Empresa</Label>
-                <Input placeholder="Ex: Studio Lumina — Automação LeadGen" {...register("title")} />
+                <Input placeholder="Inserir nome" {...register("title")} />
                 {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
               </div>
 
               <div className="space-y-2">
                 <Label>Vertical de Serviço</Label>
                 <Select
-                  value={selectedType}
+                  value={selectedType || ""}
                   onValueChange={(val) => setValue("service_type", val as ServiceType)}
                 >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Nenhum" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="IA">Automação com IA</SelectItem>
@@ -356,7 +359,7 @@ function NewProjectPage() {
                 className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
               >
                 {createProject.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Salvar no Banco & Abrir Projeto
+                Salvar Projeto
               </Button>
             </div>
           </form>

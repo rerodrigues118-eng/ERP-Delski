@@ -5,6 +5,7 @@ import type { GeneratedContract } from "@/types/contract-models";
 export interface GeneratedContractWithRelations extends GeneratedContract {
   project?: { id: string; title: string } | null;
   freelancer?: { id: string; full_name: string; email?: string } | null;
+  client?: { id: string; full_name: string; email?: string } | null;
   model?: { id: string; name: string } | null;
 }
 
@@ -19,6 +20,7 @@ export function useGeneratedContracts() {
           *,
           project:projects(id, title),
           freelancer:profiles(id, full_name, email),
+          client:clients(id, full_name, email),
           model:contract_models(id, name)
         `,
         )

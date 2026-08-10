@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import type { ContractModelVariable } from "@/types/contract-models";
 import type { Project } from "@/hooks/useProjects";
 import type { Profile } from "@/hooks/useProfiles";
+import type { ClientItem } from "@/hooks/useClients";
 
 export interface CompanySettings {
   nome_empresa: string;
@@ -65,6 +66,7 @@ export function resolveContractFieldValue(
   companySettings: CompanySettings = DEFAULT_COMPANY_SETTINGS,
   gestorProfile?: Profile | any | null,
   selectedModel?: any,
+  client?: ClientItem | null,
 ): { value: string; isAuto: boolean } {
   const normName = normalizeKey(variable.name);
 
@@ -163,6 +165,31 @@ export function resolveContractFieldValue(
       }
       return {
         value: freelancer.full_name ?? "",
+        isAuto: true,
+      };
+    }
+
+    case "client": {
+      // Resolve from the selected client record
+      if (!client) {
+        return { value: "", isAuto: false };
+      }
+      if (normName.includes("email")) {
+        return { value: client.email ?? "", isAuto: true };
+      }
+      if (
+        normName.includes("empresa") ||
+        normName.includes("company") ||
+        normName.includes("razao") ||
+        normName.includes("social")
+      ) {
+        return { value: client.company_name ?? client.full_name ?? "", isAuto: true };
+      }
+      if (normName.includes("telefone") || normName.includes("fone") || normName.includes("whatsapp")) {
+        return { value: client.phone ?? "", isAuto: true };
+      }
+      return {
+        value: client.full_name ?? "",
         isAuto: true,
       };
     }
@@ -297,6 +324,7 @@ export function resolveAllContractFields(
   companySettings: CompanySettings = DEFAULT_COMPANY_SETTINGS,
   gestorProfile?: Profile | any | null,
   selectedModel?: any,
+  client?: ClientItem | null,
 ): ResolvedFieldsResult {
   const values: Record<string, string> = {};
   const autoFields: Record<string, boolean> = {};
@@ -309,6 +337,7 @@ export function resolveAllContractFields(
       companySettings,
       gestorProfile,
       selectedModel,
+      client,
     );
     values[variable.name] = res.value;
     if (res.isAuto) {
@@ -326,6 +355,7 @@ export function useContractFieldResolver(
   companySettings: CompanySettings = DEFAULT_COMPANY_SETTINGS,
   gestorProfile?: Profile | any | null,
   selectedModel?: any,
+  client?: ClientItem | null,
 ): ResolvedFieldsResult {
   return useMemo(() => {
     return resolveAllContractFields(
@@ -335,6 +365,7 @@ export function useContractFieldResolver(
       companySettings,
       gestorProfile,
       selectedModel,
+      client,
     );
-  }, [variableMap, project, freelancer, companySettings, gestorProfile, selectedModel]);
+  }, [variableMap, project, freelancer, companySettings, gestorProfile, selectedModel, client]);
 }

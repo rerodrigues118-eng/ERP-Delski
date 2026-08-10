@@ -52,11 +52,20 @@ export const Route = createFileRoute("/app/")({
 });
 
 /* ── Paleta dos gráficos ─────────────────────────────────── */
-const CHART_COLORS = ["#2563EB", "#10B981", "#F59E0B", "#8B5CF6", "#EF4444"];
+const CHART_COLORS = ["#64748B", "#0EA5E9", "#F59E0B", "#8B5CF6", "#EC4899", "#14B8A6", "#3B82F6", "#10B981"];
 const STATUS_COLORS: Record<string, string> = {
-  Ativo: "#2563EB",
+  Criado: "#64748B",                   // Slate 500
+  Solicitado: "#0EA5E9",               // Sky 500
+  "Aguardando Candidaturas": "#F59E0B", // Amber 500
+  "Emitir contrato": "#8B5CF6",       // Purple 500
+  "Revisão de Contrato": "#EC4899",    // Pink 500
+  Delegado: "#14B8A6",                // Teal 500
+  "Em Producao": "#3B82F6",            // Blue 500
+  "Em Produção": "#3B82F6",            // Blue 500
+  Concluido: "#10B981",                // Emerald 500
+  "Concluído": "#10B981",              // Emerald 500
+  Ativo: "#3B82F6",
   "Em Andamento": "#10B981",
-  Concluido: "#059669",
   Pausado: "#F59E0B",
   Cancelado: "#EF4444",
 };
@@ -230,10 +239,10 @@ function Dashboard() {
     gradId: SERVICE_GRADIENTS[t]?.id,
   }));
 
-  const byStatus = STATUSES.map((s) => ({
+  const byStatus = STATUSES.map((s, index) => ({
     name: STATUS_LABEL[s] || s,
     value: visible.filter((p) => p.status === s).length,
-    color: STATUS_COLORS[s] || "#2563EB",
+    color: STATUS_COLORS[s] || CHART_COLORS[index % CHART_COLORS.length],
   })).filter((d) => d.value > 0);
 
   const userName = profile?.full_name?.split(" ")[0] || user?.email?.split("@")[0] || "Usuário";

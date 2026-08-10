@@ -20,6 +20,7 @@ export interface Project {
   client_contract_url?: string | null;
   contract_field_values?: Record<string, string>;
   contract_fields_status?: "pendente" | "completo";
+  triage_form_config?: any[];
   created_at: string;
   // joined
   client?: { full_name: string; email: string } | null;
@@ -40,6 +41,7 @@ export interface CreateProjectInput {
   client_contract_url?: string;
   contract_field_values?: Record<string, string>;
   contract_fields_status?: "pendente" | "completo";
+  triage_form_config?: any[];
 }
 
 // ── Query: all projects (RLS auto-filters by role with resilient fallbacks) ──
@@ -396,6 +398,10 @@ export function useCreateProject() {
       if (e.message.includes("infinite recursion")) {
         toast.error(
           "Erro RLS do Supabase (recursão infinita). Por favor, execute o arquivo supabase/schema.sql atualizado no SQL Editor do Supabase!",
+        );
+      } else if (e.message.includes("projects_service_type_check")) {
+        toast.error(
+          "Selecione uma vertical de serviço válida. Se escolher 'Social Media', execute o script de migração SQL no Supabase para atualizar a trava do banco.",
         );
       } else {
         toast.error(`Erro ao criar projeto: ${e.message}`);

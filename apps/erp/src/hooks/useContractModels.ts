@@ -146,8 +146,9 @@ export async function generateContractClientSide(payload: {
   model_id?: string;
   project_id?: string;
   freelancer_id?: string;
+  client_id?: string;
 }): Promise<GeneratedContractResponse> {
-  const { docx_path, values, filename, model_id, project_id, freelancer_id } = payload;
+  const { docx_path, values, filename, model_id, project_id, freelancer_id, client_id } = payload;
 
   // 1. Download .docx template from 'contract-templates' bucket
   const { data: blob, error: downloadError } = await supabase.storage
@@ -246,6 +247,7 @@ export async function generateContractClientSide(payload: {
           model_id,
           project_id,
           freelancer_id: freelancer_id || null,
+          client_id: client_id || null,
           values,
           docx_path: outputDocxPath,
           pdf_path: null,
@@ -281,6 +283,7 @@ export function useGenerateContract() {
       model_id?: string;
       project_id?: string;
       freelancer_id?: string;
+      client_id?: string;
     }) => {
       try {
         const response = await fetch("/api/contract-models/generate", {

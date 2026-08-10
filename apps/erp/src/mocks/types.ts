@@ -32,23 +32,23 @@ export const STATUS_LABEL: Record<ProjectStatus, string> = {
   Delegado: "Delegado",
 };
 
-// Premium solid badge styles
+// Muted service badge styles — soft background, colored text, thin border
 export const SERVICE_BADGE_COLORS: Record<ServiceType, string> = {
-  IA: "bg-purple-600 text-white border-purple-700 font-bold shadow-xs",
-  Trafego: "bg-amber-500 text-white border-amber-600 font-bold shadow-xs",
-  Sites: "bg-blue-600 text-white border-blue-700 font-bold shadow-xs",
-  "Social Media": "bg-pink-600 text-white border-pink-700 font-bold shadow-xs",
+  IA: "bg-purple-50 text-purple-800 border-purple-200 font-semibold",
+  Trafego: "bg-amber-50 text-amber-800 border-amber-200 font-semibold",
+  Sites: "bg-blue-50 text-blue-800 border-blue-200 font-semibold",
+  "Social Media": "bg-rose-50 text-rose-800 border-rose-200 font-semibold",
 };
 
 export const STATUS_BADGE_COLORS: Record<ProjectStatus, string> = {
-  Criado: "bg-slate-600 text-white border-slate-700 font-bold",
-  Solicitado: "bg-sky-600 text-white border-sky-700 font-bold",
-  "Aguardando Candidaturas": "bg-amber-600 text-white border-amber-700 font-bold",
-  "Emitir contrato": "bg-purple-600 text-white border-purple-700 font-bold",
-  "Revisão de Contrato": "bg-yellow-600 text-white border-yellow-700 font-bold",
-  Delegado: "bg-teal-600 text-white border-teal-700 font-bold",
-  "Em Producao": "bg-blue-600 text-white border-blue-700 font-bold",
-  Concluido: "bg-emerald-600 text-white border-emerald-700 font-bold",
+  Criado: "bg-slate-100 text-slate-700 border-slate-200 font-semibold",
+  Solicitado: "bg-sky-50 text-sky-800 border-sky-200 font-semibold",
+  "Aguardando Candidaturas": "bg-amber-50 text-amber-800 border-amber-200 font-semibold",
+  "Emitir contrato": "bg-purple-50 text-purple-800 border-purple-200 font-semibold",
+  "Revisão de Contrato": "bg-yellow-50 text-yellow-800 border-yellow-200 font-semibold",
+  Delegado: "bg-teal-50 text-teal-800 border-teal-200 font-semibold",
+  "Em Producao": "bg-blue-50 text-blue-800 border-blue-200 font-semibold",
+  Concluido: "bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold",
 };
 
 export const SERVICE_LABEL: Record<ServiceType, string> = {

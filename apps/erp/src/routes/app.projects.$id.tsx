@@ -76,6 +76,7 @@ import {
 } from "@/hooks/useTriage";
 import { SERVICE_LABEL, STATUS_LABEL, STATUSES } from "@/mocks/types";
 import { ProjectContractFieldsSection } from "@/components/ProjectContractFieldsSection";
+import { TriageFormBuilderSection } from "@/components/TriageFormBuilderSection";
 
 export const Route = createFileRoute("/app/projects/$id")({
   head: () => ({
@@ -93,9 +94,23 @@ const taskSchema = z.object({
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
-
-const editCandidaturaResolver = zodResolver(editCandidaturaSchema) as any;
 const taskResolver = zodResolver(taskSchema);
+
+const editCandidaturaSchema = z.object({
+  freelancer_name: z.string().min(3, "Nome completo é obrigatório"),
+  freelancer_email: z.string().email("Endereço de e-mail inválido"),
+  availability_hours: z.coerce.number().min(1, "Informe as horas semanais disponíveis"),
+  proposed_rate: z.coerce.number().min(10, "Informe sua pretensão de valor (R$)"),
+  portfolio_url: z
+    .string()
+    .url("Insira uma URL válida (ex: https://github.com/...)")
+    .or(z.literal("")),
+  experience_summary: z.string().min(10, "Descreva sua experiência relevante"),
+  considerations: z.string().min(10, "Descreva suas considerações técnicas"),
+});
+
+type EditCandidaturaFormData = z.infer<typeof editCandidaturaSchema>;
+const editCandidaturaResolver = zodResolver(editCandidaturaSchema) as any;
 
 function ProjectDetailPage() {
   const { id } = Route.useParams();
@@ -127,6 +142,8 @@ function ProjectDetailPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [showEditCandidaturaModal, setShowEditCandidaturaModal] = useState(false);
   const [editingCandidatura, setEditingCandidatura] = useState<Candidatura | null>(null);
+  const [viewingCandidaturaDetail, setViewingCandidaturaDetail] = useState<Candidatura | null>(null);
+  const [directAssignFreelancerId, setDirectAssignFreelancerId] = useState<string>("");
 
   // Task dialog
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -145,21 +162,6 @@ function ProjectDetailPage() {
       setProjectContractValues(project.contract_field_values || {});
     }
   }, [project]);
-
-  const editCandidaturaSchema = z.object({
-    freelancer_name: z.string().min(3, "Nome completo é obrigatório"),
-    freelancer_email: z.string().email("Endereço de e-mail inválido"),
-    availability_hours: z.coerce.number().min(1, "Informe as horas semanais disponíveis"),
-    proposed_rate: z.coerce.number().min(10, "Informe sua pretensão de valor (R$)"),
-    portfolio_url: z
-      .string()
-      .url("Insira uma URL válida (ex: https://github.com/...)")
-      .or(z.literal("")),
-    experience_summary: z.string().min(10, "Descreva sua experiência relevante"),
-    considerations: z.string().min(10, "Descreva suas considerações técnicas"),
-  });
-
-  type EditCandidaturaFormData = z.infer<typeof editCandidaturaSchema>;
 
   const {
     register: registerEditCandidatura,
@@ -1051,15 +1053,58 @@ function ProjectDetailPage() {
         {/* Candidaturas Tab (Gestor Only) */}
         {isGestor && (
           <TabsContent value="candidaturas" className="pt-4 space-y-6">
+            {/* Quick Assign Registered Freelancer Card */}
+            <Card className="border border-indigo-200/70 bg-indigo-50/30">
+              <CardContent className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="font-bold text-sm text-foreground flex items-center gap-2">
+                    <UserCheck className="h-4 w-4 text-indigo-600" />
+                    Atribuir Freelancer Cadastrado Direto
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Selecione qualquer freelancer já cadastrado no ERP para vinculá-lo imediatamente ao projeto.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Select
+                    value={directAssignFreelancerId}
+                    onValueChange={setDirectAssignFreelancerId}
+                  >
+                    <SelectTrigger className="w-full sm:w-[260px] bg-background text-xs h-9">
+                      <SelectValue placeholder="Selecione um freelancer..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {freelancers.map((f) => (
+                        <SelectItem key={f.id} value={f.id} className="text-xs">
+                          {f.full_name} ({f.email})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    disabled={!directAssignFreelancerId || assignFreelancer.isPending}
+                    onClick={() => {
+                      if (!directAssignFreelancerId) return;
+                      handleAssignFreelancer(directAssignFreelancerId);
+                      setDirectAssignFreelancerId("");
+                    }}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs h-9 px-4 shrink-0 shadow-xs"
+                  >
+                    Atribuir
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <UserCheck className="h-5 w-5 text-emerald-400" />
+                  <UserCheck className="h-5 w-5 text-emerald-600" />
                   Candidaturas Recebidas
                 </CardTitle>
                 <CardDescription>
-                  Analise as respostas do formulário público e aprove cada freelancer diretamente
-                  para o projeto.
+                  Analise as candidaturas recebidas pelo formulário público e aprove cada freelancer diretamente para o projeto.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -1072,101 +1117,144 @@ function ProjectDetailPage() {
                     Nenhuma candidatura registrada para este projeto ainda.
                   </div>
                 ) : (
-                  candidaturas.map((candidatura) => (
-                    <div
-                      key={candidatura.id}
-                      className="rounded-xl border border-border bg-card/70 p-4 space-y-3"
-                    >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold text-foreground">
-                              {candidatura.freelancer_name}
-                            </h4>
-                            <Badge
-                              variant={candidatura.status === "Aprovado" ? "default" : "outline"}
-                              className={
-                                candidatura.status === "Aprovado" ? "bg-emerald-600 text-white" : ""
-                              }
+                  candidaturas.map((candidatura) => {
+                    const registeredFreelancer = freelancers.find(
+                      (f) => f.email?.toLowerCase().trim() === candidatura.freelancer_email?.toLowerCase().trim(),
+                    );
+
+                    return (
+                      <div
+                        key={candidatura.id}
+                        className="rounded-xl border border-border bg-card p-4 space-y-4 shadow-xs"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <h4 className="font-semibold text-foreground text-base">
+                                {candidatura.freelancer_name}
+                              </h4>
+                              <Badge
+                                variant={candidatura.status === "Aprovado" ? "default" : "outline"}
+                                className={
+                                  candidatura.status === "Aprovado"
+                                    ? "bg-emerald-600 text-white"
+                                    : candidatura.status === "Rejeitado"
+                                    ? "bg-rose-100 text-rose-700 border-rose-200"
+                                    : ""
+                                }
+                              >
+                                {candidatura.status}
+                              </Badge>
+
+                              {registeredFreelancer ? (
+                                <Link
+                                  to="/app/freelancers/$id"
+                                  params={{ id: registeredFreelancer.id }}
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2.5 py-0.5 rounded-md hover:bg-indigo-100 transition-colors"
+                                >
+                                  <UserCheck className="h-3.5 w-3.5 text-indigo-600" />
+                                  Já cadastrado — ver ficha
+                                </Link>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="border-emerald-200 text-emerald-700 bg-emerald-50 text-[11px] px-2 py-0.5"
+                                >
+                                  <Sparkles className="h-3 w-3 text-emerald-600 mr-1 inline" />
+                                  Candidato novo
+                                </Badge>
+                              )}
+                            </div>
+
+                            <p className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-3">
+                              <span>{candidatura.freelancer_email}</span>
+                              {candidatura.phone && <span>• {candidatura.phone}</span>}
+                              <span>• Enviado em {new Date(candidatura.created_at).toLocaleDateString("pt-BR")}</span>
+                            </p>
+                          </div>
+
+                          <div className="flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setViewingCandidaturaDetail(candidatura)}
+                              className="text-xs gap-1.5"
                             >
-                              {candidatura.status}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">
-                            {candidatura.freelancer_email}
-                          </p>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openEditCandidatura(candidatura)}
-                          >
-                            Editar
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                            disabled={
-                              candidatura.status === "Aprovado" || approveCandidato.isPending
-                            }
-                            onClick={() => handleApproveCandidato(candidatura)}
-                          >
-                            Aprovar Candidato
-                          </Button>
-                        </div>
-                      </div>
+                              Ver Respostas Completas
+                            </Button>
 
-                      <div className="grid gap-3 md:grid-cols-2 text-sm">
-                        <div className="rounded-lg border border-border/70 p-3">
-                          <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Disponibilidade
-                          </div>
-                          <div className="mt-1 font-medium text-foreground">
-                            {candidatura.availability_hours ?? 0}h/semana
-                          </div>
-                        </div>
-                        <div className="rounded-lg border border-border/70 p-3">
-                          <div className="text-xs uppercase tracking-wide text-muted-foreground">
-                            Pretensão
-                          </div>
-                          <div className="mt-1 font-medium text-foreground">
-                            R$ {Number(candidatura.proposed_rate || 0).toLocaleString("pt-BR")}
-                          </div>
-                        </div>
-                      </div>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              disabled={candidatura.status === "Rejeitado" || updateCandidatura.isPending}
+                              onClick={() =>
+                                updateCandidatura.mutate({ id: candidatura.id, status: "Rejeitado" })
+                              }
+                              className="text-xs"
+                            >
+                              Rejeitar
+                            </Button>
 
-                      <div className="space-y-2 text-sm text-muted-foreground">
-                        <div>
-                          <div className="font-medium text-foreground">Experiência</div>
-                          <p className="mt-1 whitespace-pre-wrap">
-                            {candidatura.experience_summary || "Sem descrição detalhada informada."}
-                          </p>
+                            <Button
+                              size="sm"
+                              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs"
+                              disabled={
+                                candidatura.status === "Aprovado" || approveCandidato.isPending
+                              }
+                              onClick={() => handleApproveCandidato(candidatura)}
+                            >
+                              Aprovar e Atribuir ao Projeto
+                            </Button>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-medium text-foreground">Considerações</div>
-                          <p className="mt-1 whitespace-pre-wrap">
-                            {candidatura.considerations ||
-                              candidatura.notes ||
-                              "Sem observações adicionais."}
-                          </p>
+
+                        <div className="grid gap-3 md:grid-cols-2 text-xs">
+                          <div className="rounded-lg border border-border/70 p-3 bg-muted/20">
+                            <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+                              Disponibilidade
+                            </div>
+                            <div className="mt-1 font-medium text-foreground text-sm">
+                              {candidatura.availability_hours ?? 0}h/semana
+                            </div>
+                          </div>
+                          <div className="rounded-lg border border-border/70 p-3 bg-muted/20">
+                            <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold">
+                              Pretensão de Valor
+                            </div>
+                            <div className="mt-1 font-medium text-emerald-600 text-sm">
+                              R$ {Number(candidatura.proposed_rate || 0).toLocaleString("pt-BR")}
+                            </div>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </CardContent>
             </Card>
           </TabsContent>
         )}
 
-        {/* Matchmaking Tab (Gestor Only) */}
+        {/* Matchmaking & Triage Config Tab (Gestor Only) */}
         {isGestor && (
           <TabsContent value="matchmaking" className="pt-4 space-y-6">
+            {/* Custom Form Builder */}
+            <TriageFormBuilderSection
+              initialConfig={project.triage_form_config}
+              onSave={(newConfig) =>
+                updateProject.mutate({
+                  id: project.id,
+                  patch: { triage_form_config: newConfig },
+                })
+              }
+              saving={updateProject.isPending}
+            />
+
+            {/* Manual Assignment Panel */}
             <Card>
               <CardHeader>
                 <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-amber-400" />
+                  <Sparkles className="h-5 w-5 text-amber-500" />
                   Alocação de Freelancer para o Projeto
                 </CardTitle>
                 <CardDescription>
@@ -1177,7 +1265,7 @@ function ProjectDetailPage() {
                 {currentFreelancer ? (
                   <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between">
                     <div>
-                      <div className="text-xs text-emerald-400 font-semibold uppercase tracking-wider">
+                      <div className="text-xs text-emerald-600 font-semibold uppercase tracking-wider">
                         Freelancer Atribuído
                       </div>
                       <div className="text-lg font-bold text-foreground mt-0.5">
@@ -1413,6 +1501,164 @@ function ProjectDetailPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Candidatura Detail Modal */}
+      <Dialog
+        open={Boolean(viewingCandidaturaDetail)}
+        onOpenChange={(open) => !open && setViewingCandidaturaDetail(null)}
+      >
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          {viewingCandidaturaDetail && (
+            <>
+              <DialogHeader>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pr-6">
+                  <div>
+                    <DialogTitle className="text-xl font-bold text-foreground">
+                      {viewingCandidaturaDetail.freelancer_name}
+                    </DialogTitle>
+                    <DialogDescription className="text-xs text-muted-foreground mt-0.5">
+                      {viewingCandidaturaDetail.freelancer_email} • Enviado em{" "}
+                      {new Date(viewingCandidaturaDetail.created_at).toLocaleDateString("pt-BR")}
+                    </DialogDescription>
+                  </div>
+                  <Badge
+                    variant={viewingCandidaturaDetail.status === "Aprovado" ? "default" : "outline"}
+                    className={
+                      viewingCandidaturaDetail.status === "Aprovado"
+                        ? "bg-emerald-600 text-white"
+                        : viewingCandidaturaDetail.status === "Rejeitado"
+                        ? "bg-rose-100 text-rose-700 border-rose-200"
+                        : ""
+                    }
+                  >
+                    {viewingCandidaturaDetail.status}
+                  </Badge>
+                </div>
+              </DialogHeader>
+
+              <div className="space-y-4 py-2 text-sm">
+                {/* Summary Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  <div className="rounded-xl border border-border p-3 bg-muted/30">
+                    <span className="text-xs text-muted-foreground font-semibold block uppercase tracking-wider">
+                      Disponibilidade
+                    </span>
+                    <span className="font-bold text-foreground text-sm mt-0.5 block">
+                      {viewingCandidaturaDetail.availability_hours ?? 0}h/semana
+                    </span>
+                  </div>
+                  <div className="rounded-xl border border-border p-3 bg-muted/30">
+                    <span className="text-xs text-muted-foreground font-semibold block uppercase tracking-wider">
+                      Pretensão
+                    </span>
+                    <span className="font-bold text-emerald-600 text-sm mt-0.5 block">
+                      R${" "}
+                      {Number(viewingCandidaturaDetail.proposed_rate || 0).toLocaleString("pt-BR")}
+                    </span>
+                  </div>
+                  <div className="rounded-xl border border-border p-3 bg-muted/30 col-span-2 sm:col-span-1">
+                    <span className="text-xs text-muted-foreground font-semibold block uppercase tracking-wider">
+                      Telefone / Whats
+                    </span>
+                    <span className="font-semibold text-foreground text-sm mt-0.5 block">
+                      {viewingCandidaturaDetail.phone || "Não informado"}
+                    </span>
+                  </div>
+                </div>
+
+                {viewingCandidaturaDetail.portfolio_url && (
+                  <div className="p-3 rounded-xl border border-indigo-200 bg-indigo-50/50 space-y-1">
+                    <span className="text-xs font-semibold text-indigo-700 block">
+                      Portfólio / Link relevante
+                    </span>
+                    <a
+                      href={viewingCandidaturaDetail.portfolio_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-xs text-indigo-600 hover:underline font-medium break-all flex items-center gap-1"
+                    >
+                      {viewingCandidaturaDetail.portfolio_url} <ExternalLink className="h-3 w-3 inline" />
+                    </a>
+                  </div>
+                )}
+
+                {viewingCandidaturaDetail.experience_summary && (
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-muted-foreground block uppercase tracking-wider">
+                      Resumo de Experiência
+                    </span>
+                    <p className="p-3 rounded-xl border border-border bg-muted/20 text-xs text-foreground whitespace-pre-wrap leading-relaxed">
+                      {viewingCandidaturaDetail.experience_summary}
+                    </p>
+                  </div>
+                )}
+
+                {(viewingCandidaturaDetail.considerations || viewingCandidaturaDetail.notes) && (
+                  <div className="space-y-1">
+                    <span className="text-xs font-semibold text-muted-foreground block uppercase tracking-wider">
+                      Considerações &amp; Observações
+                    </span>
+                    <p className="p-3 rounded-xl border border-border bg-muted/20 text-xs text-foreground whitespace-pre-wrap leading-relaxed">
+                      {viewingCandidaturaDetail.considerations || viewingCandidaturaDetail.notes}
+                    </p>
+                  </div>
+                )}
+
+                {/* Custom Answers List */}
+                {viewingCandidaturaDetail.custom_answers &&
+                  Object.keys(viewingCandidaturaDetail.custom_answers).length > 0 && (
+                    <div className="space-y-3 pt-3 border-t border-border">
+                      <span className="text-xs font-bold text-foreground block uppercase tracking-wider">
+                        Respostas das Perguntas Customizadas
+                      </span>
+                      <div className="space-y-2">
+                        {Object.entries(viewingCandidaturaDetail.custom_answers).map(([key, answer]) => {
+                          const fieldConfig = (project?.triage_form_config as any[])?.find(
+                            (f) => f.field_key === key,
+                          );
+                          const label = fieldConfig?.label || key;
+                          return (
+                            <div key={key} className="p-3 rounded-xl border border-border bg-card space-y-1">
+                              <span className="text-xs font-semibold text-indigo-600 block">{label}</span>
+                              <p className="text-xs text-foreground whitespace-pre-wrap">{answer || "Sem resposta"}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+              </div>
+
+              <div className="flex flex-wrap items-center justify-end gap-2 pt-4 border-t border-border">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={viewingCandidaturaDetail.status === "Rejeitado" || updateCandidatura.isPending}
+                  onClick={() => {
+                    updateCandidatura.mutate({ id: viewingCandidaturaDetail.id, status: "Rejeitado" });
+                    setViewingCandidaturaDetail(null);
+                  }}
+                >
+                  Rejeitar Candidatura
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  disabled={
+                    viewingCandidaturaDetail.status === "Aprovado" || approveCandidato.isPending
+                  }
+                  onClick={() => {
+                    handleApproveCandidato(viewingCandidaturaDetail);
+                    setViewingCandidaturaDetail(null);
+                  }}
+                >
+                  Aprovar e Atribuir ao Projeto
+                </Button>
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
