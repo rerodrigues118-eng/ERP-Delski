@@ -65,8 +65,31 @@ function AuthGuard() {
 function AuthPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [tab, setTab] = useState<"login" | "register" | "forgot">("login");
+  const [tab, setTab] = useState<"login" | "register" | "forgot" | "reset-password">("login");
   const [resetSent, setResetSent] = useState(false);
+
+  // Listen for Supabase password recovery link click / hash params
+  useEffect(() => {
+    const checkRecovery = () => {
+      const hash = typeof window !== "undefined" ? window.location.hash : "";
+      const search = typeof window !== "undefined" ? window.location.search : "";
+      if (hash.includes("type=recovery") || search.includes("type=recovery")) {
+        setTab("reset-password");
+      }
+    };
+
+    checkRecovery();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") {
+        setTab("reset-password");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const onLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -118,13 +141,54 @@ function AuthPage() {
     }
     setLoading(true);
     try {
+      // Dynamic origin calculation to prevent localhost fallback
+      const currentOrigin =
+        typeof window !== "undefined" && window.location.origin
+          ? window.location.origin
+          : "https://erp-delski.vercel.app";
+
+      const redirectTo = `${currentOrigin}/auth`;
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
+        redirectTo,
       });
       if (error) throw error;
       setResetSent(true);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro ao enviar o e-mail de redefinição.";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onResetPasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const fd = new FormData(e.currentTarget);
+    const newPassword = String(fd.get("newPassword") || "");
+    const confirmNewPassword = String(fd.get("confirmNewPassword") || "");
+
+    if (!newPassword || newPassword.length < 6) {
+      toast.error("A nova senha deve ter no mínimo 6 caracteres.");
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      toast.error("As senhas não coincidem.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+
+      toast.success("Senha redefinida com sucesso! Redirecionando para o sistema...");
+      navigate({ to: "/app", replace: true });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao atualizar a senha.";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -194,30 +258,32 @@ function AuthPage() {
       {/* Main Form Box */}
       <div className="w-full max-w-md my-auto bg-white p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
         {/* Simple CSS Tabs — no Radix, no controlled state, no re-renders */}
-        <div className="grid grid-cols-2 w-full bg-muted p-1 border border-border rounded-lg mb-6">
-          <button
-            type="button"
-            onClick={() => setTab("login")}
-            className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium ${
-              tab === "login"
-                ? "bg-white shadow-sm text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <LogIn className="h-4 w-4" /> Entrar no Sistema
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("register")}
-            className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium ${
-              tab === "register"
-                ? "bg-white shadow-sm text-indigo-500"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <UserPlus className="h-4 w-4" /> Criar Conta
-          </button>
-        </div>
+        {tab !== "reset-password" && (
+          <div className="grid grid-cols-2 w-full bg-muted p-1 border border-border rounded-lg mb-6">
+            <button
+              type="button"
+              onClick={() => setTab("login")}
+              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium ${
+                tab === "login"
+                  ? "bg-white shadow-sm text-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <LogIn className="h-4 w-4" /> Entrar no Sistema
+            </button>
+            <button
+              type="button"
+              onClick={() => setTab("register")}
+              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium ${
+                tab === "register"
+                  ? "bg-white shadow-sm text-indigo-500"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <UserPlus className="h-4 w-4" /> Criar Conta
+            </button>
+          </div>
+        )}
 
         {/* TAB: LOGIN */}
         {tab === "login" && (
@@ -364,6 +430,7 @@ function AuthPage() {
             </form>
           </div>
         )}
+
         {/* TAB: FORGOT PASSWORD */}
         {tab === "forgot" && (
           <div className="space-y-6">
@@ -407,7 +474,7 @@ function AuthPage() {
 
                 <Button
                   type="submit"
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium gap-2"
+                  className="w-full bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium gap-2 shadow-sm transition-all"
                   disabled={loading}
                 >
                   {loading && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -425,6 +492,59 @@ function AuthPage() {
                 </div>
               </form>
             )}
+          </div>
+        )}
+
+        {/* TAB: RESET PASSWORD (NEW PASSWORD FROM RECOVERY LINK) */}
+        {tab === "reset-password" && (
+          <div className="space-y-6">
+            <div className="space-y-1">
+              <h2 className="text-2xl font-bold tracking-tight text-foreground">Digite a Nova Senha</h2>
+              <p className="text-sm text-muted-foreground">
+                Cadastre sua nova senha para concluir a redefinição de acesso.
+              </p>
+            </div>
+
+            <form onSubmit={onResetPasswordSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="newPassword" className="text-sm font-medium text-foreground">Nova Senha</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    id="newPassword"
+                    name="newPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label htmlFor="confirmNewPassword" className="text-sm font-medium text-foreground">Confirmar Nova Senha</label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <input
+                    id="confirmNewPassword"
+                    name="confirmNewPassword"
+                    type="password"
+                    autoComplete="new-password"
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium gap-2 shadow-sm transition-all"
+                disabled={loading}
+              >
+                {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+                {loading ? "Atualizando..." : "Salvar Nova Senha & Acessar"}
+              </Button>
+            </form>
           </div>
         )}
       </div>
