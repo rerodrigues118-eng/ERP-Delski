@@ -10,6 +10,10 @@ export interface UserProfile {
   email: string;
   role: UserRole;
   avatar_url?: string;
+  cargo?: string;
+  phone?: string;
+  cpf_cnpj?: string;
+  contract_field_values?: Record<string, any>;
   created_at?: string;
 }
 
@@ -31,6 +35,7 @@ export interface AuthContextType {
   loading: boolean;
   signOut: () => Promise<void>;
   logout: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
   isGestor: boolean;
   isFreelancer: boolean;
   isCliente: boolean;
@@ -46,6 +51,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   logout: async () => {},
+  refreshProfile: async () => {},
   isGestor: false,
   isFreelancer: false,
   isCliente: false,
@@ -230,6 +236,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setIsLoading(false);
   }, []);
 
+  const refreshProfile = React.useCallback(async () => {
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        setUser(currentUser);
+        const { data: dbProfile } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", currentUser.id)
+          .maybeSingle();
+
+        if (dbProfile) {
+          const avatar = dbProfile.avatar_url || (currentUser.user_metadata as any)?.avatar_url || undefined;
+          setProfile({ ...dbProfile, avatar_url: avatar } as UserProfile);
+          setRole(dbProfile.role);
+        }
+      }
+    } catch (err) {
+      console.warn("[AuthContext] refreshProfile error:", err);
+    }
+  }, []);
+
   const signOut = React.useCallback(async () => {
     setIsLoading(true);
     setIsDevMode(false);
@@ -270,13 +298,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       loading: isLoading,
       signOut,
       logout: signOut,
+      refreshProfile,
       loginDevMode,
       isGestor,
       isFreelancer,
       isCliente,
       isAuthenticated,
     }),
-    [session, effectiveUser, effectiveProfile, effectiveRole, isLoading, loginDevMode, isGestor, isFreelancer, isCliente, isAuthenticated, signOut]
+    [session, effectiveUser, effectiveProfile, effectiveRole, isLoading, loginDevMode, isGestor, isFreelancer, isCliente, isAuthenticated, signOut, refreshProfile]
   );
 
   return (

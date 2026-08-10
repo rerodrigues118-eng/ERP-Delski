@@ -40,7 +40,7 @@ export const Route = createFileRoute("/app/perfil")({
 });
 
 function GestorProfileSettingsPage() {
-  const { user, profile, logout } = useAuth();
+  const { user, profile, refreshProfile, logout } = useAuth();
   const { data: companySettings = DEFAULT_COMPANY_SETTINGS, isLoading: loadingCompany } =
     useCompanySettings();
   const upsertCompanySettings = useUpsertCompanySettings();
@@ -202,6 +202,11 @@ function GestorProfileSettingsPage() {
         console.error("[Profile Upsert Error]", upsertError);
         toast.error(`Erro ao salvar no banco: ${upsertError.message}`);
         return;
+      }
+
+      // 4. Trigger AuthContext refresh so that sidebar, header and app state update immediately
+      if (refreshProfile) {
+        await refreshProfile();
       }
 
       toast.success("Perfil do Gestor atualizado com sucesso!");
