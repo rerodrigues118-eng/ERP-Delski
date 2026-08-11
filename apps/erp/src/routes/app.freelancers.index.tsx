@@ -8,11 +8,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-import { DialogDescription } from "@/components/ui/dialog";
+} from "@/components/ui/dialog";
 import { Plus, Mail, Loader2, ShieldCheck, CheckCircle2, AlertCircle, Ban, Trash2 } from "lucide-react";
 import { sendWelcomeEmail } from "@/integrations/brevo";
 import { toast } from "sonner";
