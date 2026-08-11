@@ -198,15 +198,27 @@ export interface Lead {
   convertedProjectId?: string;
 }
 
-export type ExpenseCategory = "freelancer" | "ads" | "ferramentas" | "outros";
+export type ExpenseCategory =
+  | "freelancer"
+  | "ads"
+  | "ferramentas"
+  | "infra"
+  | "escritorio"
+  | "impostos"
+  | "equipamentos"
+  | "outros";
+
+export type ExpenseNature = "fixo" | "variavel";
 export type ExpenseStatus = "Pendente" | "Aprovado" | "Pago";
 
 export interface Expense {
   id: string;
-  projectId: string;
+  projectId?: string | null;
   description: string;
   amount: number;
   category: ExpenseCategory;
+  nature?: ExpenseNature;
+  dueDate?: string | null;
   status: ExpenseStatus;
   freelancerId?: string;
   createdAt: string;

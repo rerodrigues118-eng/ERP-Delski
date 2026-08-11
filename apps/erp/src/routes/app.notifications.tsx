@@ -124,6 +124,38 @@ function NotificationsPage() {
         }
       }
 
+      // Check expenses due or overdue
+      try {
+        const { data: pendingExpenses } = await supabase
+          .from("project_expenses")
+          .select("id, description, amount, due_date, status")
+          .neq("status", "Pago");
+
+        if (pendingExpenses && pendingExpenses.length > 0) {
+          for (const exp of pendingExpenses) {
+            if (!exp.due_date) continue;
+            const dueTime = new Date(exp.due_date).getTime();
+            if (dueTime <= now + 86_400_000) {
+              const formattedDate = new Date(exp.due_date).toLocaleDateString("pt-BR");
+              const msg = `Vencimento da despesa "${exp.description}" (R$ ${Number(exp.amount || 0).toLocaleString("pt-BR")}) em ${formattedDate}.`;
+              if (!sentMessagesToday.has(msg)) {
+                rows.push({
+                  user_id: user.id,
+                  title: "Vencimento de Despesa Corporativa",
+                  message: msg,
+                  type: "alerta",
+                  read: false,
+                  created_by: null,
+                });
+                sentMessagesToday.add(msg);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Check expense due date notifications error:", err);
+      }
+
       if (rows.length > 0) {
         await supabase.from("notifications").insert(rows);
       }

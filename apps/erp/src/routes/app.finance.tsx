@@ -118,10 +118,20 @@ function paymentStatusFrom({
 
 const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
   { value: "freelancer", label: "Pagamento freelancer" },
-  { value: "ads", label: "Verba de anúncios" },
-  { value: "ferramentas", label: "Ferramentas / SaaS" },
-  { value: "outros", label: "Outros" },
+  { value: "ads", label: "Verba de anúncios / Marketing" },
+  { value: "ferramentas", label: "Ferramentas / SaaS / Licenças" },
+  { value: "infra", label: "Infraestrutura & Servidores / Hosting" },
+  { value: "escritorio", label: "Custos Operacionais / Aluguel" },
+  { value: "impostos", label: "Impostos & Contabilidade / Taxas" },
+  { value: "equipamentos", label: "Equipamentos & Suprimentos" },
+  { value: "outros", label: "Outros (Despesa Geral)" },
 ];
+
+const NATURES: { value: ExpenseNature; label: string }[] = [
+  { value: "variavel", label: "Gasto Variável (Pontual)" },
+  { value: "fixo", label: "Gasto Fixo (Recorrente Mensal)" },
+];
+
 const STATUSES: ExpenseStatus[] = ["Pendente", "Aprovado", "Pago"];
 
 // ── Skeleton Loader Neutro Guard (Evita Vazamento de Dados na Troca de Sessão) ──
@@ -538,7 +548,10 @@ function GestorFinanceView() {
         category: e.category,
         amount: e.amount,
         status: e.status,
-        projectId: e.projectId,
+        nature: e.nature || "variavel",
+        dueDate: e.dueDate || null,
+        projectId: e.projectId || null,
+        projectName: e.projectId ? undefined : "Corporativo (Empresa)",
       });
     });
     dbExpenses.forEach((e: any) => {
@@ -548,8 +561,10 @@ function GestorFinanceView() {
         category: e.category,
         amount: Number(e.amount || 0),
         status: e.status || "Pendente",
+        nature: e.nature || "variavel",
+        dueDate: e.due_date || e.dueDate || null,
         projectId: e.project_id,
-        projectName: e.project?.title,
+        projectName: e.project?.title || (e.project_id ? "Projeto Vinculado" : "Corporativo (Empresa)"),
       });
     });
     return Array.from(map.values());
@@ -563,10 +578,12 @@ function GestorFinanceView() {
 
   const [openAdd, setOpenAdd] = useState(false);
   const [form, setForm] = useState({
-    projectId: "",
+    projectId: "none",
     description: "",
     amount: "",
-    category: "freelancer" as ExpenseCategory,
+    category: "ads" as ExpenseCategory,
+    nature: "variavel" as ExpenseNature,
+    dueDate: new Date().toISOString().slice(0, 10),
     freelancerId: "",
     status: "Pendente" as ExpenseStatus,
   });
@@ -811,22 +828,33 @@ function GestorFinanceView() {
   };
 
   const submitExpense = async () => {
-    if (!form.projectId || !form.description || !form.amount)
-      return toast.error("Preencha projeto, descrição e valor.");
+    if (!form.description || !form.amount)
+      return toast.error("Preencha descrição e valor da despesa.");
 
     const amountNum = Number(form.amount);
     if (isNaN(amountNum) || amountNum <= 0) return toast.error("Informe um valor válido.");
 
+    const selectedProjId = form.projectId === "none" || !form.projectId ? null : form.projectId;
+
+    const basePayload: Record<string, any> = {
+      project_id: selectedProjId,
+      description: form.description,
+      amount: amountNum,
+      category: form.category,
+      nature: form.nature,
+      due_date: form.dueDate || null,
+      status: form.status,
+      freelancer_id:
+        form.category === "freelancer" && form.freelancerId ? form.freelancerId : null,
+    };
+
     try {
-      await supabase.from("project_expenses").insert({
-        project_id: form.projectId,
-        description: form.description,
-        amount: amountNum,
-        category: form.category,
-        status: form.status,
-        freelancer_id:
-          form.category === "freelancer" && form.freelancerId ? form.freelancerId : null,
-      });
+      const { error } = await supabase.from("project_expenses").insert(basePayload);
+      if (error) {
+        // Fallback if nature / due_date columns are not in DB schema yet
+        delete basePayload.nature;
+        await supabase.from("project_expenses").insert(basePayload);
+      }
       queryClient.invalidateQueries({ queryKey: ["project_expenses"] });
       queryClient.invalidateQueries({ queryKey: ["finance", "gestor"] });
     } catch (err) {
@@ -834,21 +862,25 @@ function GestorFinanceView() {
     }
 
     addExpense({
-      projectId: form.projectId,
+      projectId: selectedProjId,
       description: form.description,
       amount: amountNum,
       category: form.category,
+      nature: form.nature,
+      dueDate: form.dueDate || null,
       status: form.status,
       freelancerId: form.category === "freelancer" ? form.freelancerId || undefined : undefined,
     });
 
-    toast.success("Despesa registrada com sucesso!");
+    toast.success("Despesa corporativa registrada com sucesso!");
     setOpenAdd(false);
     setForm({
-      projectId: "",
+      projectId: "none",
       description: "",
       amount: "",
-      category: "freelancer",
+      category: "ads",
+      nature: "variavel",
+      dueDate: new Date().toISOString().slice(0, 10),
       freelancerId: "",
       status: "Pendente",
     });
@@ -1015,15 +1047,18 @@ function GestorFinanceView() {
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Projeto</Label>
+                <Label className="text-xs font-semibold">Projeto (Opcional)</Label>
                 <Select
                   value={form.projectId}
                   onValueChange={(v) => setForm((f) => ({ ...f, projectId: v }))}
                 >
                   <SelectTrigger className="w-full text-xs">
-                    <SelectValue placeholder="Selecione um projeto" />
+                    <SelectValue placeholder="Selecione um projeto ou escolha Empresa" />
                   </SelectTrigger>
                   <SelectContent>
+                    <SelectItem value="none">
+                      🏢 Empresa (Despesa Corporativa Geral — Sem projeto)
+                    </SelectItem>
                     {projects.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
                         {p.title}
@@ -1033,45 +1068,76 @@ function GestorFinanceView() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Descrição</Label>
+                <Label className="text-xs font-semibold">Descrição *</Label>
                 <Input
-                  placeholder="Ex: Entrega landing page / Meta Ads"
+                  placeholder="Ex: Assinatura ChatGPT Enterprise / Aluguel do Escritório"
                   className="text-xs"
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Valor (R$)</Label>
-                <Input
-                  type="number"
-                  placeholder="1500"
-                  className="text-xs"
-                  value={form.amount}
-                  onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Valor (R$) *</Label>
+                  <Input
+                    type="number"
+                    placeholder="1500"
+                    className="text-xs"
+                    value={form.amount}
+                    onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Tipo de Gasto</Label>
+                  <Select
+                    value={form.nature}
+                    onValueChange={(v) => setForm((f) => ({ ...f, nature: v as ExpenseNature }))}
+                  >
+                    <SelectTrigger className="w-full text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {NATURES.map((n) => (
+                        <SelectItem key={n.value} value={n.value}>
+                          {n.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Categoria</Label>
-                <Select
-                  value={form.category}
-                  onValueChange={(v) => setForm((f) => ({ ...f, category: v as ExpenseCategory }))}
-                >
-                  <SelectTrigger className="w-full text-xs">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CATEGORIES.map((c) => (
-                      <SelectItem key={c.value} value={c.value}>
-                        {c.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Categoria</Label>
+                  <Select
+                    value={form.category}
+                    onValueChange={(v) => setForm((f) => ({ ...f, category: v as ExpenseCategory }))}
+                  >
+                    <SelectTrigger className="w-full text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {CATEGORIES.map((c) => (
+                        <SelectItem key={c.value} value={c.value}>
+                          {c.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold">Data de Vencimento</Label>
+                  <Input
+                    type="date"
+                    className="text-xs"
+                    value={form.dueDate}
+                    onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
+                  />
+                </div>
               </div>
               {form.category === "freelancer" && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Freelancer</Label>
+                  <Label className="text-xs font-semibold">Freelancer Alocado</Label>
                   <Select
                     value={form.freelancerId}
                     onValueChange={(v) => setForm((f) => ({ ...f, freelancerId: v }))}
@@ -1298,64 +1364,88 @@ function GestorFinanceView() {
                 <table className="w-full text-sm">
                   <thead className="bg-stone-50/80 text-[11px] uppercase tracking-wider text-stone-500 border-y border-stone-200">
                     <tr>
-                      <th className="text-left px-4 py-3 font-bold">Descrição</th>
+                      <th className="text-left px-4 py-3 font-bold">Descrição / Origem</th>
+                      <th className="text-left px-4 py-3 font-bold">Tipo</th>
                       <th className="text-left px-4 py-3 font-bold">Categoria</th>
+                      <th className="text-left px-4 py-3 font-bold">Vencimento</th>
                       <th className="text-right px-4 py-3 font-bold">Valor</th>
                       <th className="text-left px-4 py-3 font-bold">Status</th>
                       <th className="text-right px-4 py-3 font-bold">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-stone-200">
-                    {combinedExpenses.map((e) => (
-                      <tr key={e.id} className="hover:bg-stone-50/50 transition-colors">
-                        <td className="px-4 py-3.5 font-semibold text-stone-900">
-                          <div>{e.description}</div>
-                          {e.projectName && (
+                    {combinedExpenses.map((e) => {
+                      const isFixo = e.nature === "fixo";
+                      const formattedDueDate = e.dueDate
+                        ? new Date(e.dueDate).toLocaleDateString("pt-BR")
+                        : "—";
+
+                      return (
+                        <tr key={e.id} className="hover:bg-stone-50/50 transition-colors">
+                          <td className="px-4 py-3.5 font-semibold text-stone-900">
+                            <div>{e.description}</div>
                             <span className="text-[11px] font-normal text-stone-500">
-                              Projeto: {e.projectName}
+                              {e.projectName
+                                ? `Projeto: ${e.projectName}`
+                                : "🏢 Despesa Corporativa (Empresa)"}
                             </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3.5 capitalize text-xs text-stone-600">
-                          <Badge variant="outline" className="text-xs font-normal">
-                            {CATEGORIES.find((c) => c.value === e.category)?.label || e.category}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3.5 text-right font-extrabold text-stone-900">
-                          {money(e.amount)}
-                        </td>
-                        <td className="px-4 py-3.5">
-                          <Select
-                            value={e.status}
-                            onValueChange={(st) =>
-                              handleUpdateExpenseStatus(e.id, st as ExpenseStatus)
-                            }
-                          >
-                            <SelectTrigger className="w-32 h-8 text-xs bg-white border-stone-200">
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {STATUSES.map((s) => (
-                                <SelectItem key={s} value={s}>
-                                  {s}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </td>
-                        <td className="px-4 py-3.5 text-right">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md"
-                            onClick={() => handleDeleteExpense(e.id)}
-                            title="Remover despesa"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <Badge
+                              variant="outline"
+                              className={
+                                isFixo
+                                  ? "bg-purple-50 text-purple-700 border-purple-200 text-xs font-semibold"
+                                  : "bg-slate-50 text-slate-700 border-slate-200 text-xs font-normal"
+                              }
+                            >
+                              {isFixo ? "Gasto Fixo Mensal" : "Variável"}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3.5 capitalize text-xs text-stone-600">
+                            <Badge variant="outline" className="text-xs font-normal">
+                              {CATEGORIES.find((c) => c.value === e.category)?.label || e.category}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3.5 text-xs text-stone-600">
+                            {formattedDueDate}
+                          </td>
+                          <td className="px-4 py-3.5 text-right font-extrabold text-stone-900">
+                            {money(e.amount)}
+                          </td>
+                          <td className="px-4 py-3.5">
+                            <Select
+                              value={e.status}
+                              onValueChange={(st) =>
+                                handleUpdateExpenseStatus(e.id, st as ExpenseStatus)
+                              }
+                            >
+                              <SelectTrigger className="w-32 h-8 text-xs bg-white border-stone-200">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {STATUSES.map((s) => (
+                                  <SelectItem key={s} value={s}>
+                                    {s}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </td>
+                          <td className="px-4 py-3.5 text-right">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                              onClick={() => handleDeleteExpense(e.id)}
+                              title="Remover despesa"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      );
+                    })}
 
                     {combinedExpenses.length === 0 && (
                       <tr>
