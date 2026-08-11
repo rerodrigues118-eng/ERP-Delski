@@ -43,6 +43,7 @@ import { toast } from "sonner";
 import {
   useClientDetail,
   useUpdateClient,
+  useDeleteClient,
   useLinkProjectClient,
   useUnlinkProjectClient,
   useResendClientInvite,
@@ -52,7 +53,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 export const Route = createFileRoute("/app/clients/$id")({
   head: () => ({
-    meta: [{ title: "Detalhes do Cliente — Delski ERP" }],
+    meta: [{ title: "Detalhes do Cliente — DELSKI CLOUD" }],
   }),
   component: ClientDetailPage,
 });
@@ -66,6 +67,7 @@ function ClientDetailPage() {
   const { data: allProjects = [] } = useProjects();
 
   const updateClient = useUpdateClient();
+  const deleteClient = useDeleteClient();
   const linkProject = useLinkProjectClient();
   const unlinkProject = useUnlinkProjectClient();
   const resendInvite = useResendClientInvite();
@@ -79,6 +81,9 @@ function ClientDetailPage() {
   // Modal link project state
   const [openLinkModal, setOpenLinkModal] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+
+  // Modal delete client state
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
 
   useEffect(() => {
     if (client) {
@@ -227,11 +232,50 @@ function ClientDetailPage() {
               className={
                 client.status === "bloqueado"
                   ? "text-xs border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
-                  : "text-xs border-rose-500/30 text-rose-400 hover:bg-rose-500/10"
+                  : "text-xs border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
               }
             >
               {client.status === "bloqueado" ? "Ativar Acesso" : "Bloquear Acesso"}
             </Button>
+
+            <Dialog open={openDeleteModal} onOpenChange={setOpenDeleteModal}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="gap-1.5 text-xs">
+                  <Trash2 className="h-3.5 w-3.5" /> Excluir Cliente
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-rose-600">
+                    <Trash2 className="h-5 w-5" /> Excluir Conta do Cliente
+                  </DialogTitle>
+                  <DialogDescription>
+                    Tem certeza de que deseja apagar o acesso e cadastro do cliente{" "}
+                    <strong>"{client.full_name}"</strong>? Esta ação removerá a conta do banco de
+                    dados e desvinculará seus projetos.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                  <Button variant="outline" onClick={() => setOpenDeleteModal(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={deleteClient.isPending}
+                    onClick={() => {
+                      deleteClient.mutate(client.id, {
+                        onSuccess: () => {
+                          setOpenDeleteModal(false);
+                          navigate({ to: "/app/clients" });
+                        },
+                      });
+                    }}
+                  >
+                    {deleteClient.isPending ? "Excluindo..." : "Sim, Excluir Cliente"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>

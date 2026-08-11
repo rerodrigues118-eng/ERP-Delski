@@ -41,7 +41,7 @@ import { useFreelancers } from "@/hooks/useProfiles";
 export const Route = createFileRoute("/app/")({
   head: () => ({
     meta: [
-      { title: "Dashboard — Delski ERP" },
+      { title: "Dashboard — DELSKI CLOUD" },
       {
         name: "description",
         content: "Painel corporativo da agência Delski para acompanhamento de projetos e freelancers.",

@@ -27,7 +27,7 @@ const registerSchema = z
 export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
-      { title: "Acesso & Cadastro — Delski ERP" },
+      { title: "Acesso & Cadastro — DELSKI CLOUD" },
       {
         name: "description",
         content: "Portal de acesso e cadastro de freelancers Delski.",
@@ -118,7 +118,26 @@ function AuthPage() {
         return;
       }
 
-      if (authData?.session || authData?.user) {
+      if (authData?.user) {
+        const userEmail = (authData.user.email || "").toLowerCase().trim();
+        const { data: pCheck } = await supabase
+          .from("profiles")
+          .select("status")
+          .eq("id", authData.user.id)
+          .maybeSingle();
+
+        const { data: cCheck } = await (supabase.from("clients") as any)
+          .select("status")
+          .ilike("email", userEmail)
+          .maybeSingle();
+
+        if (pCheck?.status === "bloqueado" || cCheck?.status === "bloqueado") {
+          await supabase.auth.signOut();
+          toast.error("Sua conta está bloqueada pelo gestor. Acesso negado.");
+          setLoading(false);
+          return;
+        }
+
         toast.success("Login realizado com sucesso!");
         navigate({ to: "/app", replace: true });
       }
@@ -249,10 +268,15 @@ function AuthPage() {
     <div className="min-h-screen flex flex-col justify-between items-center bg-gray-50/60 p-6 sm:p-12">
       {/* Brand Header */}
       <div className="flex items-center gap-3 pt-4">
-        <div className="h-11 w-11 flex items-center justify-center">
-          <img src="/logo.png" alt="Delski Logo" className="h-11 w-11 object-contain" />
+        <div className="h-12 w-12 flex items-center justify-center">
+          <img src="/logo.png" alt="Delski Logo" className="h-12 w-12 object-contain transition-transform hover:scale-105" />
         </div>
-        <span className="text-xl font-bold tracking-tight text-gray-900">DELSKI ERP</span>
+        <span className="text-xl font-bold tracking-tight text-gray-900 flex items-center gap-1.5">
+          DELSKI{" "}
+          <span className="bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent font-extrabold uppercase">
+            CLOUD
+          </span>
+        </span>
       </div>
 
       {/* Main Form Box */}

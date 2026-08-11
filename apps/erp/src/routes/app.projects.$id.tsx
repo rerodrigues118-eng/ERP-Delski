@@ -58,6 +58,7 @@ import {
   useProject,
   useUpdateProject,
   useAssignFreelancer,
+  useDeleteProject,
   type ProjectStatus,
 } from "@/hooks/useProjects";
 import {
@@ -80,7 +81,7 @@ import { TriageFormBuilderSection } from "@/components/TriageFormBuilderSection"
 
 export const Route = createFileRoute("/app/projects/$id")({
   head: () => ({
-    meta: [{ title: "Detalhes do Projeto — Delski ERP" }],
+    meta: [{ title: "Detalhes do Projeto — DELSKI CLOUD" }],
   }),
   component: ProjectDetailPage,
 });
@@ -124,6 +125,7 @@ function ProjectDetailPage() {
   const { data: candidaturas = [], isLoading: loadingCandidaturas } = useProjectCandidaturas(id);
 
   const updateProject = useUpdateProject();
+  const deleteProject = useDeleteProject();
   const approveCandidato = useApproveCandidato();
   const updateCandidatura = useUpdateCandidatura();
   const assignFreelancer = useAssignFreelancer();
@@ -132,6 +134,7 @@ function ProjectDetailPage() {
   const deleteTask = useDeleteTask();
 
   // States
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [activeBriefingTab, setActiveBriefingTab] = useState("overview");
   const [briefingText, setBriefingText] = useState("");
   const [driveInput, setDriveInput] = useState("");
@@ -561,7 +564,7 @@ function ProjectDetailPage() {
                 updateProject.mutate({ id: project.id, patch: { status: status as ProjectStatus } })
               }
             >
-              <SelectTrigger className="w-[220px] bg-card border-border">
+              <SelectTrigger className="w-[200px] bg-card border-border">
                 <SelectValue placeholder="Alterar Status" />
               </SelectTrigger>
               <SelectContent>
@@ -572,6 +575,45 @@ function ProjectDetailPage() {
                 ))}
               </SelectContent>
             </Select>
+
+            <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+              <DialogTrigger asChild>
+                <Button variant="destructive" size="sm" className="gap-1.5 font-medium">
+                  <Trash2 className="h-4 w-4" /> Excluir Projeto
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2 text-rose-600">
+                    <Trash2 className="h-5 w-5" /> Confirmar Exclusão de Projeto
+                  </DialogTitle>
+                  <DialogDescription>
+                    Tem certeza de que deseja excluir permanentemente o projeto{" "}
+                    <strong>"{project.title}"</strong>? Esta ação removerá o projeto e todos os
+                    registros associados no banco de dados e não poderá ser desfeita.
+                  </DialogDescription>
+                </DialogHeader>
+                <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                  <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    disabled={deleteProject.isPending}
+                    onClick={() => {
+                      deleteProject.mutate(project.id, {
+                        onSuccess: () => {
+                          setShowDeleteConfirm(false);
+                          navigate({ to: "/app/projects" });
+                        },
+                      });
+                    }}
+                  >
+                    {deleteProject.isPending ? "Excluindo..." : "Sim, Excluir Projeto"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
 
             <Button variant="outline" onClick={handleCopyCandidacyLink} className="gap-1.5 text-xs">
               <Copy className="h-3.5 w-3.5" />{" "}

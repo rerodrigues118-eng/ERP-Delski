@@ -35,7 +35,7 @@ import {
 
 export const Route = createFileRoute("/app/projects/")({
   head: () => ({
-    meta: [{ title: "Projetos — Delski ERP" }],
+    meta: [{ title: "Projetos — DELSKI CLOUD" }],
   }),
   component: ProjectsListPage,
 });

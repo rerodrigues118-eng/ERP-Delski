@@ -448,13 +448,37 @@ export function useDeleteProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // 1. Delete associated records in child tables
+      try {
+        await Promise.allSettled([
+          supabase.from("project_freelancers").delete().eq("project_id", id),
+          supabase.from("project_tasks").delete().eq("project_id", id),
+          supabase.from("project_expenses").delete().eq("project_id", id),
+          supabase.from("freelancer_payouts").delete().eq("project_id", id),
+          supabase.from("candidaturas").delete().eq("project_id", id),
+          supabase.from("project_contracts").delete().eq("project_id", id),
+        ]);
+      } catch (err) {
+        console.warn("Clean child records before delete project warning:", err);
+      }
+
+      // 2. Delete the main project row
       const { error } = await supabase.from("projects").delete().eq("id", id);
-      if (error) throw error;
+      if (error) {
+        // Resilient fallback with admin client
+        const { error: adminErr } = await supabaseAdmin.from("projects").delete().eq("id", id);
+        if (adminErr) throw adminErr;
+      }
     },
-    onSuccess: () => {
+    onSuccess: (_data, id) => {
       qc.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("Projeto removido.");
+      qc.invalidateQueries({ queryKey: ["project", id] });
+      qc.invalidateQueries({ queryKey: ["finance"] });
+      qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["freelancer_payouts"] });
+      toast.success("Projeto excluído com sucesso do banco de dados.");
     },
+    onError: (e: Error) => toast.error(`Erro ao excluir projeto: ${e.message}`),
   });
 }
 

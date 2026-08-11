@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export interface Profile {
   id: string;
@@ -7,6 +8,7 @@ export interface Profile {
   email: string;
   auth_user_id?: string | null;
   role: "gestor" | "freelancer" | "cliente";
+  status?: "ativo" | "bloqueado" | "convidado";
   created_at: string;
   contract_fields_status?: "pendente" | "completo";
   documents_status?: "pendente" | "em_analise" | "aprovado" | "rejeitado";
@@ -48,6 +50,7 @@ export function useFreelancers() {
 
         const candidate = {
           ...p,
+          status: p.status || extra?.status || "ativo",
           contract_fields_status: extra?.contract_fields_status ?? "pendente",
           documents_status: extra?.documents_status ?? (docsCount > 0 ? "em_analise" : "pendente"),
           contract_field_values: extra?.contract_field_values ?? {},
@@ -108,6 +111,7 @@ export function useClients() {
             full_name: c.company_name ? `${c.full_name} (${c.company_name})` : c.full_name,
             email: c.email,
             role: "cliente",
+            status: c.status || "ativo",
             created_at: c.created_at,
           });
         });
@@ -139,5 +143,60 @@ export function useProfiles() {
       if (error) throw error;
       return (data ?? []) as Profile[];
     },
+  });
+}
+
+// ── Mutation: Toggle Freelancer Block Access ──────────────────────────────────
+export function useToggleFreelancerBlock() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, newStatus }: { id: string; newStatus: "ativo" | "bloqueado" }) => {
+      const { error } = await supabase.from("profiles").update({ status: newStatus }).eq("id", id);
+      if (error) {
+        await supabaseAdmin.from("profiles").update({ status: newStatus }).eq("id", id);
+      }
+      try {
+        await (supabase.from("freelancers") as any).update({ status: newStatus }).eq("id", id);
+      } catch {}
+    },
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: ["freelancers"] });
+      qc.invalidateQueries({ queryKey: ["profiles"] });
+      toast.success(
+        vars.newStatus === "bloqueado"
+          ? "Acesso do freelancer bloqueado!"
+          : "Acesso do freelancer ativado!",
+      );
+    },
+    onError: (e: Error) => toast.error(`Erro ao alterar acesso do freelancer: ${e.message}`),
+  });
+}
+
+// ── Mutation: Delete Freelancer Account ───────────────────────────────────────
+export function useDeleteFreelancer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await Promise.allSettled([
+        supabase.from("project_freelancers").delete().eq("freelancer_id", id),
+        supabase.from("freelancer_payouts").delete().eq("freelancer_id", id),
+        (supabase.from("freelancer_documents") as any).delete().eq("freelancer_id", id),
+        (supabase.from("generated_contracts") as any).delete().eq("freelancer_id", id),
+        (supabase.from("freelancers") as any).delete().eq("id", id),
+      ]);
+
+      const { error } = await supabase.from("profiles").delete().eq("id", id);
+      if (error) {
+        const { error: adminErr } = await supabaseAdmin.from("profiles").delete().eq("id", id);
+        if (adminErr) throw adminErr;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["freelancers"] });
+      qc.invalidateQueries({ queryKey: ["profiles"] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Conta e acessos do freelancer excluídos do banco de dados.");
+    },
+    onError: (e: Error) => toast.error(`Erro ao excluir freelancer: ${e.message}`),
   });
 }

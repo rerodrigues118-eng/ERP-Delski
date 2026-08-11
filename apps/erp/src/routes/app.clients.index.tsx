@@ -31,6 +31,7 @@ import {
   useClientsList,
   useCreateClient,
   useUpdateClient,
+  useDeleteClient,
   useResendClientInvite,
   type ClientItem,
 } from "@/hooks/useClients";
@@ -49,7 +50,7 @@ import {
 export const Route = createFileRoute("/app/clients/")({
   head: () => ({
     meta: [
-      { title: "Clientes & CRM — Delski ERP" },
+      { title: "Clientes & CRM — DELSKI CLOUD" },
       { name: "description", content: "Gestão de clientes, acessos e funil comercial." },
     ],
   }),
@@ -72,7 +73,10 @@ function ClientsPage() {
 
   const createClient = useCreateClient();
   const updateClient = useUpdateClient();
+  const deleteClient = useDeleteClient();
   const resendInvite = useResendClientInvite();
+
+  const [deletingClient, setDeletingClient] = useState<ClientItem | null>(null);
 
   // Search & Filter state (Clientes)
   const [search, setSearch] = useState("");
@@ -624,10 +628,19 @@ function ClientsPage() {
                           className={
                             client.status === "bloqueado"
                               ? "text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer"
-                              : "text-xs text-rose-600 hover:text-rose-700 cursor-pointer"
+                              : "text-xs text-amber-600 hover:text-amber-700 cursor-pointer"
                           }
                         >
                           {client.status === "bloqueado" ? "Desbloquear" : "Bloquear"}
+                        </Button>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setDeletingClient(client)}
+                          className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer gap-1"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Excluir
                         </Button>
 
                         <Button
@@ -647,6 +660,40 @@ function ClientsPage() {
               )}
             </CardContent>
           </Card>
+
+          {/* Delete Client Confirmation Modal */}
+          <Dialog open={!!deletingClient} onOpenChange={(v) => !v && setDeletingClient(null)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-rose-600">
+                  <Trash2 className="h-5 w-5" /> Confirmar Exclusão de Cliente
+                </DialogTitle>
+                <DialogDescription>
+                  Tem certeza de que deseja excluir permanentemente o cliente{" "}
+                  <strong>"{deletingClient?.full_name}"</strong>? O cadastro e acesso serão
+                  removidos do banco de dados.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                <Button variant="outline" onClick={() => setDeletingClient(null)}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={deleteClient.isPending}
+                  onClick={() => {
+                    if (deletingClient) {
+                      deleteClient.mutate(deletingClient.id, {
+                        onSuccess: () => setDeletingClient(null),
+                      });
+                    }
+                  }}
+                >
+                  {deleteClient.isPending ? "Excluindo..." : "Sim, Excluir Cliente"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </TabsContent>
 
         <TabsContent value="funil" className="space-y-6 mt-6">

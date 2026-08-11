@@ -48,6 +48,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useDeletePayout } from "@/hooks/useExpenses";
 import {
   useFreelancerFinanceProjects,
   useClienteFinanceProjects,
@@ -64,7 +65,7 @@ import {
 export const Route = createFileRoute("/app/finance")({
   head: () => ({
     meta: [
-      { title: "Financeiro — Delski ERP" },
+      { title: "Financeiro — DELSKI CLOUD" },
       {
         name: "description",
         content: "Receitas, despesas, repasses de freelancers e investimento do cliente.",
@@ -495,6 +496,7 @@ function GestorFinanceView() {
   const addExpense = useStore((s) => s.addExpense);
   const updateExpenseStatus = useStore((s) => s.updateExpenseStatus);
   const removeExpense = useStore((s) => s.removeExpense);
+  const deletePayout = useDeletePayout();
 
   const queryClient = useQueryClient();
 
@@ -1513,7 +1515,7 @@ function GestorFinanceView() {
                               <span className="text-xs text-stone-400">Sem comprovante</span>
                             )}
                           </td>
-                          <td className="px-4 py-3.5 text-right">
+                          <td className="px-4 py-3.5 text-right flex items-center justify-end gap-1.5">
                             {isPaid ? (
                               <Button
                                 size="sm"
@@ -1532,6 +1534,20 @@ function GestorFinanceView() {
                                 Pagar / Anexar
                               </Button>
                             )}
+
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                              onClick={() => {
+                                if (window.confirm("Deseja realmente apagar este registro de pagamento de freela?")) {
+                                  deletePayout.mutate(p.id);
+                                }
+                              }}
+                              title="Remover pagamento de freela"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </td>
                         </tr>
                       );

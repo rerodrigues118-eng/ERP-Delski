@@ -128,9 +128,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .maybeSingle();
 
         if (byId) {
+          if (byId.status === "bloqueado") {
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setRole(null);
+            }
+            return;
+          }
+
           if (isMounted) {
-            // DB avatar_url is the source of truth for this user (isolated by user.id)
-            // Only fall back to metadata or localStorage if DB has no avatar
             const avatar =
               byId.avatar_url ||
               (u.user_metadata as any)?.avatar_url ||
@@ -152,8 +161,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .maybeSingle();
 
           if (byEmail) {
+            if (byEmail.status === "bloqueado") {
+              await supabase.auth.signOut();
+              if (isMounted) {
+                setSession(null);
+                setUser(null);
+                setProfile(null);
+                setRole(null);
+              }
+              return;
+            }
+
             if (isMounted) {
-              // DB avatar_url is source of truth — user is now linked by auth ID
               const avatar =
                 byEmail.avatar_url ||
                 (u.user_metadata as any)?.avatar_url ||
@@ -161,6 +180,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               const profileWithId = { ...byEmail, avatar_url: avatar, id: u.id, auth_user_id: u.id };
               setProfile(profileWithId as UserProfile);
               setRole(byEmail.role);
+            }
+            return;
+          }
+
+          // Check clients table for client status
+          const { data: clientRow } = await (supabase.from("clients") as any)
+            .select("*")
+            .ilike("email", normalizedEmail)
+            .limit(1)
+            .maybeSingle();
+
+          if (clientRow?.status === "bloqueado") {
+            await supabase.auth.signOut();
+            if (isMounted) {
+              setSession(null);
+              setUser(null);
+              setProfile(null);
+              setRole(null);
             }
             return;
           }

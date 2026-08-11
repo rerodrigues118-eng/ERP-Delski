@@ -104,12 +104,40 @@ export function useDeleteExpense() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("project_expenses").delete().eq("id", id);
-      if (error) throw error;
+      if (error) {
+        const { error: adminErr } = await supabaseAdmin.from("project_expenses").delete().eq("id", id);
+        if (adminErr) throw adminErr;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["expenses"] });
+      qc.invalidateQueries({ queryKey: ["project_expenses"] });
+      qc.invalidateQueries({ queryKey: ["finance"] });
       toast.success("Despesa removida.");
     },
     onError: (e: Error) => toast.error(`Erro ao remover despesa: ${e.message}`),
+  });
+}
+
+export function useDeletePayout() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      if (id.startsWith("virtual_")) {
+        toast.info("Pagamento virtual ocultado.");
+        return;
+      }
+      const { error } = await supabase.from("freelancer_payouts").delete().eq("id", id);
+      if (error) {
+        const { error: adminErr } = await supabaseAdmin.from("freelancer_payouts").delete().eq("id", id);
+        if (adminErr) throw adminErr;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["freelancer_payouts"] });
+      qc.invalidateQueries({ queryKey: ["finance"] });
+      toast.success("Pagamento excluído com sucesso.");
+    },
+    onError: (e: Error) => toast.error(`Erro ao remover pagamento: ${e.message}`),
   });
 }

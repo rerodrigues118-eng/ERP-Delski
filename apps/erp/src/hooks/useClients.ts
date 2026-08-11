@@ -256,11 +256,12 @@ export function useUpdateClient() {
       // Update clients table
       await (supabase.from("clients") as any).update(patch).eq("id", id);
 
-      // Update profiles if name/email changed
-      if (patch.full_name || patch.email) {
-        const updateData: any = {};
-        if (patch.full_name) updateData.full_name = patch.full_name;
-        if (patch.email) updateData.email = patch.email;
+      // Update profiles if name, email or status changed
+      const updateData: any = {};
+      if (patch.full_name) updateData.full_name = patch.full_name;
+      if (patch.email) updateData.email = patch.email;
+      if (patch.status) updateData.status = patch.status;
+      if (Object.keys(updateData).length > 0) {
         await supabase.from("profiles").update(updateData).eq("id", id);
       }
     },
@@ -268,9 +269,33 @@ export function useUpdateClient() {
       qc.invalidateQueries({ queryKey: ["clients-list"] });
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["client-detail", v.id] });
-      toast.success("Dados do cliente atualizados!");
+      toast.success("Dados e acesso do cliente atualizados!");
     },
     onError: (e: Error) => toast.error(`Erro: ${e.message}`),
+  });
+}
+
+// ── Mutation: delete client ──────────────────────────────────────────────────
+export function useDeleteClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      // 1. Unlink projects
+      await supabase.from("projects").update({ client_id: null }).eq("client_id", id);
+
+      // 2. Delete from clients table
+      await (supabase.from("clients") as any).delete().eq("id", id);
+
+      // 3. Delete from profiles table
+      await supabase.from("profiles").delete().eq("id", id);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clients-list"] });
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      toast.success("Cliente e seu acesso foram excluídos do banco de dados.");
+    },
+    onError: (e: Error) => toast.error(`Erro ao excluir cliente: ${e.message}`),
   });
 }
 

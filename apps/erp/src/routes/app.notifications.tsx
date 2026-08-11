@@ -22,7 +22,7 @@ import {
 export const Route = createFileRoute("/app/notifications")({
   head: () => ({
     meta: [
-      { title: "Notificações — Delski ERP" },
+      { title: "Notificações — DELSKI CLOUD" },
       {
         name: "description",
         content: "Central de alertas e notificações do gestor e dos freelancers.",
@@ -73,6 +73,18 @@ function NotificationsPage() {
     });
 
     const insertAlerts = async () => {
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const { data: todayNotifications } = await supabase
+        .from("notifications")
+        .select("message, title, created_at")
+        .eq("user_id", user.id)
+        .eq("type", "alerta")
+        .gte("created_at", startOfDay.toISOString());
+
+      const sentMessagesToday = new Set((todayNotifications ?? []).map((n) => n.message));
+
       const rows: Array<{
         user_id: string;
         title: string;
@@ -83,25 +95,33 @@ function NotificationsPage() {
       }> = [];
 
       for (const project of staleProjects) {
-        rows.push({
-          user_id: user.id,
-          title: "Projeto parado há mais de 7 dias",
-          message: `${project.title} está sem atualização e precisa de atenção do gestor.`,
-          type: "alerta",
-          read: false,
-          created_by: null,
-        });
+        const msg = `${project.title} está sem atualização e precisa de atenção do gestor.`;
+        if (!sentMessagesToday.has(msg)) {
+          rows.push({
+            user_id: user.id,
+            title: "Projeto parado há mais de 7 dias",
+            message: msg,
+            type: "alerta",
+            read: false,
+            created_by: null,
+          });
+          sentMessagesToday.add(msg);
+        }
       }
 
       for (const project of overdueProjects) {
-        rows.push({
-          user_id: user.id,
-          title: "Prazo de entrega vencido",
-          message: `${project.title} já passou do prazo previsto (${project.deadline}).`,
-          type: "alerta",
-          read: false,
-          created_by: null,
-        });
+        const msg = `${project.title} já passou do prazo previsto (${project.deadline}).`;
+        if (!sentMessagesToday.has(msg)) {
+          rows.push({
+            user_id: user.id,
+            title: "Prazo de entrega vencido",
+            message: msg,
+            type: "alerta",
+            read: false,
+            created_by: null,
+          });
+          sentMessagesToday.add(msg);
+        }
       }
 
       if (rows.length > 0) {

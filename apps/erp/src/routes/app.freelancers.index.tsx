@@ -12,11 +12,11 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
-import { Plus, Mail, Loader2, ShieldCheck, CheckCircle2, AlertCircle } from "lucide-react";
+import { DialogDescription } from "@/components/ui/dialog";
+import { Plus, Mail, Loader2, ShieldCheck, CheckCircle2, AlertCircle, Ban, Trash2 } from "lucide-react";
 import { sendWelcomeEmail } from "@/integrations/brevo";
 import { toast } from "sonner";
-import { useFreelancers } from "@/hooks/useProfiles";
+import { useFreelancers, useToggleFreelancerBlock, useDeleteFreelancer, type Profile } from "@/hooks/useProfiles";
 import { useProjects } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,8 +25,8 @@ import { useAuth } from "@/hooks/useAuth";
 export const Route = createFileRoute("/app/freelancers/")({
   head: () => ({
     meta: [
-      { title: "Freelancers — Delski" },
-      { name: "description", content: "Time de especialistas parceiros da agência Delski." },
+      { title: "Freelancers — DELSKI CLOUD" },
+      { name: "description", content: "Time de especialistas parceiros do DELSKI CLOUD." },
     ],
   }),
   component: FreelancersPage,
@@ -37,8 +37,11 @@ function FreelancersPage() {
   const { isGestor, loading: authLoading } = useAuth();
   const { data: freelancers = [], isLoading } = useFreelancers();
   const { data: projects = [] } = useProjects();
+  const toggleBlock = useToggleFreelancerBlock();
+  const deleteFreelancer = useDeleteFreelancer();
   const queryClient = useQueryClient();
 
+  const [deletingFreelancer, setDeletingFreelancer] = useState<Profile | null>(null);
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -291,6 +294,29 @@ function FreelancersPage() {
                         >
                           <Mail className="h-4 w-4" />
                         </button>
+                        <button
+                          onClick={() =>
+                            toggleBlock.mutate({
+                              id: f.id,
+                              newStatus: f.status === "bloqueado" ? "ativo" : "bloqueado",
+                            })
+                          }
+                          title={f.status === "bloqueado" ? "Desbloquear Acesso" : "Bloquear Acesso"}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            f.status === "bloqueado"
+                              ? "hover:bg-emerald-50 text-emerald-600"
+                              : "hover:bg-amber-50 text-amber-500"
+                          }`}
+                        >
+                          <Ban className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => setDeletingFreelancer(f)}
+                          title="Excluir Freelancer"
+                          className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-500 hover:text-rose-700 transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -306,6 +332,40 @@ function FreelancersPage() {
             </tbody>
           </table>
         )}
+
+        {/* Delete Freelancer Confirmation Modal */}
+        <Dialog open={!!deletingFreelancer} onOpenChange={(v) => !v && setDeletingFreelancer(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-rose-600">
+                <Trash2 className="h-5 w-5" /> Confirmar Exclusão de Freelancer
+              </DialogTitle>
+              <DialogDescription>
+                Tem certeza de que deseja excluir permanentemente o freelancer{" "}
+                <strong>"{deletingFreelancer?.full_name}"</strong>? O perfil e todos os acessos
+                serão removidos do banco de dados.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2 sm:gap-0 mt-4">
+              <Button variant="outline" onClick={() => setDeletingFreelancer(null)}>
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={deleteFreelancer.isPending}
+                onClick={() => {
+                  if (deletingFreelancer) {
+                    deleteFreelancer.mutate(deletingFreelancer.id, {
+                      onSuccess: () => setDeletingFreelancer(null),
+                    });
+                  }
+                }}
+              >
+                {deleteFreelancer.isPending ? "Excluindo..." : "Sim, Excluir Freelancer"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

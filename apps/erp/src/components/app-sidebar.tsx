@@ -216,14 +216,14 @@ export function AppSidebar() {
               isCollapsed ? "" : "overflow-hidden pl-1"
             }`}
           >
-            <div className="flex items-center justify-center w-9 h-9 flex-shrink-0">
-              <img src="/logo.png" alt="Delski Logo" className="h-9 w-9 object-contain" />
+            <div className="flex items-center justify-center w-10 h-10 flex-shrink-0">
+              <img src="/logo.png" alt="Delski Logo" className="h-[42px] w-[42px] object-contain transition-transform hover:scale-105" />
             </div>
             {!isCollapsed && (
               <div className="flex items-baseline gap-1.5 whitespace-nowrap">
-                <span className="text-[15px] font-bold text-gray-900 tracking-tight">Delski</span>
-                <span className="text-[10px] font-bold text-gray-900 tracking-wider">
-                  ERP
+                <span className="text-[16px] font-bold text-gray-900 tracking-tight">Delski</span>
+                <span className="text-[12px] font-extrabold tracking-wider bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent uppercase">
+                  CLOUD
                 </span>
               </div>
             )}

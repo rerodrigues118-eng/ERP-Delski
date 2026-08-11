@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -36,10 +36,13 @@ import {
   Eye,
   Download,
   Upload,
+  Ban,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useToggleFreelancerBlock, useDeleteFreelancer } from "@/hooks/useProfiles";
 import {
   useFreelancerContractInfo,
   useFreelancerDocuments,
@@ -54,7 +57,7 @@ import {
 
 export const Route = createFileRoute("/app/freelancers/$id")({
   head: () => ({
-    meta: [{ title: "Perfil do Freelancer — Delski" }],
+    meta: [{ title: "Perfil do Freelancer — DELSKI CLOUD" }],
   }),
   component: FreelancerDetailPage,
 });
@@ -106,6 +109,7 @@ function humanizeFieldName(key: string, variables: any[] = []): string {
 
 function FreelancerDetailPage() {
   const { id } = Route.useParams();
+  const navigate = useNavigate();
   const qc = useQueryClient();
 
   const [profile, setProfile] = useState<any | null>(null);
@@ -139,6 +143,10 @@ function FreelancerDetailPage() {
   const batchReviewDoc = useBatchReviewFreelancerDocuments();
   const saveContractFields = useSaveFreelancerContractFields();
   const uploadManagerContractPdf = useUploadManagerContractPdf();
+  const toggleBlock = useToggleFreelancerBlock();
+  const deleteFreelancer = useDeleteFreelancer();
+
+  const [openDeleteFreelancerModal, setOpenDeleteFreelancerModal] = useState(false);
 
   // Rejection modal state
   const [openRejectModal, setOpenRejectModal] = useState(false);
@@ -429,7 +437,65 @@ function FreelancerDetailPage() {
             </Badge>
           </div>
 
-          <Button variant="outline" asChild>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              toggleBlock.mutate({
+                id: activeFreelancerId,
+                newStatus: profile.status === "bloqueado" ? "ativo" : "bloqueado",
+              })
+            }
+            className={
+              profile.status === "bloqueado"
+                ? "text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 gap-1.5"
+                : "text-xs border-amber-500/30 text-amber-600 hover:bg-amber-50 gap-1.5"
+            }
+          >
+            <Ban className="h-3.5 w-3.5" />
+            {profile.status === "bloqueado" ? "Ativar Acesso" : "Bloquear Acesso"}
+          </Button>
+
+          <Dialog open={openDeleteFreelancerModal} onOpenChange={setOpenDeleteFreelancerModal}>
+            <DialogTrigger asChild>
+              <Button variant="destructive" size="sm" className="gap-1.5 text-xs">
+                <Trash2 className="h-3.5 w-3.5" /> Excluir Freelancer
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-rose-600">
+                  <Trash2 className="h-5 w-5" /> Excluir Perfil do Freelancer
+                </DialogTitle>
+                <DialogDescription>
+                  Tem certeza de que deseja excluir o freelancer{" "}
+                  <strong>"{profile.full_name}"</strong>? O cadastro, documentos e permissões
+                  serão excluídos do banco de dados.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter className="gap-2 sm:gap-0 mt-4">
+                <Button variant="outline" onClick={() => setOpenDeleteFreelancerModal(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={deleteFreelancer.isPending}
+                  onClick={() => {
+                    deleteFreelancer.mutate(activeFreelancerId, {
+                      onSuccess: () => {
+                        setOpenDeleteFreelancerModal(false);
+                        navigate({ to: "/app/freelancers" });
+                      },
+                    });
+                  }}
+                >
+                  {deleteFreelancer.isPending ? "Excluindo..." : "Sim, Excluir Freelancer"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Button variant="outline" size="sm" asChild>
             <Link to="/app/freelancers">Voltar</Link>
           </Button>
         </div>
