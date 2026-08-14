@@ -17,6 +17,7 @@
     "build:erp": "npm --prefix apps/erp run build",
     "preview": "npm --prefix apps/erp run preview",
     "preview:erp": "npm --prefix apps/erp run preview",
+    "deploy": "npx wrangler pages deploy dist --project-name=erp-delski",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
