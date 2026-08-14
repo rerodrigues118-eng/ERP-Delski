@@ -1,22 +1,20 @@
 #!/bin/sh
 # Workaround for wrangler v4 workspace detection in monorepos.
 # Wrangler v4 refuses to run `wrangler deploy` at the root of a workspace.
-# This wrapper creates a temporary directory without workspace markers
-# and runs the real wrangler from there.
+# This wrapper intercepts the deploy command and uses `wrangler pages deploy`
+# which is the correct command for Cloudflare Pages projects.
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+
+echo "🔧 Deploying from temp context to bypass workspace detection..."
+
+# Use wrangler pages deploy with the dist directory from the repo root
+# This avoids workspace detection entirely
 TMPDIR=$(mktemp -d)
 trap "rm -rf $TMPDIR" EXIT
 
-# Copy wrangler config
-cp "$REPO_ROOT/wrangler.json" "$TMPDIR/" 2>/dev/null || true
-
-# Symlink the dist directory
-ln -s "$REPO_ROOT/dist" "$TMPDIR/dist"
-
-# Create a minimal package.json (no workspaces field)
+# Create a clean context (no workspace markers)
 echo '{"name":"deploy-context","private":true}' > "$TMPDIR/package.json"
 
-echo "🔧 Deploying from temp context to bypass workspace detection..."
 cd "$TMPDIR"
-npx --yes wrangler@4 "$@"
+npx --yes wrangler@4 pages deploy "$REPO_ROOT/dist" --project-name=erp-delski
