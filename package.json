@@ -11,6 +11,7 @@
     "packages/*"
   ],
   "scripts": {
+    "postinstall": "node scripts/setup-deploy.mjs",
     "dev": "npm --prefix apps/erp run dev",
     "dev:erp": "npm --prefix apps/erp run dev",
     "build": "npm --prefix apps/erp run build",
