@@ -33,6 +33,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       "/client.tsx": path.resolve(__dirname, "./src/client.tsx"),
       "client.tsx": path.resolve(__dirname, "./src/client.tsx"),
+      "pako/dist/pako.es5.min.js": "pako/dist/pako.min.js",
     },
   },
   build: {
