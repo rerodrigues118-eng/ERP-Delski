@@ -2,7 +2,8 @@ import { toast } from "sonner";
 
 const BREVO_API_KEY =
   import.meta.env.VITE_BREVO_API_KEY ||
-  "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";
+  (typeof window !== "undefined" ? (window as any).__ENV__?.VITE_BREVO_API_KEY : "") ||
+  "";
 
 const SENDER_EMAIL =
   import.meta.env.VITE_BREVO_SENDER_EMAIL ||

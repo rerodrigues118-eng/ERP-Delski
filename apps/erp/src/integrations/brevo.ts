@@ -2,8 +2,9 @@ import { toast } from "sonner";
 
 const rawBrevoKey =
   (typeof import.meta !== "undefined" && import.meta.env && (import.meta.env.VITE_BREVO_API_KEY || (import.meta.env as any).BREVO_API_KEY)) ||
+  (typeof window !== "undefined" && (window as any).__ENV__?.VITE_BREVO_API_KEY) ||
   (typeof process !== "undefined" && (process.env?.BREVO_API_KEY || process.env?.VITE_BREVO_API_KEY)) ||
-  "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";
+  "";
 
 const BREVO_API_KEY = typeof rawBrevoKey === "string" ? rawBrevoKey.trim() : "";
 
