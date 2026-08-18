@@ -38,6 +38,7 @@ import {
   ShieldCheck,
   Calendar,
   DollarSign,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {

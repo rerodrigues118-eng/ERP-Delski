@@ -429,54 +429,54 @@ function ClientsPage() {
 
       {/* Metrics Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="kpi-card">
-          <div className="flex items-center justify-between mb-3">
+        <div className="kpi-card bg-card border-border">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="section-label">Total</span>
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gray-50">
-              <Building2 className="h-4 w-4 text-gray-500" strokeWidth={1.75} />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-muted-foreground">
+              <Building2 className="h-4 w-4" strokeWidth={1.75} />
             </div>
           </div>
-          <div className="kpi-value">{totalClients}</div>
-          <p className="text-xs text-gray-400 mt-1.5">Clientes cadastrados</p>
+          <div className="kpi-value text-foreground">{totalClients}</div>
+          <p className="text-xs text-muted-foreground mt-0.5">Clientes cadastrados</p>
         </div>
 
-        <div className="kpi-card">
-          <div className="flex items-center justify-between mb-3">
+        <div className="kpi-card bg-card border-border">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="section-label">Ativos</span>
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-green-50">
-              <CheckCircle2 className="h-4 w-4 text-green-600" strokeWidth={1.75} />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500">
+              <CheckCircle2 className="h-4 w-4" strokeWidth={1.75} />
             </div>
           </div>
-          <div className="kpi-value text-green-700">{activeClients}</div>
-          <p className="text-xs text-gray-400 mt-1.5">Com acesso liberado</p>
+          <div className="kpi-value text-emerald-600 dark:text-emerald-400">{activeClients}</div>
+          <p className="text-xs text-muted-foreground mt-0.5">Com acesso liberado</p>
         </div>
 
-        <div className="kpi-card">
-          <div className="flex items-center justify-between mb-3">
+        <div className="kpi-card bg-card border-border">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="section-label">Convites Pendentes</span>
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-amber-50">
-              <Clock className="h-4 w-4 text-amber-600" strokeWidth={1.75} />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500">
+              <Clock className="h-4 w-4" strokeWidth={1.75} />
             </div>
           </div>
-          <div className="kpi-value text-amber-600">{invitedClients}</div>
-          <p className="text-xs text-gray-400 mt-1.5">Aguardando ativação</p>
+          <div className="kpi-value text-amber-600 dark:text-amber-400">{invitedClients}</div>
+          <p className="text-xs text-muted-foreground mt-0.5">Aguardando ativação</p>
         </div>
 
-        <div className="kpi-card">
-          <div className="flex items-center justify-between mb-3">
+        <div className="kpi-card bg-card border-border">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="section-label">Bloqueados</span>
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50">
-              <Ban className="h-4 w-4 text-red-500" strokeWidth={1.75} />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500">
+              <Ban className="h-4 w-4" strokeWidth={1.75} />
             </div>
           </div>
-          <div className="kpi-value text-red-600">{blockedClients}</div>
-          <p className="text-xs text-gray-400 mt-1.5">Acesso suspenso</p>
+          <div className="kpi-value text-rose-600 dark:text-rose-400">{blockedClients}</div>
+          <p className="text-xs text-muted-foreground mt-0.5">Acesso suspenso</p>
         </div>
       </div>
 
       {/* Unified Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 max-w-md bg-stone-150 p-1 rounded-lg border border-stone-200">
+        <TabsList className="grid w-full grid-cols-2 max-w-md bg-muted p-1 rounded-xl border border-border">
           <TabsTrigger value="diretorio" className="cursor-pointer font-bold">
             Diretório de Clientes
           </TabsTrigger>
@@ -487,22 +487,22 @@ function ClientsPage() {
 
         <TabsContent value="diretorio" className="space-y-6 mt-6">
           {/* Filter and Search Bar */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center bg-white rounded-2xl border border-gray-100 p-3 shadow-card">
+          <div className="flex flex-col sm:flex-row gap-3 justify-between items-stretch sm:items-center bg-card rounded-2xl border border-border p-3 shadow-subtle">
             <div className="relative flex-1">
-              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <Input
                 placeholder="Buscar por cliente, empresa ou e-mail..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-9 bg-gray-50 border-gray-100 text-sm rounded-xl h-9 focus-visible:ring-blue-500"
+                className="pl-9 bg-muted/60 dark:bg-zinc-900/90 border-border text-sm rounded-xl h-9 focus-visible:ring-primary text-foreground placeholder:text-muted-foreground"
               />
             </div>
 
             <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px] bg-gray-50 border-gray-100 text-xs rounded-xl h-9">
+              <SelectTrigger className="w-[180px] bg-muted/60 dark:bg-zinc-900/90 border-border text-xs rounded-xl h-9 text-foreground">
                 <SelectValue placeholder="Filtrar por Status" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent className="rounded-xl bg-popover border-border">
                 <SelectItem value="all">Todos os Status</SelectItem>
                 <SelectItem value="ativo">Ativos</SelectItem>
                 <SelectItem value="convidado">Convidados</SelectItem>
@@ -511,155 +511,160 @@ function ClientsPage() {
             </Select>
           </div>
 
-          {/* Table / List */}
-          <Card className="border border-border bg-card rounded-2xl shadow-subtle overflow-hidden">
-            <CardHeader className="pb-3 p-4 border-b border-border/70">
-              <CardTitle className="text-base font-bold text-foreground">
-                Lista de Clientes ({filteredClients.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {isLoading ? (
-                <div className="p-12 text-center text-sm text-muted-foreground flex justify-center items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" /> Carregando clientes...
-                </div>
-              ) : filteredClients.length === 0 ? (
-                <div className="p-16 text-center text-muted-foreground space-y-2 border-t border-border">
-                  <Building2 className="h-8 w-8 mx-auto text-muted-foreground/40" />
-                  <p className="text-sm font-semibold text-foreground">Nenhum cliente encontrado.</p>
-                </div>
-              ) : (
-                <div className="divide-y divide-border border-t border-border">
-                  {filteredClients.map((client) => (
-                    <div
-                      key={client.id}
-                      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-accent/40 transition-colors"
-                    >
-                      {/* Left: Info */}
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Link
-                            to="/app/clients/$id"
-                            params={{ id: client.id }}
-                            className="font-bold text-foreground hover:text-purple-600 dark:hover:text-purple-400 flex items-center gap-1.5 text-base transition-colors"
-                          >
-                            {client.full_name}
-                          </Link>
+          {/* Table / List Container */}
+          <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-subtle">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/70">
+              <h2 className="text-[14px] font-bold text-foreground">Lista de Clientes</h2>
+              <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-lg">
+                {filteredClients.length} registros
+              </span>
+            </div>
 
-                          {client.company_name && (
-                            <Badge
-                              variant="outline"
-                              className="bg-muted text-muted-foreground text-xs font-semibold border-border"
-                            >
-                              {client.company_name}
-                            </Badge>
-                          )}
+            {isLoading ? (
+              <div className="flex items-center justify-center py-16 gap-3">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <span className="text-sm text-muted-foreground">Buscando clientes...</span>
+              </div>
+            ) : filteredClients.length === 0 ? (
+              <div className="p-16 text-center text-muted-foreground space-y-2">
+                <Building2 className="h-8 w-8 mx-auto text-muted-foreground/40" />
+                <p className="text-sm font-semibold text-foreground">Nenhum cliente encontrado.</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="data-table w-full">
+                  <thead>
+                    <tr>
+                      <th>CLIENTE</th>
+                      <th>E-MAIL</th>
+                      <th>STATUS</th>
+                      <th>PROJETOS</th>
+                      <th className="text-right">AÇÕES</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredClients.map((client) => {
+                      const projectsCount = client.projects?.length || 0;
+                      return (
+                        <tr key={client.id} className="hover:bg-accent/40 transition-colors">
+                          {/* Coluna CLIENTE */}
+                          <td>
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                <span className="text-xs font-bold text-primary">
+                                  {(client.full_name || client.company_name || "?").charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div>
+                                <Link
+                                  to="/app/clients/$id"
+                                  params={{ id: client.id }}
+                                  className="font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors block"
+                                >
+                                  {client.full_name}
+                                </Link>
+                                {client.company_name && (
+                                  <span className="text-[11px] text-muted-foreground block">
+                                    {client.company_name}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </td>
 
-                          {/* Status Badge */}
-                          {client.status === "ativo" && (
-                            <Badge
-                              variant="outline"
-                              className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-semibold gap-1 text-xs px-2 py-0.5"
-                            >
-                              <CheckCircle2 className="h-3 w-3" /> Ativo
-                            </Badge>
-                          )}
-                          {client.status === "convidado" && (
-                            <Badge
-                              variant="outline"
-                              className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 font-semibold gap-1 text-xs px-2 py-0.5"
-                            >
-                              <Clock className="h-3 w-3" /> Convidado
-                            </Badge>
-                          )}
-                          {client.status === "bloqueado" && (
-                            <Badge
-                              variant="outline"
-                              className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 font-semibold gap-1 text-xs px-2 py-0.5"
-                            >
-                              <Ban className="h-3 w-3" /> Bloqueado
-                            </Badge>
-                          )}
-                        </div>
+                          {/* Coluna E-MAIL */}
+                          <td className="text-muted-foreground">{client.email}</td>
 
-                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                          <span className="flex items-center gap-1">
-                            <Mail className="h-3.5 w-3.5" /> {client.email}
-                          </span>
-                          {client.phone && (
-                            <span className="flex items-center gap-1">
-                              <Phone className="h-3.5 w-3.5" /> {client.phone}
-                            </span>
-                          )}
-                          <span className="flex items-center gap-1">
-                            <FolderKanban className="h-3.5 w-3.5 text-primary" />
-                            {client.projects?.length || 0}{" "}
-                            {client.projects?.length === 1
-                              ? "projeto vinculado"
-                              : "projetos vinculados"}
-                          </span>
-                        </div>
-                      </div>
+                          {/* Coluna STATUS */}
+                          <td>
+                            {client.status === "ativo" ? (
+                              <Badge
+                                variant="outline"
+                                className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-semibold gap-1 text-xs px-2.5 py-0.5 rounded-full"
+                              >
+                                <CheckCircle2 className="h-3 w-3" /> Ativo
+                              </Badge>
+                            ) : client.status === "bloqueado" ? (
+                              <Badge
+                                variant="outline"
+                                className="bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold gap-1 text-xs px-2.5 py-0.5 rounded-full"
+                              >
+                                <Ban className="h-3 w-3" /> Bloqueado
+                              </Badge>
+                            ) : (
+                              <Badge
+                                variant="outline"
+                                className="bg-amber-500/10 text-amber-400 border border-amber-500/20 font-semibold gap-1 text-xs px-2.5 py-0.5 rounded-full"
+                              >
+                                <Clock className="h-3 w-3" /> Pendente
+                              </Badge>
+                            )}
+                          </td>
 
-                      {/* Right: Actions */}
-                      <div className="flex items-center gap-2 shrink-0">
-                        {client.status === "convidado" && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={resendInvite.isPending}
-                            onClick={() =>
-                              resendInvite.mutate({
-                                name: client.full_name,
-                                email: client.email,
-                                companyName: client.company_name || undefined,
-                              })
-                            }
-                            className="gap-1.5 text-xs text-purple-600 dark:text-purple-400 border-border hover:bg-accent cursor-pointer"
-                          >
-                            <Send className="h-3.5 w-3.5" /> Reenviar Convite
-                          </Button>
-                        )}
+                          {/* Coluna PROJETOS */}
+                          <td>
+                            <span className="text-sm font-semibold text-foreground">{projectsCount}</span>
+                            <span className="text-xs text-muted-foreground ml-1">projeto(s)</span>
+                          </td>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleStatus(client)}
-                          className={
-                            client.status === "bloqueado"
-                              ? "text-xs text-emerald-600 hover:bg-emerald-500/10 cursor-pointer"
-                              : "text-xs text-amber-600 hover:bg-amber-500/10 cursor-pointer"
-                          }
-                        >
-                          {client.status === "bloqueado" ? "Desbloquear" : "Bloquear"}
-                        </Button>
+                          {/* Coluna AÇÕES */}
+                          <td className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <Link
+                                to="/app/clients/$id"
+                                params={{ id: client.id }}
+                                className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline transition-colors mr-1"
+                              >
+                                Ver Detalhes →
+                              </Link>
 
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeletingClient(client)}
-                          className="text-xs text-rose-600 hover:bg-rose-500/10 cursor-pointer gap-1"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" /> Excluir
-                        </Button>
+                              {/* Reenviar Convite / Enviar E-mail */}
+                              <button
+                                onClick={() => {
+                                  resendInvite.mutate({
+                                    name: client.full_name,
+                                    email: client.email,
+                                    companyName: client.company_name || undefined,
+                                  });
+                                }}
+                                disabled={resendInvite.isPending}
+                                title="Reenviar e-mail de acesso"
+                                className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                              >
+                                <Mail className="h-4 w-4" />
+                              </button>
 
-                        <Button
-                          asChild
-                          variant="outline"
-                          size="sm"
-                          className="gap-1 text-xs cursor-pointer border-border text-foreground hover:bg-accent"
-                        >
-                          <Link to="/app/clients/$id" params={{ id: client.id }}>
-                            Ver Detalhes →
-                          </Link>
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                              {/* Bloquear / Desbloquear */}
+                              <button
+                                onClick={() => handleToggleStatus(client)}
+                                title={client.status === "bloqueado" ? "Desbloquear Acesso" : "Bloquear Acesso"}
+                                className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                                  client.status === "bloqueado"
+                                    ? "text-emerald-500 hover:bg-emerald-500/10"
+                                    : "text-amber-500 hover:bg-amber-500/10"
+                                }`}
+                              >
+                                <Ban className="h-4 w-4" />
+                              </button>
+
+                              {/* Excluir */}
+                              <button
+                                onClick={() => setDeletingClient(client)}
+                                title="Excluir Cliente"
+                                className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-500 transition-colors cursor-pointer"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
 
           {/* Delete Client Confirmation Modal */}
           <Dialog open={!!deletingClient} onOpenChange={(v) => !v && setDeletingClient(null)}>

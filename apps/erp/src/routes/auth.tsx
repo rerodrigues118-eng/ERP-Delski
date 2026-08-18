@@ -369,13 +369,13 @@ function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between items-center bg-gray-50/60 p-6 sm:p-12">
+    <div className="min-h-screen flex flex-col justify-between items-center bg-background dark:bg-zinc-950 text-foreground p-6 sm:p-12 transition-colors">
       {/* Brand Header */}
       <div className="flex items-center gap-3 pt-4">
         <div className="h-12 w-12 flex items-center justify-center">
-          <img src="/logo.png" alt="Delski Logo" className="h-12 w-12 object-contain transition-transform hover:scale-105" />
+          <img src="/logo.png" alt="Delski Logo" className="h-12 w-12 object-contain transition-all hover:scale-105 dark:brightness-0 dark:invert" />
         </div>
-        <span className="text-xl font-bold tracking-tight text-gray-900 flex items-center gap-1.5">
+        <span className="text-xl font-bold tracking-tight text-foreground flex items-center gap-1.5">
           DELSKI{" "}
           <span className="bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent font-extrabold uppercase">
             CLOUD

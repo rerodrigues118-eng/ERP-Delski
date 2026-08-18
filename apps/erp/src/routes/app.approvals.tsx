@@ -134,22 +134,22 @@ function ApprovalsPage() {
     switch (status) {
       case "pending":
         return (
-          <Badge className="bg-amber-50 text-amber-700 border-amber-200 text-xs px-2.5 py-0.5 font-medium flex items-center gap-1">
+          <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 text-xs px-2.5 py-0.5 font-medium flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
             Pendente
           </Badge>
         );
       case "approved":
         return (
-          <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs px-2.5 py-0.5 font-medium flex items-center gap-1">
-            <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+          <Badge variant="outline" className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 text-xs px-2.5 py-0.5 font-medium flex items-center gap-1">
+            <CheckCircle2 className="h-3 w-3" />
             Aprovado
           </Badge>
         );
       case "rejected":
         return (
-          <Badge className="bg-rose-50 text-rose-700 border-rose-200 text-xs px-2.5 py-0.5 font-medium flex items-center gap-1">
-            <XCircle className="h-3 w-3 text-rose-600" />
+          <Badge variant="outline" className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 text-xs px-2.5 py-0.5 font-medium flex items-center gap-1">
+            <XCircle className="h-3 w-3" />
             Recusado
           </Badge>
         );
@@ -162,11 +162,11 @@ function ApprovalsPage() {
     switch (role) {
       case "gestor":
       case "admin":
-        return { label: "Gestor", color: "bg-purple-50 text-purple-700 border-purple-200" };
+        return { label: "Gestor", color: "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20" };
       case "cliente":
-        return { label: "Cliente", color: "bg-blue-50 text-blue-700 border-blue-200" };
+        return { label: "Cliente", color: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20" };
       default:
-        return { label: "Freelancer / Prestador", color: "bg-indigo-50 text-indigo-700 border-indigo-200" };
+        return { label: "Freelancer / Prestador", color: "bg-zinc-500/10 text-zinc-700 dark:text-zinc-300 border-zinc-500/20" };
     }
   };
 

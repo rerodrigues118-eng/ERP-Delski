@@ -18,6 +18,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrentFreelancerProfile } from "@/hooks/useFreelancerPortal";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/freelancer")({
   component: FreelancerLayout,
@@ -109,7 +110,7 @@ function FreelancerLayout() {
               <img
                 src="/logo.png"
                 alt="Delski"
-                className="h-8 w-8 object-contain"
+                className="h-8 w-8 object-contain transition-all dark:brightness-0 dark:invert"
               />
               <span className="font-bold tracking-tight text-foreground text-lg">
                 DELSKI <span className="text-blue-600 dark:text-blue-400 font-extrabold">CLOUD</span>
@@ -124,11 +125,13 @@ function FreelancerLayout() {
           </div>
 
           {/* Right: User Menu */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
             <div className="hidden md:flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs px-3 py-1.5 rounded-full font-medium border border-blue-500/20">
               <ShieldCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               <span>Prestador Homologado</span>
             </div>
+
+            <ThemeToggle />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

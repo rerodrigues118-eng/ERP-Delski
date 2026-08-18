@@ -6,6 +6,7 @@ import { Bell, Search, ChevronRight } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "@tanstack/react-router";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/app")({
   ssr: false,
@@ -116,11 +117,13 @@ function AppHeader() {
         </span>
       </div>
 
-      {/* Right: notifications */}
-      <div className="flex items-center gap-2">
+      {/* Right: theme toggle + notifications */}
+      <div className="flex items-center gap-1.5">
+        <ThemeToggle />
         <Link
           to="/app/notifications"
           className="relative flex items-center justify-center w-9 h-9 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
+          title="Notificações"
         >
           <Bell className="h-4.5 w-4.5" strokeWidth={1.75} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-card dark:ring-zinc-900" />

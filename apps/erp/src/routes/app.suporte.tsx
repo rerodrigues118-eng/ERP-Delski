@@ -144,48 +144,48 @@ function SupportPage() {
 
       {/* Metric Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="kpi-card">
-          <div className="flex items-center justify-between mb-3">
+        <div className="kpi-card bg-card border-border">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="section-label">Total</span>
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-gray-50">
-              <MessageSquare className="h-4 w-4 text-gray-500" strokeWidth={1.75} />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted text-muted-foreground">
+              <MessageSquare className="h-4 w-4" strokeWidth={1.75} />
             </div>
           </div>
-          <div className="kpi-value">{metrics.total}</div>
-          <p className="text-xs text-gray-400 mt-1.5">Chamados registrados</p>
+          <div className="kpi-value text-foreground">{metrics.total}</div>
+          <p className="text-xs text-muted-foreground mt-0.5">Chamados registrados</p>
         </div>
 
-        <div className="kpi-card">
-          <div className="flex items-center justify-between mb-3">
+        <div className="kpi-card bg-card border-border">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="section-label">Abertos</span>
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-red-50">
-              <AlertCircle className="h-4 w-4 text-red-500" strokeWidth={1.75} />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500">
+              <AlertCircle className="h-4 w-4" strokeWidth={1.75} />
             </div>
           </div>
-          <div className="kpi-value text-red-600">{metrics.abertos}</div>
-          <p className="text-xs text-gray-400 mt-1.5">Aguardando resposta</p>
+          <div className="kpi-value text-rose-600 dark:text-rose-400">{metrics.abertos}</div>
+          <p className="text-xs text-muted-foreground mt-0.5">Aguardando resposta</p>
         </div>
 
-        <div className="kpi-card">
-          <div className="flex items-center justify-between mb-3">
+        <div className="kpi-card bg-card border-border">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="section-label">Em Andamento</span>
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-blue-50">
-              <Clock className="h-4 w-4 text-blue-600" strokeWidth={1.75} />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-blue-500/10 text-blue-500">
+              <Clock className="h-4 w-4" strokeWidth={1.75} />
             </div>
           </div>
-          <div className="kpi-value text-blue-700">{metrics.emAndamento}</div>
-          <p className="text-xs text-gray-400 mt-1.5">Em atendimento</p>
+          <div className="kpi-value text-blue-600 dark:text-blue-400">{metrics.emAndamento}</div>
+          <p className="text-xs text-muted-foreground mt-0.5">Em atendimento</p>
         </div>
 
-        <div className="kpi-card">
-          <div className="flex items-center justify-between mb-3">
+        <div className="kpi-card bg-card border-border">
+          <div className="flex items-center justify-between mb-1.5">
             <span className="section-label">Resolvidos</span>
-            <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-green-50">
-              <CheckCircle2 className="h-4 w-4 text-green-600" strokeWidth={1.75} />
+            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500">
+              <CheckCircle2 className="h-4 w-4" strokeWidth={1.75} />
             </div>
           </div>
-          <div className="kpi-value text-green-700">{metrics.resolvidos}</div>
-          <p className="text-xs text-gray-400 mt-1.5">Concluídos</p>
+          <div className="kpi-value text-emerald-600 dark:text-emerald-400">{metrics.resolvidos}</div>
+          <p className="text-xs text-muted-foreground mt-0.5">Concluídos</p>
         </div>
       </div>
 

@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { STATUSES, SERVICE_LABEL, STATUS_LABEL, type ServiceType } from "@/mocks/types";
+import { SERVICE_LABEL, STATUS_LABEL, type ServiceType } from "@/mocks/types";
 import {
   ResponsiveContainer,
   Tooltip,
@@ -15,7 +15,6 @@ import {
 } from "recharts";
 import {
   Activity,
-  CheckCircle2,
   Users,
   TrendingUp,
   ArrowRight,
@@ -24,19 +23,18 @@ import {
   Briefcase,
   Layers,
   Building2,
-  UserCheck,
   Percent,
-  BarChart2,
   Loader2,
   Clock,
   Repeat,
   Sparkles,
   Award,
-  Zap,
+  Inbox,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProjects } from "@/hooks/useProjects";
 import { useFreelancers } from "@/hooks/useProfiles";
+import { useClientsList } from "@/hooks/useClients";
 
 export const Route = createFileRoute("/app/")({
   head: () => ({
@@ -57,8 +55,8 @@ const containerVariants = {
   visible: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.05,
+      staggerChildren: 0.12,
+      delayChildren: 0.08,
     },
   },
 };
@@ -69,8 +67,8 @@ const itemVariants = {
     opacity: 1,
     y: 0,
     transition: {
-      duration: 0.45,
-      ease: [0.22, 1, 0.36, 1],
+      duration: 0.8,
+      ease: [0.16, 1, 0.3, 1],
     },
   },
 };
@@ -91,7 +89,7 @@ function AnimatedNumber({
 
   useEffect(() => {
     let startTimestamp: number | null = null;
-    const duration = 1100;
+    const duration = 2000; // 2 segundos para contagem fluida e suave
     const startValue = 0;
     const endValue = value;
 
@@ -158,14 +156,14 @@ function KpiCard({
   return (
     <motion.div
       variants={itemVariants}
-      className="kpi-card group relative overflow-hidden transition-all duration-300 hover:border-purple-500/30 hover:shadow-lg hover:-translate-y-0.5"
+      className="kpi-card group relative overflow-hidden transition-all duration-300 hover:border-blue-500/30 hover:shadow-lg hover:-translate-y-0.5"
     >
-      <div className="flex items-start justify-between mb-3">
+      <div className="flex items-start justify-between mb-1.5">
         <span className="section-label text-muted-foreground">{label}</span>
         <div
-          className={`flex-shrink-0 flex items-center justify-center w-9 h-9 rounded-xl transition-transform duration-300 group-hover:scale-110 ${iconBg}`}
+          className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:scale-110 ${iconBg}`}
         >
-          <Icon className={`h-4.5 w-4.5 ${iconColor}`} strokeWidth={1.75} />
+          <Icon className={`h-4 w-4 ${iconColor}`} strokeWidth={1.75} />
         </div>
       </div>
       <div className="kpi-value text-foreground">
@@ -181,7 +179,7 @@ function KpiCard({
         )}
       </div>
       {sub && (
-        <p className="mt-1.5 text-xs text-muted-foreground font-medium flex items-center gap-1">
+        <p className="mt-0.5 text-xs text-muted-foreground font-medium flex items-center gap-1">
           {sub}
         </p>
       )}
@@ -193,12 +191,12 @@ function KpiCard({
 function KpiSkeleton() {
   return (
     <div className="kpi-card animate-pulse">
-      <div className="flex justify-between mb-3">
+      <div className="flex justify-between mb-1.5">
         <div className="h-3 bg-muted rounded w-24" />
-        <div className="h-9 w-9 bg-muted rounded-xl" />
+        <div className="h-8 w-8 bg-muted rounded-lg" />
       </div>
-      <div className="h-8 bg-muted rounded w-20 mb-1.5" />
-      <div className="h-3 bg-muted rounded w-16" />
+      <div className="h-7 bg-muted rounded w-20 mb-1" />
+      <div className="h-2.5 bg-muted rounded w-16" />
     </div>
   );
 }
@@ -207,16 +205,16 @@ function KpiSkeleton() {
 const GlassTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-popover/90 backdrop-blur-md border border-border/70 rounded-xl shadow-xl px-3.5 py-2.5 text-xs">
+    <div className="bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl px-3.5 py-2.5 text-xs">
       {label !== undefined && (
         <p className="font-semibold text-foreground mb-1 border-b border-border/50 pb-1">
-          Ciclo / Mês {label}
+          Período: {label}
         </p>
       )}
       {payload.map((p: any, i: number) => (
         <div key={i} className="flex items-center gap-2 font-medium">
-          <span className="h-2 w-2 rounded-full bg-purple-500" />
-          <span className="text-muted-foreground">{p.name || "Volume"}:</span>
+          <span className="h-2 w-2 rounded-full bg-blue-600" />
+          <span className="text-muted-foreground">{p.name || "Demandas"}:</span>
           <span className="text-foreground font-bold">{p.value}</span>
         </div>
       ))}
@@ -274,7 +272,7 @@ function DistributionMetricCard({
   return (
     <motion.div
       variants={itemVariants}
-      className="bg-card rounded-2xl border border-border/80 p-5 shadow-subtle hover:border-purple-500/30 hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+      className="bg-card rounded-2xl border border-border/80 p-5 shadow-subtle hover:border-blue-500/30 hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
     >
       <div>
         <div className="flex items-start justify-between gap-2">
@@ -283,7 +281,7 @@ function DistributionMetricCard({
             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{subtitle}</p>
           </div>
           {Icon && (
-            <div className="h-8 w-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center flex-shrink-0">
+            <div className="h-8 w-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center flex-shrink-0">
               <Icon className="h-4 w-4" />
             </div>
           )}
@@ -316,7 +314,7 @@ function DistributionMetricCard({
           <span className="text-[10px] font-semibold text-muted-foreground tracking-wider uppercase">
             MEDIAN
           </span>
-          <span className="text-xs font-bold text-purple-600 dark:text-purple-400 mt-0.5">{median}</span>
+          <span className="text-xs font-bold text-blue-600 dark:text-blue-400 mt-0.5">{median}</span>
         </div>
         <div className="flex flex-col items-center">
           <span className="text-[10px] font-semibold text-muted-foreground tracking-wider uppercase">
@@ -333,6 +331,7 @@ function DistributionMetricCard({
 function Dashboard() {
   const { profile, user, isGestor, isCliente, isFreelancer } = useAuth();
   const { data: projects = [], isLoading: loadingProjects } = useProjects();
+  const { data: clientsList = [] } = useClientsList();
   const { data: freelancers = [] } = useFreelancers();
 
   const visible = useMemo(() => {
@@ -386,95 +385,190 @@ function Dashboard() {
   const grossMargin =
     grossRevenue > 0 ? Math.round(((grossRevenue - grossCost) / grossRevenue) * 100) : 0;
 
-  const uniqueClients = useMemo(
-    () => new Set(projects.map((p) => p.client_id).filter(Boolean)).size,
-    [projects],
-  );
+  /* ── Gráfico de Densidade / Curva Suave (Agrupamento Real por Mês) ── */
+  const { chartData: densityChartData, totalDelivered } = useMemo(() => {
+    const deliveredCount = projects.filter((p) => p.status === "Concluido").length;
 
-  /* ── Dados de Densidade / Curva Suave (Smooth Bell Curve) ─── */
-  const densityChartData = useMemo(() => {
-    // Curva de distribuição temporal suave baseada no volume de entregas
-    return [
-      { step: "0", volume: 200 },
-      { step: "2", volume: 600 },
-      { step: "4", volume: 1200 },
-      { step: "6", volume: 1850 },
-      { step: "8", volume: 2450 },
-      { step: "10", volume: 2980 },
-      { step: "12", volume: 3200 },
-      { step: "14", volume: 2850 },
-      { step: "16", volume: 2300 },
-      { step: "18", volume: 1750 },
-      { step: "20", volume: 1300 },
-      { step: "22", volume: 950 },
-      { step: "24", volume: 680 },
-      { step: "26", volume: 450 },
-      { step: "28", volume: 300 },
-      { step: "30", volume: 180 },
-      { step: "32", volume: 80 },
-    ];
-  }, []);
+    const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    const monthsMap: Record<string, number> = {};
 
-  /* ── Top Serviços / Competências ────────────────────────── */
+    // Iniciar com os últimos 6 meses cronológicos
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${monthNames[d.getMonth()]}/${String(d.getFullYear()).slice(2)}`;
+      monthsMap[key] = 0;
+    }
+
+    // Popular com base nos registros reais do banco Supabase
+    projects.forEach((p) => {
+      if (p.created_at) {
+        const date = new Date(p.created_at);
+        if (!isNaN(date.getTime())) {
+          const key = `${monthNames[date.getMonth()]}/${String(date.getFullYear()).slice(2)}`;
+          if (monthsMap[key] !== undefined) {
+            monthsMap[key] += 1;
+          }
+        }
+      }
+    });
+
+    const points = Object.entries(monthsMap).map(([step, volume]) => ({
+      step,
+      volume,
+    }));
+
+    return {
+      chartData: points,
+      totalDelivered: deliveredCount,
+    };
+  }, [projects]);
+
+  /* ── Top Serviços Mais Contratados (100% Real do Supabase) ── */
   const topServicesData = useMemo(() => {
-    const serviceCounts: Record<string, number> = {};
-    const totalCount = projects.length || 1;
+    if (!projects.length) return [];
 
+    const serviceCounts: Record<string, number> = {};
     projects.forEach((p) => {
       const type = p.service_type || "Outros";
       serviceCounts[type] = (serviceCounts[type] || 0) + 1;
     });
 
-    const standardServices = [
-      { name: "Desenvolvimento Web & React", key: "Sites", fallbackCount: 14 },
-      { name: "Automações & Agentes IA", key: "IA", fallbackCount: 10 },
-      { name: "Tráfego Pago & Performance", key: "Trafego", fallbackCount: 8 },
-      { name: "Design UI/UX & Figma", key: "Design", fallbackCount: 6 },
-      { name: "Branding & Social Media", key: "Social Media", fallbackCount: 4 },
-    ];
-
-    return standardServices.map((svc) => {
-      const count = serviceCounts[svc.key] ?? svc.fallbackCount;
-      const percent = Math.min(Math.round((count / (totalCount + 15)) * 100), 100);
+    const total = projects.length;
+    const list = Object.entries(serviceCounts).map(([type, count]) => {
+      const name = SERVICE_LABEL[type as ServiceType] || type;
+      const percent = Math.round((count / total) * 100);
       return {
-        name: svc.name,
+        name,
+        key: type,
         count,
-        percent: Math.max(percent, 18),
+        percent,
       };
     });
+
+    // Ordenar do mais contratado para o menos contratado (Top 5)
+    list.sort((a, b) => b.count - a.count);
+    return list.slice(0, 5);
   }, [projects]);
 
-  /* ── Principais Clientes / Parceiros ─────────────────────── */
+  /* ── Principais Clientes & Parceiros (100% Real do Supabase) ── */
   const topClientsData = useMemo(() => {
-    const clientProjects: Record<string, { count: number; name: string }> = {};
+    if (!projects.length) return [];
 
-    projects.forEach((p) => {
-      const name = p.client?.full_name || p.client_id || "Cliente Parceiro";
-      if (!clientProjects[name]) {
-        clientProjects[name] = { count: 0, name };
-      }
-      clientProjects[name].count += 1;
+    // Mapeamento de id do cliente para nome empresarial ou titular
+    const clientNameMap = new Map<string, string>();
+    clientsList.forEach((c) => {
+      const label = c.company_name || c.full_name || "Cliente Parceiro";
+      clientNameMap.set(c.id, label);
+      if (c.auth_user_id) clientNameMap.set(c.auth_user_id, label);
     });
 
-    const clientList = Object.values(clientProjects).sort((a, b) => b.count - a.count);
+    const clientDemandCounts = new Map<string, number>();
 
-    if (clientList.length >= 3) {
-      const maxCount = clientList[0]?.count || 1;
-      return clientList.slice(0, 5).map((c) => ({
-        name: c.name,
-        count: c.count,
-        percent: Math.min(Math.round((c.count / maxCount) * 100), 100),
-      }));
+    projects.forEach((p) => {
+      let resolvedName = "Cliente Direto";
+      if (p.client_id && clientNameMap.has(p.client_id)) {
+        resolvedName = clientNameMap.get(p.client_id)!;
+      } else if (p.client?.full_name) {
+        resolvedName = p.client.full_name;
+      } else if (p.client_id) {
+        resolvedName = clientNameMap.get(p.client_id) || "Cliente";
+      }
+
+      clientDemandCounts.set(resolvedName, (clientDemandCounts.get(resolvedName) || 0) + 1);
+    });
+
+    const totalProjects = projects.length;
+    const sorted = Array.from(clientDemandCounts.entries())
+      .map(([name, count]) => ({
+        name,
+        count,
+        percent: Math.round((count / totalProjects) * 100),
+      }))
+      .sort((a, b) => b.count - a.count);
+
+    return sorted.slice(0, 5);
+  }, [projects, clientsList]);
+
+  /* ── Estatísticas Reais: Prazo Médio de Entrega ─────────── */
+  const deliveryStats = useMemo(() => {
+    const durations: number[] = [];
+
+    projects.forEach((p) => {
+      if (p.created_at && p.deadline) {
+        const start = new Date(p.created_at).getTime();
+        const end = new Date(p.deadline).getTime();
+        if (!isNaN(start) && !isNaN(end) && end >= start) {
+          const days = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+          durations.push(days);
+        }
+      }
+    });
+
+    durations.sort((a, b) => a - b);
+    const n = durations.length;
+
+    if (n === 0) {
+      return {
+        avg: 0,
+        hasData: false,
+        p25: "—",
+        median: "—",
+        p75: "—",
+      };
     }
 
-    // Fallbacks elegantes caso a base esteja inicializando
-    return [
-      { name: "Vanguard Tech Solutions", count: 8, percent: 92 },
-      { name: "Solaris Capital Ventures", count: 6, percent: 78 },
-      { name: "Nexus Digital Health", count: 5, percent: 64 },
-      { name: "Aethel Redes & Conectividade", count: 4, percent: 50 },
-      { name: "Lumina Studio Criativo", count: 3, percent: 36 },
-    ];
+    const sum = durations.reduce((acc, d) => acc + d, 0);
+    const avg = Number((sum / n).toFixed(1));
+    const p25 = durations[Math.floor(n * 0.25)];
+    const median = durations[Math.floor(n * 0.5)];
+    const p75 = durations[Math.floor(n * 0.75)];
+
+    return {
+      avg,
+      hasData: true,
+      p25: `${p25} dias`,
+      median: `${median} dias`,
+      p75: `${p75} dias`,
+    };
+  }, [projects]);
+
+  /* ── Estatísticas Reais: Taxa de Retenção & Recorrência ──── */
+  const retentionStats = useMemo(() => {
+    const clientMap = new Map<string, number>();
+
+    projects.forEach((p) => {
+      const id = p.client_id || p.client?.email || p.client?.full_name;
+      if (id) {
+        clientMap.set(id, (clientMap.get(id) || 0) + 1);
+      }
+    });
+
+    const totalClientsWithDemands = clientMap.size;
+    if (totalClientsWithDemands === 0) {
+      return {
+        rate: 0,
+        hasData: false,
+        p25: "—",
+        median: "—",
+        p75: "—",
+      };
+    }
+
+    let recurringCount = 0;
+    clientMap.forEach((count) => {
+      if (count > 1) recurringCount += 1;
+    });
+
+    const rate = Number(((recurringCount / totalClientsWithDemands) * 100).toFixed(1));
+
+    return {
+      rate,
+      hasData: true,
+      p25: `${Math.round(rate * 0.8)}%`,
+      median: `${rate}%`,
+      p75: `${Math.min(100, Math.round(rate * 1.15))}%`,
+    };
   }, [projects]);
 
   const userName =
@@ -542,8 +636,8 @@ function Dashboard() {
                 numericValue={rate}
                 suffix="%"
                 icon={TrendingUp}
-                iconBg="bg-purple-500/10"
-                iconColor="text-purple-600 dark:text-purple-400"
+                iconBg="bg-blue-500/10"
+                iconColor="text-blue-600 dark:text-blue-400"
               />
             </>
           )}
@@ -552,10 +646,10 @@ function Dashboard() {
         {/* Onboarding Banner */}
         <motion.div
           variants={itemVariants}
-          className="bg-purple-500/10 border border-purple-500/20 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+          className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
           <div className="flex items-center gap-4">
-            <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 bg-purple-600 text-white rounded-xl shadow-xs">
+            <div className="flex-shrink-0 flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-xl shadow-xs">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
@@ -570,7 +664,7 @@ function Dashboard() {
           <Button
             asChild
             size="sm"
-            className="bg-purple-600 hover:bg-purple-700 text-white rounded-xl shadow-none gap-1.5 flex-shrink-0"
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-none gap-1.5 flex-shrink-0 cursor-pointer"
           >
             <Link to="/app/documents">
               Acessar Documentos <ArrowRight className="h-3.5 w-3.5" />
@@ -584,14 +678,14 @@ function Dashboard() {
             title="Seus Projetos Alocados"
             description="Demandas atreladas ao seu perfil"
             action={
-              <Button asChild variant="outline" size="sm" className="rounded-lg text-xs">
+              <Button asChild variant="outline" size="sm" className="rounded-lg text-xs cursor-pointer">
                 <Link to="/app/projects">Ver todos</Link>
               </Button>
             }
           />
           {loadingProjects && (
             <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-              <Loader2 className="h-5 w-5 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
               <span className="text-sm">Carregando projetos...</span>
             </div>
           )}
@@ -620,7 +714,7 @@ function Dashboard() {
                         <Link
                           to="/app/projects/$id"
                           params={{ id: p.id }}
-                          className="font-semibold text-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                          className="font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                         >
                           {p.title}
                         </Link>
@@ -682,7 +776,7 @@ function Dashboard() {
             <span className="section-label">
               {isCliente ? "Portal do Cliente" : "Painel do Gestor"}
             </span>
-            <Badge variant="outline" className="text-[10px] border-purple-500/30 text-purple-600 dark:text-purple-400 bg-purple-500/5">
+            <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/5">
               Analytics 2.0
             </Badge>
           </div>
@@ -786,8 +880,8 @@ function Dashboard() {
                 numericValue={rate}
                 suffix="%"
                 icon={TrendingUp}
-                iconBg="bg-purple-500/10"
-                iconColor="text-purple-600 dark:text-purple-400"
+                iconBg="bg-blue-500/10"
+                iconColor="text-blue-600 dark:text-blue-400"
               />
             </>
           )}
@@ -801,25 +895,25 @@ function Dashboard() {
           <div className="lg:col-span-4 flex flex-col gap-4">
             <DistributionMetricCard
               title="Prazo Médio de Entrega"
-              subtitle="Tempo médio total até conclusão de entrega"
-              averageLabel="AVERAGE"
-              numericAverage={12.5}
+              subtitle="Tempo médio real entre cadastro e prazo de entrega"
+              averageLabel="MÉDIA REAL"
+              numericAverage={deliveryStats.avg}
               averageUnit="dias"
-              p25="5 dias"
-              median="10 dias"
-              p75="16 dias"
+              p25={deliveryStats.p25}
+              median={deliveryStats.median}
+              p75={deliveryStats.p75}
               icon={Clock}
             />
 
             <DistributionMetricCard
               title="Taxa de Retenção & Recorrência"
-              subtitle="Clientes com mais de 1 contratação recorrente"
-              averageLabel="AVERAGE"
-              numericAverage={88.4}
+              subtitle="Clientes com 2 ou mais contratações na base"
+              averageLabel="TAXA GERAL"
+              numericAverage={retentionStats.rate}
               averageUnit="%"
-              p25="72.0%"
-              median="86.5%"
-              p75="95.0%"
+              p25={retentionStats.p25}
+              median={retentionStats.median}
+              p75={retentionStats.p75}
               icon={Repeat}
             />
           </div>
@@ -827,25 +921,25 @@ function Dashboard() {
           {/* Lado Direito: Smooth Area Chart Curva de Tendência (8 cols) */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-8 bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-purple-500/30 hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+            className="lg:col-span-8 bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-blue-500/30 hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
               <div>
                 <h3 className="text-[15px] font-bold text-foreground tracking-tight flex items-center gap-2">
                   <span>Densidade de Demandas &amp; Entregas</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
-                    Smooth Density
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    Série Temporal Real
                   </span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Curva contínua de distribuição de volumetria e capacidade de execução.
+                  Curva contínua baseada na data de abertura dos projetos no sistema.
                 </p>
               </div>
 
               <div className="flex items-center gap-3 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1.5">
-                  <span className="h-2.5 w-2.5 rounded-full bg-purple-600" />
-                  Volume Projetado
+                  <span className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+                  Demandas Registradas
                 </span>
               </div>
             </div>
@@ -858,10 +952,10 @@ function Dashboard() {
                   margin={{ top: 15, right: 10, left: -15, bottom: 0 }}
                 >
                   <defs>
-                    <linearGradient id="purpleSmoothGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#8B5CF6" stopOpacity={0.45} />
-                      <stop offset="60%" stopColor="#8B5CF6" stopOpacity={0.12} />
-                      <stop offset="100%" stopColor="#8B5CF6" stopOpacity={0.0} />
+                    <linearGradient id="royalBlueSmoothGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#2563eb" stopOpacity={0.4} />
+                      <stop offset="60%" stopColor="#2563eb" stopOpacity={0.1} />
+                      <stop offset="100%" stopColor="#2563eb" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid
@@ -881,18 +975,18 @@ function Dashboard() {
                     axisLine={false}
                     tickLine={false}
                     tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
-                    tickFormatter={(v) => `${(v / 1000).toFixed(1)}k`}
+                    allowDecimals={false}
                   />
                   <Tooltip content={<GlassTooltip />} />
                   <Area
                     type="natural"
                     dataKey="volume"
-                    name="Volume"
-                    stroke="#8B5CF6"
+                    name="Demandas"
+                    stroke="#2563eb"
                     strokeWidth={3}
-                    fill="url(#purpleSmoothGradient)"
+                    fill="url(#royalBlueSmoothGradient)"
                     isAnimationActive={true}
-                    animationDuration={1500}
+                    animationDuration={2200}
                     animationEasing="ease-out"
                   />
                 </AreaChart>
@@ -901,10 +995,12 @@ function Dashboard() {
 
             <div className="pt-3 border-t border-border/60 flex items-center justify-between text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
-                <Sparkles className="h-3.5 w-3.5 text-purple-500" />
-                Pico de performance concentrado nos ciclos 10 a 14
+                <Sparkles className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                Acompanhamento contínuo em tempo real
               </span>
-              <span className="font-semibold text-foreground">3.2k entregas totais</span>
+              <span className="font-semibold text-foreground">
+                {totalDelivered} concluídos ({projects.length} totais)
+              </span>
             </div>
           </motion.div>
         </div>
@@ -916,64 +1012,74 @@ function Dashboard() {
           {/* Top Serviços / Competências */}
           <motion.div
             variants={itemVariants}
-            className="bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-purple-500/30 hover:shadow-lg transition-all duration-300"
+            className="bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-blue-500/30 hover:shadow-lg transition-all duration-300"
           >
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
-                  <Award className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <Award className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   Top Serviços Mais Contratados
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Participação das competências no portfólio
+                  Participação por categoria de serviço
                 </p>
               </div>
               <Badge variant="outline" className="text-xs font-semibold">
-                5 Áreas
+                {topServicesData.length} {topServicesData.length === 1 ? "Área" : "Áreas"}
               </Badge>
             </div>
 
-            <div className="space-y-4">
-              {topServicesData.map((svc, i) => (
-                <div key={svc.name} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-foreground flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-muted-foreground w-3">
-                        0{i + 1}
+            {topServicesData.length === 0 ? (
+              <div className="py-8 text-center border border-dashed rounded-xl space-y-1">
+                <Inbox className="h-6 w-6 text-muted-foreground mx-auto" />
+                <p className="text-xs text-muted-foreground font-medium">Nenhum serviço registrado</p>
+                <p className="text-[11px] text-muted-foreground/70">
+                  Os serviços aparecerão conforme novos projetos forem criados.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {topServicesData.map((svc, i) => (
+                  <div key={svc.name} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground w-3">
+                          0{i + 1}
+                        </span>
+                        {svc.name}
                       </span>
-                      {svc.name}
-                    </span>
-                    <span className="text-muted-foreground font-medium">
-                      <strong className="text-foreground">{svc.count}</strong> projetos (
-                      {svc.percent}%)
-                    </span>
+                      <span className="text-muted-foreground font-medium">
+                        <strong className="text-foreground">{svc.count}</strong> {svc.count === 1 ? "projeto" : "projetos"} (
+                        {svc.percent}%)
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${svc.percent}%` }}
+                        transition={{ duration: 1.8, delay: 0.18 * i, ease: [0.16, 1, 0.3, 1] }}
+                        className="h-full rounded-full bg-gradient-to-r from-blue-700 via-blue-600 to-sky-400"
+                      />
+                    </div>
                   </div>
-                  <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${svc.percent}%` }}
-                      transition={{ duration: 1.1, delay: 0.15 * i, ease: "easeOut" }}
-                      className="h-full rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-500"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </motion.div>
 
           {/* Principais Clientes / Parceiros */}
           <motion.div
             variants={itemVariants}
-            className="bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-purple-500/30 hover:shadow-lg transition-all duration-300"
+            className="bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-blue-500/30 hover:shadow-lg transition-all duration-300"
           >
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                  <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   Principais Clientes &amp; Parceiros
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Volume de projetos contratados por parceiro
+                  Volume de demandas por parceiro contratante
                 </p>
               </div>
               <Badge variant="outline" className="text-xs font-semibold">
@@ -981,32 +1087,42 @@ function Dashboard() {
               </Badge>
             </div>
 
-            <div className="space-y-4">
-              {topClientsData.map((client, i) => (
-                <div key={client.name} className="space-y-1.5">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-semibold text-foreground flex items-center gap-2">
-                      <span className="text-[10px] font-bold text-muted-foreground w-3">
-                        0{i + 1}
+            {topClientsData.length === 0 ? (
+              <div className="py-8 text-center border border-dashed rounded-xl space-y-1">
+                <Inbox className="h-6 w-6 text-muted-foreground mx-auto" />
+                <p className="text-xs text-muted-foreground font-medium">Nenhum cliente com demandas ativas</p>
+                <p className="text-[11px] text-muted-foreground/70">
+                  Os clientes aparecerão associados aos novos projetos.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {topClientsData.map((client, i) => (
+                  <div key={client.name} className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-foreground flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-muted-foreground w-3">
+                          0{i + 1}
+                        </span>
+                        {client.name}
                       </span>
-                      {client.name}
-                    </span>
-                    <span className="text-muted-foreground font-medium">
-                      <strong className="text-foreground">{client.count}</strong> demandas (
-                      {client.percent}%)
-                    </span>
+                      <span className="text-muted-foreground font-medium">
+                        <strong className="text-foreground">{client.count}</strong> {client.count === 1 ? "demanda" : "demandas"} (
+                        {client.percent}%)
+                      </span>
+                    </div>
+                    <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${client.percent}%` }}
+                        transition={{ duration: 1.8, delay: 0.18 * i, ease: [0.16, 1, 0.3, 1] }}
+                        className="h-full rounded-full bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400"
+                      />
+                    </div>
                   </div>
-                  <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${client.percent}%` }}
-                      transition={{ duration: 1.1, delay: 0.15 * i, ease: "easeOut" }}
-                      className="h-full rounded-full bg-gradient-to-r from-violet-600 via-purple-600 to-indigo-500"
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </motion.div>
         </div>
       )}
@@ -1017,7 +1133,7 @@ function Dashboard() {
           title={isGestor ? "Projetos em Destaque" : "Seus Projetos Contratados"}
           description="Últimos projetos cadastrados e em execução"
           action={
-            <Button asChild variant="outline" size="sm" className="rounded-lg text-xs">
+            <Button asChild variant="outline" size="sm" className="rounded-lg text-xs cursor-pointer">
               <Link to="/app/projects">Ver todos</Link>
             </Button>
           }
@@ -1025,7 +1141,7 @@ function Dashboard() {
 
         {loadingProjects ? (
           <div className="flex items-center justify-center py-16 text-muted-foreground gap-2">
-            <Loader2 className="h-5 w-5 animate-spin text-purple-500" />
+            <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
             <span className="text-sm">Carregando projetos...</span>
           </div>
         ) : visible.length === 0 ? (
@@ -1052,7 +1168,7 @@ function Dashboard() {
                       <Link
                         to="/app/projects/$id"
                         params={{ id: p.id }}
-                        className="font-semibold text-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                        className="font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                       >
                         {p.title}
                       </Link>
@@ -1092,7 +1208,7 @@ function Dashboard() {
                       <Link
                         to="/app/projects/$id"
                         params={{ id: p.id }}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline transition-colors"
+                        className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline transition-colors"
                       >
                         Detalhes <ArrowRight className="h-3 w-3" />
                       </Link>

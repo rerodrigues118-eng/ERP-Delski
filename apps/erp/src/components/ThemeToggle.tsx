@@ -59,10 +59,10 @@ export function ThemeToggle() {
           type="button"
           title="Alternar tema"
           className={[
-            "flex items-center justify-center h-7 w-7 rounded-lg",
-            "text-muted-foreground",
-            "hover:bg-accent hover:text-accent-foreground",
-            "transition-colors duration-150",
+            "flex items-center justify-center w-9 h-9 rounded-xl",
+            "text-muted-foreground hover:text-foreground",
+            "hover:bg-accent",
+            "transition-colors duration-150 cursor-pointer",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           ].join(" ")}
         >
@@ -73,9 +73,9 @@ export function ThemeToggle() {
 
       <DropdownMenuContent
         align="end"
-        side="top"
-        sideOffset={6}
-        className="w-36 mb-1"
+        side="bottom"
+        sideOffset={8}
+        className="w-36 mt-1 shadow-lg bg-popover border-border"
       >
         {THEMES.map(({ value, label, icon: Icon }) => (
           <DropdownMenuItem

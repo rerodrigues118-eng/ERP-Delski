@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useCurrentClientProfile } from "@/hooks/useClients";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const Route = createFileRoute("/cliente")({
   component: ClienteLayout,
@@ -91,7 +92,7 @@ function ClienteLayout() {
           {/* Brand Logo & Company Badge */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2.5">
-              <img src="/logo.png" alt="Delski" className="h-8 w-8 object-contain" />
+              <img src="/logo.png" alt="Delski" className="h-8 w-8 object-contain transition-all dark:brightness-0 dark:invert" />
               <span className="font-bold tracking-tight text-foreground text-lg">
                 DELSKI <span className="text-blue-600 dark:text-blue-400 font-extrabold">CLOUD</span>
               </span>
@@ -104,12 +105,14 @@ function ClienteLayout() {
             </div>
           </div>
 
-          {/* Right: Support button, User Menu */}
-          <div className="flex items-center gap-3">
+          {/* Right: Support button, ThemeToggle, User Menu */}
+          <div className="flex items-center gap-2.5">
             <div className="hidden md:flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs px-3 py-1.5 rounded-full font-medium border border-blue-500/20">
               <ShieldCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               <span>Acesso Seguro</span>
             </div>
+
+            <ThemeToggle />
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

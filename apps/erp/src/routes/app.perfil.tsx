@@ -234,17 +234,17 @@ function GestorProfileSettingsPage() {
   return (
     <div className="space-y-8 pb-16">
       {/* Top Banner */}
-      <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+      <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-subtle">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-5">
             {displayAvatar ? (
               <img
                 src={displayAvatar}
                 alt={gestorName}
-                className="h-24 w-24 rounded-2xl object-cover ring-4 ring-indigo-50 border border-gray-200 shadow-md flex-shrink-0"
+                className="h-24 w-24 rounded-2xl object-cover ring-4 ring-primary/10 border border-border shadow-md flex-shrink-0"
               />
             ) : (
-              <div className="grid h-24 w-24 place-items-center rounded-2xl bg-indigo-600/10 text-indigo-600 font-bold text-3xl border border-indigo-500/20 shadow-sm flex-shrink-0">
+              <div className="grid h-24 w-24 place-items-center rounded-2xl bg-primary/10 text-primary font-bold text-3xl border border-primary/20 shadow-sm flex-shrink-0">
                 {gestorName.charAt(0).toUpperCase() || "G"}
               </div>
             )}
@@ -253,7 +253,7 @@ function GestorProfileSettingsPage() {
                 <span className="text-xs uppercase font-semibold tracking-wider text-muted-foreground">
                   Painel de Configurações
                 </span>
-                <span className="bg-indigo-500/10 text-indigo-700 text-[11px] font-bold px-2 py-0.5 rounded border border-indigo-500/20">
+                <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[11px] font-bold px-2 py-0.5 rounded border border-purple-500/20">
                   GESTOR
                 </span>
               </div>
@@ -263,11 +263,11 @@ function GestorProfileSettingsPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="bg-slate-50 border border-stone-200 rounded-xl px-4 py-2 text-right">
+            <div className="bg-muted/50 border border-border rounded-xl px-4 py-2 text-right">
               <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground block">
                 Cidade Padrão de Assinatura
               </span>
-              <span className="text-xs font-bold text-stone-900">
+              <span className="text-xs font-bold text-foreground">
                 {companyForm.cidade_padrao_assinatura || companyForm.cidade || "Curitiba"}
               </span>
             </div>
@@ -277,34 +277,34 @@ function GestorProfileSettingsPage() {
 
       {/* Tabs Navigation */}
       <Tabs defaultValue="gestor" className="w-full space-y-6">
-        <TabsList className="inline-flex h-auto items-center justify-start gap-1 bg-stone-100/90 p-1 border border-stone-200/80 rounded-xl w-full sm:w-auto">
+        <TabsList className="inline-flex h-auto items-center justify-start gap-1 bg-muted p-1 border border-border rounded-xl w-full sm:w-auto">
           <TabsTrigger
             value="gestor"
-            className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm"
+            className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs text-muted-foreground transition-all"
           >
-            <UserCheck className="h-4 w-4 text-indigo-600" /> Dados do Gestor
+            <UserCheck className="h-4 w-4 text-primary" /> Dados do Gestor
           </TabsTrigger>
           <TabsTrigger
             value="empresa"
-            className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm"
+            className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs text-muted-foreground transition-all"
           >
-            <Building2 className="h-4 w-4 text-indigo-600" /> Dados da Empresa
+            <Building2 className="h-4 w-4 text-primary" /> Dados da Empresa
           </TabsTrigger>
           <TabsTrigger
             value="sistema"
-            className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-white data-[state=active]:text-stone-900 data-[state=active]:shadow-sm"
+            className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs text-muted-foreground transition-all"
           >
-            <Settings className="h-4 w-4 text-indigo-600" /> Padrões do Sistema
+            <Settings className="h-4 w-4 text-primary" /> Padrões do Sistema
           </TabsTrigger>
         </TabsList>
 
         {/* TAB 1: DADOS DO GESTOR */}
         <TabsContent value="gestor">
-          <Card className="bg-white border border-stone-200 shadow-sm rounded-2xl">
-            <CardHeader className="border-b border-stone-100 pb-5">
+          <Card className="bg-card border border-border shadow-subtle rounded-2xl">
+            <CardHeader className="border-b border-border/70 pb-5">
               <div className="flex items-center gap-2">
-                <UserCheck className="h-5 w-5 text-indigo-600" />
-                <CardTitle className="text-lg font-bold">Informações do Gestor</CardTitle>
+                <UserCheck className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg font-bold text-foreground">Informações do Gestor</CardTitle>
               </div>
               <CardDescription className="text-xs text-muted-foreground">
                 Estes dados serão utilizados automaticamente na emissão de novos contratos como
@@ -316,7 +316,7 @@ function GestorProfileSettingsPage() {
               <form onSubmit={handleSaveGestorProfile} className="space-y-6 max-w-3xl">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2">
-                    <Label htmlFor="gestorName" className="text-xs font-semibold text-stone-700">
+                    <Label htmlFor="gestorName" className="text-xs font-semibold text-foreground">
                       Nome Completo do Gestor
                     </Label>
                     <Input
@@ -324,12 +324,12 @@ function GestorProfileSettingsPage() {
                       value={gestorName}
                       onChange={(e) => setGestorName(e.target.value)}
                       placeholder="Ex: Carlos Eduardo Delski"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="gestorCargo" className="text-xs font-semibold text-stone-700">
+                    <Label htmlFor="gestorCargo" className="text-xs font-semibold text-foreground">
                       Cargo / Função no Sistema
                     </Label>
                     <Input
@@ -337,63 +337,63 @@ function GestorProfileSettingsPage() {
                       value={gestorCargo}
                       onChange={(e) => setGestorCargo(e.target.value)}
                       placeholder="Ex: Gestor de Operações & Contratos"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="gestorEmail" className="text-xs font-semibold text-stone-700">
+                    <Label htmlFor="gestorEmail" className="text-xs font-semibold text-foreground">
                       E-mail Corporativo
                     </Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                      <Mail className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="gestorEmail"
                         type="email"
                         value={gestorEmail}
                         onChange={(e) => setGestorEmail(e.target.value)}
                         placeholder="gestor@delski.com.br"
-                        className="pl-9 bg-stone-50/50"
+                        className="pl-9 bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="gestorPhone" className="text-xs font-semibold text-stone-700">
+                    <Label htmlFor="gestorPhone" className="text-xs font-semibold text-foreground">
                       Telefone / WhatsApp
                     </Label>
                     <div className="relative">
-                      <Phone className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                      <Phone className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="gestorPhone"
                         value={gestorPhone}
                         onChange={(e) => setGestorPhone(e.target.value)}
                         placeholder="(41) 99999-8888"
-                        className="pl-9 bg-stone-50/50"
+                        className="pl-9 bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2 sm:col-span-2">
-                    <Label className="text-xs font-semibold text-stone-700">
+                    <Label className="text-xs font-semibold text-foreground">
                       Foto de Perfil
                     </Label>
-                    <div className="flex items-center gap-4 bg-stone-50/50 p-4 rounded-xl border border-stone-200">
+                    <div className="flex items-center gap-4 bg-muted/40 p-4 rounded-xl border border-border">
                       {/* Avatar preview */}
                       {displayAvatar ? (
                         <img
                           src={displayAvatar}
                           alt="Foto de perfil"
-                          className="h-24 w-24 rounded-2xl object-cover ring-4 ring-indigo-50 border border-gray-200 shadow-md flex-shrink-0"
+                          className="h-24 w-24 rounded-2xl object-cover ring-4 ring-primary/10 border border-border shadow-md flex-shrink-0"
                         />
                       ) : (
-                        <div className="h-24 w-24 rounded-2xl bg-indigo-600/10 text-indigo-600 font-bold text-3xl flex items-center justify-center border border-indigo-500/20 shadow-sm flex-shrink-0">
+                        <div className="h-24 w-24 rounded-2xl bg-primary/10 text-primary font-bold text-3xl flex items-center justify-center border border-primary/20 shadow-sm flex-shrink-0">
                           {gestorName.charAt(0).toUpperCase() || "G"}
                         </div>
                       )}
                       <div className="space-y-1.5">
                         <div className="flex flex-wrap gap-2">
-                          <label className="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium transition-colors shadow-sm">
+                          <label className="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold transition-colors shadow-sm">
                             {uploadingAvatar ? (
                               <Loader2 className="h-3.5 w-3.5 animate-spin" />
                             ) : (
@@ -414,7 +414,7 @@ function GestorProfileSettingsPage() {
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="text-xs text-red-600 border-red-200 hover:bg-red-50 gap-1"
+                              className="text-xs text-rose-600 border-border hover:bg-rose-500/10 gap-1 cursor-pointer"
                               onClick={handleRemoveAvatar}
                               disabled={isSaving}
                             >
@@ -433,7 +433,7 @@ function GestorProfileSettingsPage() {
                   <div className="space-y-2 sm:col-span-2">
                     <Label
                       htmlFor="gestorCpfCnpj"
-                      className="text-xs font-semibold text-stone-700"
+                      className="text-xs font-semibold text-foreground"
                     >
                       CPF ou CNPJ Profissional (opcional)
                     </Label>
@@ -442,16 +442,16 @@ function GestorProfileSettingsPage() {
                       value={gestorCpfCnpj}
                       onChange={(e) => setGestorCpfCnpj(e.target.value)}
                       placeholder="000.000.000-00"
-                      className="bg-stone-50/50 max-w-md"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground max-w-md"
                     />
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-stone-100 flex items-center justify-end gap-3">
+                <div className="pt-4 border-t border-border/70 flex items-center justify-end gap-3">
                   <Button
                     type="submit"
                     disabled={isSaving}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold gap-2 h-10 px-6 shadow-sm"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold gap-2 h-10 px-6 shadow-sm cursor-pointer"
                   >
                     {isSaving ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -468,11 +468,11 @@ function GestorProfileSettingsPage() {
 
         {/* TAB 2: DADOS DA EMPRESA */}
         <TabsContent value="empresa">
-          <Card className="bg-white border border-stone-200 shadow-sm rounded-2xl">
-            <CardHeader className="border-b border-stone-100 pb-5">
+          <Card className="bg-card border border-border shadow-subtle rounded-2xl">
+            <CardHeader className="border-b border-border/70 pb-5">
               <div className="flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-indigo-600" />
-                <CardTitle className="text-lg font-bold">
+                <Building2 className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg font-bold text-foreground">
                   Informações da Empresa (Origem: Empresa)
                 </CardTitle>
               </div>
@@ -486,7 +486,7 @@ function GestorProfileSettingsPage() {
               <form onSubmit={handleSaveCompanyAndSystem} className="space-y-6 max-w-3xl">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="razao_social" className="text-xs font-semibold text-stone-700">
+                    <Label htmlFor="razao_social" className="text-xs font-semibold text-foreground">
                       Razão Social
                     </Label>
                     <Input
@@ -496,12 +496,12 @@ function GestorProfileSettingsPage() {
                         setCompanyForm((prev) => ({ ...prev, razao_social: e.target.value }))
                       }
                       placeholder="Delski Serviços de Tecnologia Ltda"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="cnpj" className="text-xs font-semibold text-stone-700">
+                    <Label htmlFor="cnpj" className="text-xs font-semibold text-foreground">
                       CNPJ
                     </Label>
                     <Input
@@ -511,14 +511,14 @@ function GestorProfileSettingsPage() {
                         setCompanyForm((prev) => ({ ...prev, cnpj: e.target.value }))
                       }
                       placeholder="45.892.123/0001-90"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label
                       htmlFor="nome_representante"
-                      className="text-xs font-semibold text-stone-700"
+                      className="text-xs font-semibold text-foreground"
                     >
                       Nome Representante Contratante
                     </Label>
@@ -529,14 +529,14 @@ function GestorProfileSettingsPage() {
                         setCompanyForm((prev) => ({ ...prev, nome_representante: e.target.value }))
                       }
                       placeholder="Diretoria Delski"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label
                       htmlFor="cargo_representante"
-                      className="text-xs font-semibold text-stone-700"
+                      className="text-xs font-semibold text-foreground"
                     >
                       Cargo Representante Contratante
                     </Label>
@@ -550,14 +550,14 @@ function GestorProfileSettingsPage() {
                         }))
                       }
                       placeholder="Diretoria Geral"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label
                       htmlFor="email_contratante"
-                      className="text-xs font-semibold text-stone-700"
+                      className="text-xs font-semibold text-foreground"
                     >
                       Email Contratante
                     </Label>
@@ -568,14 +568,14 @@ function GestorProfileSettingsPage() {
                         setCompanyForm((prev) => ({ ...prev, email_contratante: e.target.value }))
                       }
                       placeholder="contato@delski.com.br"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label
                       htmlFor="telefone_contratante"
-                      className="text-xs font-semibold text-stone-700"
+                      className="text-xs font-semibold text-foreground"
                     >
                       Telefone Contratante
                     </Label>
@@ -589,12 +589,12 @@ function GestorProfileSettingsPage() {
                         }))
                       }
                       placeholder="(41) 99876-5432"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
 
                   <div className="space-y-2 sm:col-span-2">
-                    <Label htmlFor="endereco" className="text-xs font-semibold text-stone-700">
+                    <Label htmlFor="endereco" className="text-xs font-semibold text-foreground">
                       Endereço da Empresa
                     </Label>
                     <Textarea
@@ -605,16 +605,16 @@ function GestorProfileSettingsPage() {
                         setCompanyForm((prev) => ({ ...prev, endereco: e.target.value }))
                       }
                       placeholder="Av. Cândido de Abreu, 526 - Centro Cívico, Curitiba - PR"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-stone-100 flex items-center justify-end gap-3">
+                <div className="pt-4 border-t border-border/70 flex items-center justify-end gap-3">
                   <Button
                     type="submit"
                     disabled={upsertCompanySettings.isPending}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold gap-2 h-10 px-6 shadow-sm"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold gap-2 h-10 px-6 shadow-sm cursor-pointer"
                   >
                     {upsertCompanySettings.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -631,11 +631,11 @@ function GestorProfileSettingsPage() {
 
         {/* TAB 3: PADRÕES DO SISTEMA */}
         <TabsContent value="sistema">
-          <Card className="bg-white border border-stone-200 shadow-sm rounded-2xl">
-            <CardHeader className="border-b border-stone-100 pb-5">
+          <Card className="bg-card border border-border shadow-subtle rounded-2xl">
+            <CardHeader className="border-b border-border/70 pb-5">
               <div className="flex items-center gap-2">
-                <Settings className="h-5 w-5 text-indigo-600" />
-                <CardTitle className="text-lg font-bold">
+                <Settings className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg font-bold text-foreground">
                   Valores Padrão do Sistema (Origem: Sistema)
                 </CardTitle>
               </div>
@@ -651,12 +651,12 @@ function GestorProfileSettingsPage() {
                   <div className="space-y-2">
                     <Label
                       htmlFor="cidade_padrao_assinatura"
-                      className="text-xs font-semibold text-stone-700"
+                      className="text-xs font-semibold text-foreground"
                     >
                       Cidade Fixa de Assinatura (cidade_assinatura)
                     </Label>
                     <div className="relative">
-                      <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                      <MapPin className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="cidade_padrao_assinatura"
                         value={companyForm.cidade_padrao_assinatura || ""}
@@ -668,7 +668,7 @@ function GestorProfileSettingsPage() {
                           }))
                         }
                         placeholder="Ex: Curitiba"
-                        className="pl-9 bg-stone-50/50"
+                        className="pl-9 bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                       />
                     </div>
                   </div>
@@ -676,12 +676,12 @@ function GestorProfileSettingsPage() {
                   <div className="space-y-2">
                     <Label
                       htmlFor="metodo_pagamento_padrao"
-                      className="text-xs font-semibold text-stone-700"
+                      className="text-xs font-semibold text-foreground"
                     >
                       Método de Pagamento Padrão (metodo_pagamento)
                     </Label>
                     <div className="relative">
-                      <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-stone-400" />
+                      <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="metodo_pagamento_padrao"
                         value={
@@ -694,7 +694,7 @@ function GestorProfileSettingsPage() {
                           }))
                         }
                         placeholder="PIX / Transferência Bancária"
-                        className="pl-9 bg-stone-50/50"
+                        className="pl-9 bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                       />
                     </div>
                   </div>
@@ -702,7 +702,7 @@ function GestorProfileSettingsPage() {
                   <div className="space-y-2">
                     <Label
                       htmlFor="data_pagamento_padrao"
-                      className="text-xs font-semibold text-stone-700"
+                      className="text-xs font-semibold text-foreground"
                     >
                       Data / Prazo de Pagamento (data_pagamento)
                     </Label>
@@ -716,12 +716,12 @@ function GestorProfileSettingsPage() {
                         }))
                       }
                       placeholder="Ex: Dia 10 de cada mês"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="foro_padrao" className="text-xs font-semibold text-stone-700">
+                    <Label htmlFor="foro_padrao" className="text-xs font-semibold text-foreground">
                       Foro da Comarca Padrão (foro)
                     </Label>
                     <Input
@@ -731,16 +731,16 @@ function GestorProfileSettingsPage() {
                         setCompanyForm((prev) => ({ ...prev, foro_padrao: e.target.value }))
                       }
                       placeholder="Ex: Comarca de Curitiba - PR"
-                      className="bg-stone-50/50"
+                      className="bg-muted/50 dark:bg-zinc-900/90 border-border text-foreground"
                     />
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-stone-100 flex items-center justify-end gap-3">
+                <div className="pt-4 border-t border-border/70 flex items-center justify-end gap-3">
                   <Button
                     type="submit"
                     disabled={upsertCompanySettings.isPending}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold gap-2 h-10 px-6 shadow-sm"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold gap-2 h-10 px-6 shadow-sm cursor-pointer"
                   >
                     {upsertCompanySettings.isPending ? (
                       <Loader2 className="h-4 w-4 animate-spin" />

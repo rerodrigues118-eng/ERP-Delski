@@ -55,6 +55,7 @@ import {
   Building,
   Download,
   Search,
+  Clock,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -238,70 +239,70 @@ function FreelancerFinanceView({ user }: { user: any }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-card border-indigo-500/20">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted-foreground font-medium">
                   Sua Remuneração Total
                 </div>
-                <div className="mt-2 text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                <div className="mt-0.5 text-xl sm:text-2xl font-bold text-indigo-600 dark:text-indigo-400">
                   {money(totalFreelancerCost)}
                 </div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500/10 text-indigo-600">
-                <DollarSign className="h-5 w-5" />
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-500/10 text-indigo-600">
+                <DollarSign className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-emerald-500/20">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted-foreground font-medium">
                   Recebido / Pago
                 </div>
-                <div className="mt-2 text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                <div className="mt-0.5 text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                   {money(paidFreelancerCost)}
                 </div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600">
-                <CheckCircle2 className="h-5 w-5" />
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                <CheckCircle2 className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-amber-500/20">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted-foreground font-medium">
                   A Receber (Em Andamento)
                 </div>
-                <div className="mt-2 text-2xl font-bold text-amber-600 dark:text-amber-400">
+                <div className="mt-0.5 text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400">
                   {money(pendingFreelancerCost)}
                 </div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-amber-500/10 text-amber-600">
-                <Wallet className="h-5 w-5" />
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-amber-500/10 text-amber-600">
+                <Wallet className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted-foreground font-medium">Projetos Alocados</div>
-                <div className="mt-2 text-2xl font-bold text-foreground">{projects.length}</div>
+                <div className="mt-0.5 text-xl sm:text-2xl font-bold text-foreground">{projects.length}</div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-muted-foreground">
-                <Briefcase className="h-5 w-5" />
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-muted text-muted-foreground">
+                <Briefcase className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
@@ -408,54 +409,54 @@ function ClienteFinanceView({ user }: { user: any }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card className="bg-card border-emerald-500/20">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted-foreground font-medium">
                   Investimento Total Contratado
                 </div>
-                <div className="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                <div className="mt-0.5 text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                   {money(totalBudget)}
                 </div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600">
-                <DollarSign className="h-5 w-5" />
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-emerald-500/10 text-emerald-600">
+                <DollarSign className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card border-indigo-500/20">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted-foreground font-medium">
                   Situação dos Pagamentos
                 </div>
-                <div className="mt-2 text-lg font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
-                  <ShieldCheck className="h-5 w-5" /> Regular / Adimplente
+                <div className="mt-0.5 text-base sm:text-lg font-bold text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4" /> Regular / Adimplente
                 </div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-indigo-500/10 text-indigo-600">
-                <CheckCircle2 className="h-5 w-5" />
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-indigo-500/10 text-indigo-600">
+                <CheckCircle2 className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card">
-          <CardContent className="p-5">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs text-muted-foreground font-medium">
                   Projetos Contratados
                 </div>
-                <div className="mt-2 text-3xl font-bold text-foreground">{projects.length}</div>
+                <div className="mt-0.5 text-xl sm:text-2xl font-bold text-foreground">{projects.length}</div>
               </div>
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-muted text-muted-foreground">
-                <Building2 className="h-5 w-5" />
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-muted text-muted-foreground">
+                <Building2 className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
@@ -1441,64 +1442,64 @@ function GestorFinanceView() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-card">
-          <CardContent className="p-4">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="text-xs text-muted-foreground font-medium">Receita total</div>
-                <div className="mt-1.5 text-lg sm:text-xl font-bold text-foreground break-all">
+                <div className="mt-0.5 text-lg sm:text-xl font-bold text-foreground break-all">
                   {money(totals.revenue)}
                 </div>
               </div>
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-indigo-500/10 text-indigo-400">
-                <DollarSign className="h-4.5 w-4.5" />
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-500/10 text-indigo-400">
+                <DollarSign className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card">
-          <CardContent className="p-4">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="text-xs text-muted-foreground font-medium">Já pago</div>
-                <div className="mt-1.5 text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 break-all">
+                <div className="mt-0.5 text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 break-all">
                   {money(payoutTotals.paid)}
                 </div>
               </div>
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-400">
-                <Wallet className="h-4.5 w-4.5" />
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                <Wallet className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card">
-          <CardContent className="p-4">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="text-xs text-muted-foreground font-medium">A pagar (freelas)</div>
-                <div className="mt-1.5 text-lg sm:text-xl font-bold text-amber-600 dark:text-amber-400 break-all">
+                <div className="mt-0.5 text-lg sm:text-xl font-bold text-amber-600 dark:text-amber-400 break-all">
                   {money(payoutTotals.owed)}
                 </div>
               </div>
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-400">
-                <TrendingDown className="h-4.5 w-4.5" />
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-400">
+                <TrendingDown className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card className="bg-card">
-          <CardContent className="p-4">
+          <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
                 <div className="text-xs text-muted-foreground font-medium">Lucro estimado</div>
-                <div className="mt-1.5 text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400 break-all">
+                <div className="mt-0.5 text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400 break-all">
                   {money(totals.profit)}
                 </div>
               </div>
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-indigo-500/10 text-indigo-400">
-                <TrendingUp className="h-4.5 w-4.5" />
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-500/10 text-indigo-400">
+                <TrendingUp className="h-4 w-4" />
               </div>
             </div>
           </CardContent>

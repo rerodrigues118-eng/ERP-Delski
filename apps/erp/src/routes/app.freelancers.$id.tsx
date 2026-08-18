@@ -642,7 +642,7 @@ function FreelancerDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-white transition-colors">
+              <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-colors shadow-sm">
                 <input
                   type="file"
                   className="hidden"
@@ -904,7 +904,7 @@ function FreelancerDetailPage() {
                   <Button
                     type="submit"
                     disabled={updateFinancial.isPending}
-                    className="bg-primary hover:bg-primary/90 text-white text-xs font-medium gap-1.5"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold gap-1.5 shadow-sm cursor-pointer"
                   >
                     {updateFinancial.isPending && (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />

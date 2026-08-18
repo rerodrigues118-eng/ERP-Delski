@@ -42,7 +42,6 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { Textarea } from "@/components/ui/textarea";
 
 /* ── Navigation config ─────────────────────────────────── */
@@ -218,7 +217,11 @@ export function AppSidebar() {
               }`}
           >
             <div className="flex items-center justify-center w-10 h-10 flex-shrink-0">
-              <img src="/logo.png" alt="Delski Logo" className="h-[42px] w-[42px] object-contain transition-transform hover:scale-105" />
+              <img
+                src="/logo.png"
+                alt="Delski Logo"
+                className="h-[42px] w-[42px] object-contain transition-all hover:scale-105 dark:brightness-0 dark:invert"
+              />
             </div>
             {!isCollapsed && (
               <div className="flex items-baseline gap-1.5 whitespace-nowrap">
@@ -267,12 +270,6 @@ export function AppSidebar() {
 
         {/* Footer */}
         <div className="flex-shrink-0 border-t border-sidebar-border p-2">
-          {/* Theme toggle — visível apenas quando expandido */}
-          {!isCollapsed && (
-            <div className="flex items-center justify-end px-1 pb-1">
-              <ThemeToggle />
-            </div>
-          )}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
