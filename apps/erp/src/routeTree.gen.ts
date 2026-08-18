@@ -25,6 +25,7 @@ import { Route as AppDocumentsRouteImport } from './routes/app.documents'
 import { Route as AppFinanceRouteImport } from './routes/app.finance'
 import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
 import { Route as AppPerfilRouteImport } from './routes/app.perfil'
+import { Route as AppProjetosRouteImport } from './routes/app.projetos'
 import { Route as AppRisksRouteImport } from './routes/app.risks'
 import { Route as AppSuporteRouteImport } from './routes/app.suporte'
 import { Route as AppWikiRouteImport } from './routes/app.wiki'
@@ -34,6 +35,10 @@ import { Route as ClienteDashboardRouteImport } from './routes/cliente.dashboard
 import { Route as FreelancerIndexRouteImport } from './routes/freelancer.index'
 import { Route as FreelancerDashboardRouteImport } from './routes/freelancer.dashboard'
 import { Route as PTokenRouteImport } from './routes/p.$token'
+import { Route as PortalIndexRouteImport } from './routes/portal.index'
+import { Route as PortalAuthRouteImport } from './routes/portal.auth'
+import { Route as PortalDefinirSenhaRouteImport } from './routes/portal.definir-senha'
+import { Route as PortalOnboardingRouteImport } from './routes/portal.onboarding'
 import { Route as TriagemTokenRouteImport } from './routes/triagem.$token'
 import { Route as AppClientsIndexRouteImport } from './routes/app.clients.index'
 import { Route as AppClientsIdRouteImport } from './routes/app.clients.$id'
@@ -125,6 +130,11 @@ const AppPerfilRoute = AppPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AppRoute,
 } as any)
+const AppProjetosRoute = AppProjetosRouteImport.update({
+  id: '/projetos',
+  path: '/projetos',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRisksRoute = AppRisksRouteImport.update({
   id: '/risks',
   path: '/risks',
@@ -168,6 +178,26 @@ const FreelancerDashboardRoute = FreelancerDashboardRouteImport.update({
 const PTokenRoute = PTokenRouteImport.update({
   id: '/p/$token',
   path: '/p/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalIndexRoute = PortalIndexRouteImport.update({
+  id: '/portal/',
+  path: '/portal/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalAuthRoute = PortalAuthRouteImport.update({
+  id: '/portal/auth',
+  path: '/portal/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalDefinirSenhaRoute = PortalDefinirSenhaRouteImport.update({
+  id: '/portal/definir-senha',
+  path: '/portal/definir-senha',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PortalOnboardingRoute = PortalOnboardingRouteImport.update({
+  id: '/portal/onboarding',
+  path: '/portal/onboarding',
   getParentRoute: () => rootRouteImport,
 } as any)
 const TriagemTokenRoute = TriagemTokenRouteImport.update({
@@ -237,6 +267,7 @@ export interface FileRoutesByFullPath {
   '/app/finance': typeof AppFinanceRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/perfil': typeof AppPerfilRoute
+  '/app/projetos': typeof AppProjetosRoute
   '/app/risks': typeof AppRisksRoute
   '/app/suporte': typeof AppSuporteRoute
   '/app/wiki': typeof AppWikiRoute
@@ -244,10 +275,14 @@ export interface FileRoutesByFullPath {
   '/cliente/dashboard': typeof ClienteDashboardRoute
   '/freelancer/dashboard': typeof FreelancerDashboardRoute
   '/p/$token': typeof PTokenRoute
+  '/portal/auth': typeof PortalAuthRoute
+  '/portal/definir-senha': typeof PortalDefinirSenhaRoute
+  '/portal/onboarding': typeof PortalOnboardingRoute
   '/triagem/$token': typeof TriagemTokenRoute
   '/app/': typeof AppIndexRoute
   '/cliente/': typeof ClienteIndexRoute
   '/freelancer/': typeof FreelancerIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/app/clients/$id': typeof AppClientsIdRoute
   '/app/contract-models/$id': typeof AppContractModelsIdRoute
   '/app/freelancers/$id': typeof AppFreelancersIdRoute
@@ -271,6 +306,7 @@ export interface FileRoutesByTo {
   '/app/finance': typeof AppFinanceRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/perfil': typeof AppPerfilRoute
+  '/app/projetos': typeof AppProjetosRoute
   '/app/risks': typeof AppRisksRoute
   '/app/suporte': typeof AppSuporteRoute
   '/app/wiki': typeof AppWikiRoute
@@ -278,10 +314,14 @@ export interface FileRoutesByTo {
   '/cliente/dashboard': typeof ClienteDashboardRoute
   '/freelancer/dashboard': typeof FreelancerDashboardRoute
   '/p/$token': typeof PTokenRoute
+  '/portal/auth': typeof PortalAuthRoute
+  '/portal/definir-senha': typeof PortalDefinirSenhaRoute
+  '/portal/onboarding': typeof PortalOnboardingRoute
   '/triagem/$token': typeof TriagemTokenRoute
   '/app': typeof AppIndexRoute
   '/cliente': typeof ClienteIndexRoute
   '/freelancer': typeof FreelancerIndexRoute
+  '/portal': typeof PortalIndexRoute
   '/app/clients/$id': typeof AppClientsIdRoute
   '/app/contract-models/$id': typeof AppContractModelsIdRoute
   '/app/freelancers/$id': typeof AppFreelancersIdRoute
@@ -309,6 +349,7 @@ export interface FileRoutesById {
   '/app/finance': typeof AppFinanceRoute
   '/app/notifications': typeof AppNotificationsRoute
   '/app/perfil': typeof AppPerfilRoute
+  '/app/projetos': typeof AppProjetosRoute
   '/app/risks': typeof AppRisksRoute
   '/app/suporte': typeof AppSuporteRoute
   '/app/wiki': typeof AppWikiRoute
@@ -316,10 +357,14 @@ export interface FileRoutesById {
   '/cliente/dashboard': typeof ClienteDashboardRoute
   '/freelancer/dashboard': typeof FreelancerDashboardRoute
   '/p/$token': typeof PTokenRoute
+  '/portal/auth': typeof PortalAuthRoute
+  '/portal/definir-senha': typeof PortalDefinirSenhaRoute
+  '/portal/onboarding': typeof PortalOnboardingRoute
   '/triagem/$token': typeof TriagemTokenRoute
   '/app/': typeof AppIndexRoute
   '/cliente/': typeof ClienteIndexRoute
   '/freelancer/': typeof FreelancerIndexRoute
+  '/portal/': typeof PortalIndexRoute
   '/app/clients/$id': typeof AppClientsIdRoute
   '/app/contract-models/$id': typeof AppContractModelsIdRoute
   '/app/freelancers/$id': typeof AppFreelancersIdRoute
@@ -348,6 +393,7 @@ export interface FileRouteTypes {
     | '/app/finance'
     | '/app/notifications'
     | '/app/perfil'
+    | '/app/projetos'
     | '/app/risks'
     | '/app/suporte'
     | '/app/wiki'
@@ -355,10 +401,14 @@ export interface FileRouteTypes {
     | '/cliente/dashboard'
     | '/freelancer/dashboard'
     | '/p/$token'
+    | '/portal/auth'
+    | '/portal/definir-senha'
+    | '/portal/onboarding'
     | '/triagem/$token'
     | '/app/'
     | '/cliente/'
     | '/freelancer/'
+    | '/portal/'
     | '/app/clients/$id'
     | '/app/contract-models/$id'
     | '/app/freelancers/$id'
@@ -382,6 +432,7 @@ export interface FileRouteTypes {
     | '/app/finance'
     | '/app/notifications'
     | '/app/perfil'
+    | '/app/projetos'
     | '/app/risks'
     | '/app/suporte'
     | '/app/wiki'
@@ -389,10 +440,14 @@ export interface FileRouteTypes {
     | '/cliente/dashboard'
     | '/freelancer/dashboard'
     | '/p/$token'
+    | '/portal/auth'
+    | '/portal/definir-senha'
+    | '/portal/onboarding'
     | '/triagem/$token'
     | '/app'
     | '/cliente'
     | '/freelancer'
+    | '/portal'
     | '/app/clients/$id'
     | '/app/contract-models/$id'
     | '/app/freelancers/$id'
@@ -419,6 +474,7 @@ export interface FileRouteTypes {
     | '/app/finance'
     | '/app/notifications'
     | '/app/perfil'
+    | '/app/projetos'
     | '/app/risks'
     | '/app/suporte'
     | '/app/wiki'
@@ -426,10 +482,14 @@ export interface FileRouteTypes {
     | '/cliente/dashboard'
     | '/freelancer/dashboard'
     | '/p/$token'
+    | '/portal/auth'
+    | '/portal/definir-senha'
+    | '/portal/onboarding'
     | '/triagem/$token'
     | '/app/'
     | '/cliente/'
     | '/freelancer/'
+    | '/portal/'
     | '/app/clients/$id'
     | '/app/contract-models/$id'
     | '/app/freelancers/$id'
@@ -452,7 +512,11 @@ export interface RootRouteChildren {
   OnboardingRoute: typeof OnboardingRoute
   CandidaturaIdRoute: typeof CandidaturaIdRoute
   PTokenRoute: typeof PTokenRoute
+  PortalAuthRoute: typeof PortalAuthRoute
+  PortalDefinirSenhaRoute: typeof PortalDefinirSenhaRoute
+  PortalOnboardingRoute: typeof PortalOnboardingRoute
   TriagemTokenRoute: typeof TriagemTokenRoute
+  PortalIndexRoute: typeof PortalIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -569,6 +633,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPerfilRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/projetos': {
+      id: '/app/projetos'
+      path: '/projetos'
+      fullPath: '/app/projetos'
+      preLoaderRoute: typeof AppProjetosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/risks': {
       id: '/app/risks'
       path: '/risks'
@@ -630,6 +701,34 @@ declare module '@tanstack/react-router' {
       path: '/p/$token'
       fullPath: '/p/$token'
       preLoaderRoute: typeof PTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/': {
+      id: '/portal/'
+      path: '/portal'
+      fullPath: '/portal/'
+      preLoaderRoute: typeof PortalIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/auth': {
+      id: '/portal/auth'
+      path: '/portal/auth'
+      fullPath: '/portal/auth'
+      preLoaderRoute: typeof PortalAuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/definir-senha': {
+      id: '/portal/definir-senha'
+      path: '/portal/definir-senha'
+      fullPath: '/portal/definir-senha'
+      preLoaderRoute: typeof PortalDefinirSenhaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/portal/onboarding': {
+      id: '/portal/onboarding'
+      path: '/portal/onboarding'
+      fullPath: '/portal/onboarding'
+      preLoaderRoute: typeof PortalOnboardingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/triagem/$token': {
@@ -713,6 +812,7 @@ interface AppRouteChildren {
   AppFinanceRoute: typeof AppFinanceRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
   AppPerfilRoute: typeof AppPerfilRoute
+  AppProjetosRoute: typeof AppProjetosRoute
   AppRisksRoute: typeof AppRisksRoute
   AppSuporteRoute: typeof AppSuporteRoute
   AppWikiRoute: typeof AppWikiRoute
@@ -736,6 +836,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFinanceRoute: AppFinanceRoute,
   AppNotificationsRoute: AppNotificationsRoute,
   AppPerfilRoute: AppPerfilRoute,
+  AppProjetosRoute: AppProjetosRoute,
   AppRisksRoute: AppRisksRoute,
   AppSuporteRoute: AppSuporteRoute,
   AppWikiRoute: AppWikiRoute,
@@ -791,7 +892,11 @@ const rootRouteChildren: RootRouteChildren = {
   OnboardingRoute: OnboardingRoute,
   CandidaturaIdRoute: CandidaturaIdRoute,
   PTokenRoute: PTokenRoute,
+  PortalAuthRoute: PortalAuthRoute,
+  PortalDefinirSenhaRoute: PortalDefinirSenhaRoute,
+  PortalOnboardingRoute: PortalOnboardingRoute,
   TriagemTokenRoute: TriagemTokenRoute,
+  PortalIndexRoute: PortalIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -853,8 +853,8 @@ function ClientDetailPage() {
                   onClick={() => {
                     const portalUrl =
                       typeof window !== "undefined"
-                        ? `${window.location.origin}/portal/auth?email=${encodeURIComponent(client.email)}`
-                        : `/portal/auth?email=${encodeURIComponent(client.email)}`;
+                        ? `${window.location.origin}/portal/definir-senha?email=${encodeURIComponent(client.email)}`
+                        : `/portal/definir-senha?email=${encodeURIComponent(client.email)}`;
                     navigator.clipboard.writeText(portalUrl);
                     toast.success("Link de acesso direto ao Portal do Cliente copiado!");
                   }}

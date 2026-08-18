@@ -119,6 +119,7 @@ function OnboardingPage() {
   const [direction, setDirection] = useState<number>(1);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [fetchingCep, setFetchingCep] = useState<boolean>(false);
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState<boolean>(false);
 
   // Form State - Etapa 1 (Dados Cadastrais)
   const [companyName, setCompanyName] = useState<string>("");
@@ -444,8 +445,11 @@ function OnboardingPage() {
         } catch (e) {}
 
         await refreshProfile();
-        toast.success("Cadastro de Prestador concluído com sucesso!");
-        navigate({ to: "/freelancer" as any, replace: true });
+        setIsSuccessModalOpen(true);
+        toast.success("Cadastro concluído com sucesso!");
+        setTimeout(() => {
+          navigate({ to: "/freelancer" as any, replace: true });
+        }, 2000);
       } else {
         // ── FLUXO CLIENTE ─────────────────────────────────────────────────
         let resolvedClientId: string | null = null;
@@ -531,8 +535,11 @@ function OnboardingPage() {
         } catch (e) {}
 
         await refreshProfile();
-        toast.success("Cadastro do Cliente concluído com sucesso!");
-        navigate({ to: "/cliente" as any, replace: true });
+        setIsSuccessModalOpen(true);
+        toast.success("Homologação do Cliente concluída com sucesso!");
+        setTimeout(() => {
+          navigate({ to: "/cliente" as any, replace: true });
+        }, 2000);
       }
     } catch (err: any) {
       console.error("Erro ao finalizar onboarding:", err);
@@ -1201,6 +1208,53 @@ function OnboardingPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal Animado de Conclusão ('Tudo pronto!') */}
+      <AnimatePresence>
+        {isSuccessModalOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              transition={{ duration: 0.35, ease: "easeOut" }}
+              className="bg-white rounded-3xl border border-slate-200/80 shadow-2xl p-8 max-w-md w-full text-center space-y-6"
+            >
+              <div className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
+                <CheckCircle2 className="w-10 h-10 animate-bounce" />
+              </div>
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider">
+                  <Sparkles className="w-3.5 h-3.5" /> Homologação Concluída
+                </div>
+                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Tudo pronto!</h2>
+                <p className="text-sm text-slate-500 leading-relaxed">
+                  Seus dados cadastrais foram registrados com sucesso no Delski Cloud. Estamos redirecionando para o seu painel...
+                </p>
+              </div>
+              <div className="pt-2">
+                <Button
+                  onClick={() => {
+                    if (isFree) {
+                      navigate({ to: "/freelancer" as any, replace: true });
+                    } else {
+                      navigate({ to: "/cliente" as any, replace: true });
+                    }
+                  }}
+                  className="w-full h-11 bg-gradient-to-r from-[#1d4ed8] via-[#2563eb] to-[#3b82f6] text-white font-semibold rounded-xl shadow-md gap-2 cursor-pointer"
+                >
+                  Acessar Meu Portal Agora <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

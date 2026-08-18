@@ -102,6 +102,16 @@ function AuthPage() {
   const [tab, setTab] = useState<"login" | "register" | "forgot" | "reset-password">("login");
   const [resetSent, setResetSent] = useState(false);
 
+  const initialEmail = useMemo(() => {
+    if (typeof window === "undefined") return "";
+    try {
+      const sp = new URLSearchParams(window.location.search);
+      return sp.get("email") || "";
+    } catch {
+      return "";
+    }
+  }, []);
+
   // Listen for Supabase password recovery link click / hash params
   useEffect(() => {
     const checkRecovery = () => {
@@ -432,6 +442,7 @@ function AuthPage() {
                     id="login-email"
                     name="email"
                     type="email"
+                    defaultValue={initialEmail}
                     autoComplete="username"
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="usuario@delski.co"
@@ -510,6 +521,7 @@ function AuthPage() {
                     id="reg-email"
                     name="email"
                     type="email"
+                    defaultValue={initialEmail}
                     autoComplete="email"
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-base shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring pl-9 md:text-sm"
                     placeholder="seu.email@exemplo.com"

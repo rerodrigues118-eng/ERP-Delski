@@ -279,7 +279,7 @@ function StickyKanbanScrollbar({
   if (!isOverflowing) return null;
 
   return (
-    <div className="sticky bottom-3 z-30 pt-3 pb-1 transition-all">
+    <div className="sticky bottom-1 z-30 pt-1 pb-0 transition-all">
       <div className="bg-card/95 dark:bg-zinc-900/95 backdrop-blur-md border border-border/80 dark:border-zinc-800 rounded-2xl p-2 shadow-lg flex items-center gap-2 max-w-full">
         <Button
           type="button"
@@ -482,7 +482,7 @@ function GestorProjectsView() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 max-w-7xl mx-auto pb-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="page-title">Projetos</h1>
@@ -587,7 +587,11 @@ function GestorProjectsView() {
         </div>
       ) : viewMode === "kanban" ? (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div ref={kanbanScrollRef} className="overflow-x-auto pb-6 scrollbar-thin rounded-2xl scroll-smooth">
+          <div
+            ref={kanbanScrollRef}
+            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+            className="overflow-x-auto pb-2 no-scrollbar [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar]:h-0 [&::-webkit-scrollbar]:w-0 rounded-2xl scroll-smooth"
+          >
             <div className="flex gap-4 min-w-max pb-2">
               {statuses.map((status) => (
                 <Column
