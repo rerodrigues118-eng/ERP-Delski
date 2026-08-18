@@ -10,9 +10,24 @@ export interface ClientItem {
   full_name: string;
   email: string;
   company_name?: string | null;
+  corporate_name?: string | null;
+  cnpj?: string | null;
+  segment?: string | null;
+  cep?: string | null;
+  address?: string | null;
+  city?: string | null;
+  state?: string | null;
+  role_position?: string | null;
   phone?: string | null;
   status: "convidado" | "ativo" | "bloqueado";
   created_at: string;
+  contract_model?: string;
+  contract_value?: number;
+  setup_value?: number;
+  contract_duration?: string;
+  payment_date?: string | null;
+  due_date?: string | null;
+  financial_status?: string;
   projects?: { id: string; title: string; status: string }[];
 }
 
@@ -95,9 +110,17 @@ export function useClientsList() {
             id: c.id,
             auth_user_id: c.auth_user_id || matchedProfile?.id || null,
             resolved_id: resolvedId,
-            full_name: c.full_name || matchedProfile?.full_name || "Cliente",
+            full_name: c.full_name || c.contact_name || matchedProfile?.full_name || "Cliente",
             email: c.email || matchedProfile?.email || "",
             company_name: c.company_name || "",
+            corporate_name: c.corporate_name || c.company_name || "",
+            cnpj: c.cnpj || matchedProfile?.cpf_cnpj || "",
+            segment: c.segment || "",
+            cep: c.cep || "",
+            address: c.address || "",
+            city: c.city || "",
+            state: c.state || "",
+            role_position: c.role_position || "",
             phone: c.phone || matchedProfile?.phone || "",
             status: c.status || "ativo",
             created_at: c.created_at || matchedProfile?.created_at || new Date().toISOString(),
@@ -119,6 +142,14 @@ export function useClientsList() {
             full_name: p.full_name || "Cliente",
             email: p.email || "",
             company_name: p.company_name || "",
+            corporate_name: p.company_name || "",
+            cnpj: p.cpf_cnpj || "",
+            segment: "",
+            cep: "",
+            address: "",
+            city: "",
+            state: "",
+            role_position: "",
             phone: p.phone || "",
             status: p.approval_status === "rejected" ? "bloqueado" : "ativo",
             created_at: p.created_at || new Date().toISOString(),
@@ -182,11 +213,17 @@ export function useClientDetail(id: string) {
             id: clientData.id,
             auth_user_id: clientData.auth_user_id || profileByEmail?.id || null,
             resolved_id: resolvedId,
-            full_name: clientData.full_name || profileByEmail?.full_name || clientData.company_name || "Cliente",
+            full_name: clientData.full_name || clientData.contact_name || profileByEmail?.full_name || clientData.company_name || "Cliente",
             email: clientData.email || profileByEmail?.email || "",
             company_name: clientData.company_name || "",
-            corporate_name: clientData.corporate_name || "",
-            cnpj: clientData.cnpj || "",
+            corporate_name: clientData.corporate_name || clientData.company_name || "",
+            cnpj: clientData.cnpj || profileByEmail?.cpf_cnpj || "",
+            segment: clientData.segment || "",
+            cep: clientData.cep || "",
+            address: clientData.address || "",
+            city: clientData.city || "",
+            state: clientData.state || "",
+            role_position: clientData.role_position || "",
             phone: clientData.phone || profileByEmail?.phone || "",
             status: clientData.status || "ativo",
             created_at: clientData.created_at || new Date().toISOString(),
@@ -227,11 +264,17 @@ export function useClientDetail(id: string) {
               id: matchedClient?.id || profileRow.id,
               auth_user_id: profileRow.id,
               resolved_id: profileRow.id,
-              full_name: matchedClient?.full_name || profileRow.full_name || "Cliente",
+              full_name: matchedClient?.full_name || matchedClient?.contact_name || profileRow.full_name || "Cliente",
               email: matchedClient?.email || profileRow.email || "",
               company_name: matchedClient?.company_name || "",
-              corporate_name: matchedClient?.corporate_name || "",
-              cnpj: matchedClient?.cnpj || "",
+              corporate_name: matchedClient?.corporate_name || matchedClient?.company_name || "",
+              cnpj: matchedClient?.cnpj || profileRow.cpf_cnpj || "",
+              segment: matchedClient?.segment || "",
+              cep: matchedClient?.cep || "",
+              address: matchedClient?.address || "",
+              city: matchedClient?.city || "",
+              state: matchedClient?.state || "",
+              role_position: matchedClient?.role_position || "",
               phone: matchedClient?.phone || profileRow.phone || "",
               status: matchedClient?.status || "ativo",
               created_at: matchedClient?.created_at || profileRow.created_at || new Date().toISOString(),
@@ -353,27 +396,38 @@ export function useUpdateClient() {
       patch,
     }: {
       id: string;
-      patch: Partial<CreateClientInput> & { status?: "convidado" | "ativo" | "bloqueado" };
+      patch: Record<string, any>;
     }) => {
-      // Update clients table
-      await (supabase.from("clients") as any).update(patch).eq("id", id);
+      // 1. Update clients table by direct id or auth_user_id
+      const { error: clientErr } = await (supabase.from("clients") as any)
+        .update(patch)
+        .or(`id.eq.${id},auth_user_id.eq.${id}`);
 
-      // Update profiles if name, email or status changed
-      const updateData: any = {};
-      if (patch.full_name) updateData.full_name = patch.full_name;
-      if (patch.email) updateData.email = patch.email;
-      if (patch.status) updateData.status = patch.status;
-      if (Object.keys(updateData).length > 0) {
-        await supabase.from("profiles").update(updateData).eq("id", id);
+      if (clientErr) {
+        console.warn("Aviso ao atualizar clients table:", clientErr);
+      }
+
+      // 2. Update profiles if relevant fields changed
+      const profileUpdate: any = {};
+      if (patch.full_name) profileUpdate.full_name = patch.full_name;
+      if (patch.email) profileUpdate.email = patch.email;
+      if (patch.phone) profileUpdate.phone = patch.phone;
+      if (patch.cnpj) profileUpdate.cpf_cnpj = patch.cnpj;
+      if (patch.status) profileUpdate.status = patch.status;
+
+      if (Object.keys(profileUpdate).length > 0) {
+        await (supabase.from("profiles") as any)
+          .update(profileUpdate)
+          .or(`id.eq.${id},email.eq.${patch.email || ""}`);
       }
     },
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["clients-list"] });
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["client-detail", v.id] });
-      toast.success("Dados e acesso do cliente atualizados!");
+      toast.success("Dados cadastrais do cliente atualizados com sucesso!");
     },
-    onError: (e: Error) => toast.error(`Erro: ${e.message}`),
+    onError: (e: Error) => toast.error(`Erro ao atualizar dados: ${e.message}`),
   });
 }
 

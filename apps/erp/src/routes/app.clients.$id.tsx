@@ -45,6 +45,10 @@ import {
   FileCheck,
   DollarSign,
   AlertCircle,
+  MapPin,
+  User,
+  Save,
+  Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -136,11 +140,20 @@ function ClientDetailPage() {
   const unlinkProject = useUnlinkProjectClient();
   const resendInvite = useResendClientInvite();
 
-  // Form edit state
+  // Form edit state - Dados Cadastrais & Corporativos
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [companyName, setCompanyName] = useState("");
+  const [corporateName, setCorporateName] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [segment, setSegment] = useState("");
   const [phone, setPhone] = useState("");
+  const [cep, setCep] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [rolePosition, setRolePosition] = useState("");
+  const [fetchingCep, setFetchingCep] = useState(false);
 
   // Financial Form state (Gestor definition)
   const [contractModel, setContractModel] = useState("Mensal");
@@ -158,12 +171,41 @@ function ClientDetailPage() {
   // Modal delete client state
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
 
+  const handleCepBlur = async () => {
+    const rawCep = cep.replace(/\D/g, "");
+    if (rawCep.length === 8) {
+      setFetchingCep(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${rawCep}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setAddress(`${data.logradouro || ""} - ${data.bairro || ""}`.trim().replace(/^-\s*/, ""));
+          setCity(data.localidade || "");
+          setState(data.uf || "");
+          toast.success("Endereço preenchido automaticamente pelo CEP!");
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar CEP:", err);
+      } finally {
+        setFetchingCep(false);
+      }
+    }
+  };
+
   useEffect(() => {
     if (client) {
-      setFullName(client.full_name || "");
+      setFullName(client.full_name || (client as any).contact_name || "");
       setEmail(client.email || "");
       setCompanyName(client.company_name || "");
+      setCorporateName((client as any).corporate_name || client.company_name || "");
+      setCnpj((client as any).cnpj || "");
+      setSegment((client as any).segment || "");
       setPhone(client.phone || "");
+      setCep((client as any).cep || "");
+      setAddress((client as any).address || "");
+      setCity((client as any).city || "");
+      setState((client as any).state || "");
+      setRolePosition((client as any).role_position || "");
       setContractModel((client as any).contract_model || "Mensal");
       setContractValue(String((client as any).contract_value || "0"));
       setSetupValue(String((client as any).setup_value || "0"));
@@ -226,24 +268,32 @@ function ClientDetailPage() {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim() || !email.trim()) {
-      return toast.error("Nome e e-mail são obrigatórios");
+    if (!companyName.trim()) {
+      return toast.error("Preencha o Nome Fantasia da empresa.");
+    }
+    if (!email.trim()) {
+      return toast.error("Preencha o E-mail Corporativo.");
+    }
+    if (!fullName.trim()) {
+      return toast.error("Preencha o Nome do Responsável Legal.");
     }
 
     updateClient.mutate({
       id: client.id,
       patch: {
-        full_name: fullName.trim(),
+        company_name: companyName.trim(),
+        corporate_name: corporateName.trim() || companyName.trim(),
+        cnpj: cnpj.trim() || undefined,
+        segment: segment.trim() || undefined,
         email: email.trim(),
-        company_name: companyName.trim() || undefined,
         phone: phone.trim() || undefined,
-        contract_model: contractModel,
-        contract_value: Number(contractValue) || 0,
-        setup_value: Number(setupValue) || 0,
-        contract_duration: contractDuration,
-        payment_date: paymentDate || null,
-        due_date: dueDate || null,
-        financial_status: financialStatus,
+        cep: cep.trim() || undefined,
+        address: address.trim() || undefined,
+        city: city.trim() || undefined,
+        state: state.trim() || undefined,
+        full_name: fullName.trim(),
+        contact_name: fullName.trim(),
+        role_position: rolePosition.trim() || undefined,
       },
     });
   };
@@ -301,10 +351,10 @@ function ClientDetailPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">{client.full_name}</h1>
+              <h1 className="text-2xl font-bold tracking-tight">{client.company_name || client.full_name}</h1>
               {client.company_name && (
                 <Badge variant="outline" className="bg-muted text-muted-foreground">
-                  {client.company_name}
+                  {client.full_name}
                 </Badge>
               )}
               {client.status === "ativo" && (
@@ -382,7 +432,7 @@ function ClientDetailPage() {
                   </DialogTitle>
                   <DialogDescription>
                     Tem certeza de que deseja apagar o acesso e cadastro do cliente{" "}
-                    <strong>"{client.full_name}"</strong>? Esta ação removerá a conta do banco de
+                    <strong>"{client.company_name || client.full_name}"</strong>? Esta ação removerá a conta do banco de
                     dados e desvinculará seus projetos.
                   </DialogDescription>
                 </DialogHeader>
@@ -414,71 +464,201 @@ function ClientDetailPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Left 2 Cols: Form & Projects */}
         <div className="md:col-span-2 space-y-6">
-          {/* Card 1: Dados Cadastrais */}
+          {/* Card 1: Dados Cadastrais & Corporativos */}
           <Card className="bg-card border-border shadow-subtle rounded-2xl">
             <CardHeader className="pb-3 border-b border-border/70">
-              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                Dados Cadastrais do Cliente
-              </CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
-                Atualize as informações corporativas e dados de contato principal.
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                    <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                    Dados Cadastrais do Cliente
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    Informações corporativas, fiscais, endereço e contato do responsável legal.
+                  </CardDescription>
+                </div>
+                <Badge variant="outline" className="text-xs font-mono bg-muted text-muted-foreground">
+                  ID: {resolvedClientId?.slice(0, 8)}...
+                </Badge>
+              </div>
             </CardHeader>
-            <CardContent className="pt-4">
-              <form onSubmit={handleSaveProfile} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-foreground">Nome Completo *</Label>
-                    <Input
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      className="bg-muted/40 border-border rounded-xl"
-                      required
-                    />
+            <CardContent className="pt-5">
+              <form onSubmit={handleSaveProfile} className="space-y-6">
+                {/* Subseção 1: Dados Corporativos da Empresa */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2 pb-1 border-b border-border/50">
+                    <Building2 className="h-3.5 w-3.5 text-blue-600" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Dados Corporativos da Empresa
+                    </h4>
                   </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Nome Fantasia *</Label>
+                      <Input
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="Ex: Studio Lumina Mídia"
+                        className="bg-muted/40 border-border rounded-xl"
+                        required
+                      />
+                    </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-foreground">E-mail Corporativo *</Label>
-                    <Input
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="bg-muted/40 border-border rounded-xl"
-                      required
-                    />
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Razão Social</Label>
+                      <Input
+                        value={corporateName}
+                        onChange={(e) => setCorporateName(e.target.value)}
+                        placeholder="Ex: Lumina Mídia e Serviços LTDA"
+                        className="bg-muted/40 border-border rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">CNPJ</Label>
+                      <Input
+                        value={cnpj}
+                        onChange={(e) => setCnpj(e.target.value)}
+                        placeholder="00.000.000/0000-00"
+                        className="bg-muted/40 border-border rounded-xl font-mono text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Segmento de Atuação</Label>
+                      <Input
+                        value={segment}
+                        onChange={(e) => setSegment(e.target.value)}
+                        placeholder="Ex: Tráfego Pago, Design, IA"
+                        className="bg-muted/40 border-border rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">E-mail Corporativo *</Label>
+                      <Input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="carlos@empresa.com.br"
+                        className="bg-muted/40 border-border rounded-xl"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Telefone / WhatsApp</Label>
+                      <Input
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="(11) 98888-7777"
+                        className="bg-muted/40 border-border rounded-xl"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-foreground">Nome da Empresa / Razão Social</Label>
-                    <Input
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="Ex: Studio Lumina Mídia"
-                      className="bg-muted/40 border-border rounded-xl"
-                    />
+                {/* Subseção 2: Endereço & Localização */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center gap-2 pb-1 border-b border-border/50">
+                    <MapPin className="h-3.5 w-3.5 text-blue-600" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Endereço & Localização
+                    </h4>
                   </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">CEP</Label>
+                      <div className="relative">
+                        <Input
+                          value={cep}
+                          onChange={(e) => setCep(e.target.value)}
+                          onBlur={handleCepBlur}
+                          placeholder="00000-000"
+                          className="bg-muted/40 border-border rounded-xl font-mono text-xs pr-8"
+                        />
+                        {fetchingCep && (
+                          <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-blue-600" />
+                        )}
+                      </div>
+                    </div>
 
-                  <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-foreground">Telefone / WhatsApp</Label>
-                    <Input
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      placeholder="(11) 98888-7777"
-                      className="bg-muted/40 border-border rounded-xl"
-                    />
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label className="text-xs font-semibold text-foreground">Endereço Completo</Label>
+                      <Input
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="Rua, Número, Bairro, Complemento"
+                        className="bg-muted/40 border-border rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label className="text-xs font-semibold text-foreground">Cidade</Label>
+                      <Input
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="Cidade"
+                        className="bg-muted/40 border-border rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">UF</Label>
+                      <Input
+                        value={state}
+                        onChange={(e) => setState(e.target.value.toUpperCase())}
+                        placeholder="UF"
+                        maxLength={2}
+                        className="bg-muted/40 border-border rounded-xl font-mono uppercase text-center"
+                      />
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end pt-2">
+                {/* Subseção 3: Responsável Legal & Contato */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center gap-2 pb-1 border-b border-border/50">
+                    <User className="h-3.5 w-3.5 text-blue-600" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Responsável Legal & Contato
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Responsável Legal *</Label>
+                      <Input
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Ex: Carlos Eduardo Silva"
+                        className="bg-muted/40 border-border rounded-xl"
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-semibold text-foreground">Cargo / Função</Label>
+                      <Input
+                        value={rolePosition}
+                        onChange={(e) => setRolePosition(e.target.value)}
+                        placeholder="Ex: Sócio-Administrador"
+                        className="bg-muted/40 border-border rounded-xl"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-3 border-t border-border">
                   <Button
                     type="submit"
                     disabled={updateClient.isPending}
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold gap-1.5 rounded-xl cursor-pointer"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold gap-1.5 rounded-xl cursor-pointer shadow-xs"
                   >
-                    {updateClient.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    {updateClient.isPending ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Save className="h-3.5 w-3.5" />
+                    )}
                     Salvar Dados Cadastrais
                   </Button>
                 </div>
