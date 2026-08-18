@@ -56,6 +56,21 @@ import {
   Download,
   Search,
   Clock,
+  Zap,
+  Wrench,
+  Megaphone,
+  Bot,
+  Sparkles,
+  Target,
+  Globe,
+  Users,
+  Package,
+  FolderKanban,
+  Tag,
+  Calculator,
+  AlertCircle,
+  Calendar,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
@@ -137,20 +152,144 @@ function paymentStatusFrom({
   return { label: "A Pagar", color: "amber" };
 }
 
-const CATEGORIES: { value: ExpenseCategory; label: string }[] = [
-  { value: "freelancer", label: "Pagamento freelancer" },
-  { value: "ads", label: "Verba de anúncios / Marketing" },
-  { value: "ferramentas", label: "Ferramentas / SaaS / Licenças" },
-  { value: "infra", label: "Infraestrutura & Servidores / Hosting" },
-  { value: "escritorio", label: "Custos Operacionais / Aluguel" },
-  { value: "impostos", label: "Impostos & Contabilidade / Taxas" },
-  { value: "equipamentos", label: "Equipamentos & Suprimentos" },
-  { value: "outros", label: "Outros (Despesa Geral)" },
+export interface ExpenseCategoryConfig {
+  value: ExpenseCategory;
+  label: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  colorClass: string;
+  badgeClass: string;
+}
+
+export const CATEGORIES: ExpenseCategoryConfig[] = [
+  {
+    value: "apis",
+    label: "APIs & Webhooks",
+    description: "OpenAI, Anthropic, WhatsApp API, gateways, etc.",
+    icon: Zap,
+    colorClass: "text-amber-500",
+    badgeClass: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  },
+  {
+    value: "ferramentas",
+    label: "Ferramentas & Softwares (SaaS)",
+    description: "Hospedagem, Vercel, Supabase, Adobe, Figma",
+    icon: Wrench,
+    colorClass: "text-blue-500",
+    badgeClass: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  },
+  {
+    value: "ads",
+    label: "Tráfego Pago & Mídia",
+    description: "Meta Ads, Google Ads, TikTok Ads",
+    icon: Megaphone,
+    colorClass: "text-rose-500",
+    badgeClass: "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+  },
+  {
+    value: "ia_automacao",
+    label: "Ferramentas de IA & Automação",
+    description: "ChatGPT Enterprise, Make, Zapier, Midjourney",
+    icon: Bot,
+    colorClass: "text-indigo-500",
+    badgeClass: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+  },
+  {
+    value: "influencers",
+    label: "Influencers & Criadores de Conteúdo",
+    description: "Parcerias, publis, afiliados",
+    icon: Sparkles,
+    colorClass: "text-pink-500",
+    badgeClass: "bg-pink-500/10 text-pink-600 dark:text-pink-400 border-pink-500/20",
+  },
+  {
+    value: "aquisicao_leads",
+    label: "Aquisição de Leads & Prospecção",
+    description: "Bases de dados, scrapers, cold mail",
+    icon: Target,
+    colorClass: "text-emerald-500",
+    badgeClass: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  },
+  {
+    value: "dominios_infra",
+    label: "Domínios & Infraestrutura de Sites",
+    description: "Registros, SSL, servidores",
+    icon: Globe,
+    colorClass: "text-cyan-500",
+    badgeClass: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+  },
+  {
+    value: "freelancers",
+    label: "Freelancers & Prestadores de Serviço",
+    description: "Serviços e repasses a freelancers",
+    icon: Users,
+    colorClass: "text-violet-500",
+    badgeClass: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+  },
+  {
+    value: "custos_fixos",
+    label: "Custos Operacionais Fixos",
+    description: "Aluguel, contabilidade, utilidades",
+    icon: Building2,
+    colorClass: "text-slate-500",
+    badgeClass: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
+  },
+  {
+    value: "outros",
+    label: "Outras Despesas Variáveis",
+    description: "Despesas pontuais, deslocamento, taxas",
+    icon: Package,
+    colorClass: "text-muted-foreground",
+    badgeClass: "bg-muted text-muted-foreground border-border",
+  },
 ];
 
-const NATURES: { value: ExpenseNature; label: string }[] = [
-  { value: "variavel", label: "Gasto Variável (Pontual)" },
-  { value: "fixo", label: "Gasto Fixo (Recorrente Mensal)" },
+export function getCategoryInfo(categoryKey?: string) {
+  const cat = CATEGORIES.find((c) => c.value === categoryKey);
+  if (cat) return cat;
+  if (categoryKey === "freelancer") {
+    return {
+      value: "freelancers" as ExpenseCategory,
+      label: "Freelancers & Prestadores de Serviço",
+      description: "Serviços e repasses a freelancers",
+      icon: Users,
+      colorClass: "text-violet-500",
+      badgeClass: "bg-violet-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+    };
+  }
+  if (categoryKey === "infra") {
+    return {
+      value: "dominios_infra" as ExpenseCategory,
+      label: "Domínios & Infraestrutura de Sites",
+      description: "Registros, SSL, servidores",
+      icon: Globe,
+      colorClass: "text-cyan-500",
+      badgeClass: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+    };
+  }
+  if (categoryKey === "escritorio" || categoryKey === "impostos" || categoryKey === "equipamentos") {
+    return {
+      value: "custos_fixos" as ExpenseCategory,
+      label: "Custos Operacionais Fixos",
+      description: "Aluguel, contabilidade, utilidades",
+      icon: Building2,
+      colorClass: "text-slate-500",
+      badgeClass: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
+    };
+  }
+  return {
+    value: "outros" as ExpenseCategory,
+    label: "Outras Despesas Variáveis",
+    description: "Despesas pontuais, deslocamento, taxas",
+    icon: Package,
+    colorClass: "text-muted-foreground",
+    badgeClass: "bg-muted text-muted-foreground border-border",
+  };
+}
+
+const NATURES: { value: ExpenseNature; label: string; description: string }[] = [
+  { value: "variavel", label: "Gasto Variável / Pontual", description: "Gasto único ou demanda específica" },
+  { value: "fixo", label: "Custo Fixo / Mensal", description: "Assinatura recorrente que se repete a cada mês" },
 ];
 
 const STATUSES: ExpenseStatus[] = ["Pendente", "Aprovado", "Pago"];
@@ -817,19 +956,18 @@ function GestorFinanceView() {
   const perProject = useMemo(
     () =>
       projects.map((p) => {
-        const freelancerCost = Number(p.freelancer_cost || 0);
-        const additionalCost = Number(p.additional_costs || 0);
-        const projectExpenses = combinedExpenses
-          .filter((e) => e.projectId === p.id)
-          .reduce((a, b) => a + b.amount, 0);
-        const totalCost = freelancerCost + additionalCost + projectExpenses;
         const budget = Number(p.budget || 0);
+        const freelancerCost = Number(p.freelancer_cost || 0);
+        const directExpenses = combinedExpenses.filter((e) => e.projectId === p.id);
+        const directExpensesTotal = directExpenses.reduce((a, b) => a + Number(b.amount || 0), 0);
+        const totalCost = freelancerCost + directExpensesTotal;
         const profit = budget - totalCost;
-        const margin = budget ? (profit / budget) * 100 : 0;
+        const margin = budget > 0 ? (profit / budget) * 100 : 0;
         return {
           ...p,
           freelancerCost,
-          additionalCost,
+          directExpensesTotal,
+          directExpenses,
           cost: totalCost,
           profit,
           margin,
@@ -839,29 +977,35 @@ function GestorFinanceView() {
   );
 
   const totals = useMemo(() => {
+    // 1. Receita Total (Soma de todos os orçamentos de projetos)
     const revenue = projects.reduce((a, p) => a + Number(p.budget || 0), 0);
 
-    const statusStr = (s: string) => (s || "").toString().toLowerCase();
-    const owed = projects
-      .filter((p) => !statusStr(p.status).includes("concluid"))
-      .reduce((a, p) => a + Number(p.freelancer_cost || 0), 0);
+    // 2. Custos com Freelancers (Repasses acordados)
+    const freelancerCosts = projects.reduce((a, p) => a + Number(p.freelancer_cost || 0), 0);
 
-    const paidFromProjects = projects
-      .filter((p) => statusStr(p.status).includes("concluid"))
-      .reduce((a, p) => a + Number(p.freelancer_cost || 0), 0);
-    const paidFromExpenses = combinedExpenses
-      .filter((e) => e.status === "Pago")
-      .reduce((a, e) => a + e.amount, 0);
-    const paid = paidFromProjects + paidFromExpenses;
+    // 3. Despesas (Diretas de Projetos + Corporativas Gerais)
+    const projectExpenses = combinedExpenses.filter((e) => Boolean(e.projectId));
+    const corporateExpenses = combinedExpenses.filter((e) => !e.projectId);
+    const projectExpensesTotal = projectExpenses.reduce((a, e) => a + Number(e.amount || 0), 0);
+    const corporateExpensesTotal = corporateExpenses.reduce((a, e) => a + Number(e.amount || 0), 0);
+    const totalExpenses = combinedExpenses.reduce((a, e) => a + Number(e.amount || 0), 0);
 
-    const totalFreelancerCosts = projects.reduce((a, p) => a + Number(p.freelancer_cost || 0), 0);
-    const totalAdditionalCosts = projects.reduce((a, p) => a + Number(p.additional_costs || 0), 0);
-    const totalExpenses = combinedExpenses.reduce((a, e) => a + e.amount, 0);
+    // 4. Lucro Real Consolidado e Margem Líquida
+    const totalCosts = freelancerCosts + totalExpenses;
+    const realProfit = revenue - totalCosts;
+    const profitMargin = revenue > 0 ? (realProfit / revenue) * 100 : 0;
 
-    const totalCosts = totalFreelancerCosts + totalAdditionalCosts + totalExpenses;
-    const profit = revenue - totalCosts;
-
-    return { revenue, paid, owed, profit };
+    return {
+      revenue,
+      freelancerCosts,
+      totalExpenses,
+      projectExpensesTotal,
+      corporateExpensesTotal,
+      projectExpensesCount: projectExpenses.length,
+      corporateExpensesCount: corporateExpenses.length,
+      realProfit,
+      profitMargin,
+    };
   }, [projects, combinedExpenses]);
 
   // Fetch payouts (gestor) and enrich with project / freelancer info
@@ -1013,28 +1157,29 @@ function GestorFinanceView() {
   const handleOpenEditModal = (p: any) => {
     setEditingProject(p);
     setEditBudget(String(p.budget || 0));
-    setEditAdditionalCosts(String(p.additional_costs || 0));
     setEditModalOpen(true);
   };
 
   const handleSaveProjectFinance = async () => {
     if (!editingProject) return;
     const newBudget = Number(editBudget);
-    const newAdditionalCosts = Number(editAdditionalCosts);
     if (isNaN(newBudget) || newBudget < 0)
       return toast.error("Digite um orçamento de receita válido.");
-    if (isNaN(newAdditionalCosts) || newAdditionalCosts < 0)
-      return toast.error("Digite um custo adicional válido.");
+
+    // Direct expenses sum for this project
+    const projectExpensesSum = combinedExpenses
+      .filter((e) => e.projectId === editingProject.id)
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
 
     setIsSavingProjectFinance(true);
     try {
       await supabase
         .from("projects")
-        .update({ budget: newBudget, additional_costs: newAdditionalCosts })
+        .update({ budget: newBudget, additional_costs: projectExpensesSum })
         .eq("id", editingProject.id);
 
       queryClient.invalidateQueries({ queryKey: ["finance", "gestor"] });
-      toast.success("Financeiro do projeto atualizado com sucesso!");
+      toast.success("Receita e financeiro do projeto atualizados com sucesso!");
       setEditModalOpen(false);
     } catch {
       toast.error("Erro ao atualizar o financeiro do projeto.");
@@ -1054,14 +1199,16 @@ function GestorFinanceView() {
 
     const basePayload: Record<string, any> = {
       project_id: selectedProjId,
-      description: form.description,
+      description: form.description.trim(),
       amount: amountNum,
       category: form.category,
       nature: form.nature,
       due_date: form.dueDate || null,
       status: form.status,
       freelancer_id:
-        form.category === "freelancer" && form.freelancerId ? form.freelancerId : null,
+        (form.category === "freelancers" || form.category === "freelancer") && form.freelancerId
+          ? form.freelancerId
+          : null,
     };
 
     try {
@@ -1079,22 +1226,30 @@ function GestorFinanceView() {
 
     addExpense({
       projectId: selectedProjId,
-      description: form.description,
+      description: form.description.trim(),
       amount: amountNum,
       category: form.category,
       nature: form.nature,
       dueDate: form.dueDate || null,
       status: form.status,
-      freelancerId: form.category === "freelancer" ? form.freelancerId || undefined : undefined,
+      freelancerId:
+        (form.category === "freelancers" || form.category === "freelancer")
+          ? form.freelancerId || undefined
+          : undefined,
     });
 
-    toast.success("Despesa corporativa registrada com sucesso!");
+    if (selectedProjId) {
+      toast.success("Despesa vinculada ao projeto registrada com sucesso!");
+    } else {
+      toast.success("Despesa corporativa da empresa registrada com sucesso!");
+    }
+
     setOpenAdd(false);
     setForm({
       projectId: "none",
       description: "",
       amount: "",
-      category: "ads",
+      category: "apis",
       nature: "variavel",
       dueDate: new Date().toISOString().slice(0, 10),
       freelancerId: "",
@@ -1289,16 +1444,18 @@ function GestorFinanceView() {
         {/* ── ABA 1: VISÃO GERAL & DESPESAS ────────────────────────────────── */}
         <TabsContent value="geral" className="space-y-6 focus-visible:outline-none">
           <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-            <DialogContent className="sm:max-w-md bg-white">
+            <DialogContent className="sm:max-w-lg bg-card border-border text-foreground">
             <DialogHeader>
-              <DialogTitle className="text-lg font-bold">Registrar nova despesa</DialogTitle>
+              <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+                <Plus className="h-5 w-5 text-indigo-500" /> Registrar nova despesa
+              </DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
-                Lance uma despesa associada a um projeto ou categoria.
+                Lance uma despesa vinculada diretamente a um projeto ou como custo corporativo da empresa.
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4 py-2">
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Projeto (Opcional)</Label>
+                <Label className="text-xs font-semibold text-foreground">Projeto (Opcional)</Label>
                 <Select
                   value={form.projectId}
                   onValueChange={(v) => setForm((f) => ({ ...f, projectId: v }))}
@@ -1308,38 +1465,49 @@ function GestorFinanceView() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">
-                      🏢 Empresa (Despesa Corporativa Geral — Sem projeto)
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-muted-foreground" />
+                        <span>Empresa (Despesa Corporativa Geral — Sem projeto)</span>
+                      </div>
                     </SelectItem>
                     {projects.map((p) => (
                       <SelectItem key={p.id} value={p.id}>
-                        {p.title}
+                        <div className="flex items-center gap-2">
+                          <FolderKanban className="h-4 w-4 text-blue-500" />
+                          <span className="truncate">{p.title}</span>
+                        </div>
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <span className="text-[11px] text-muted-foreground">
+                  Selecione "Empresa" para custos corporativos ou escolha o projeto para compor sua DRE direta.
+                </span>
               </div>
+
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Descrição *</Label>
+                <Label className="text-xs font-semibold text-foreground">Descrição *</Label>
                 <Input
-                  placeholder="Ex: Assinatura ChatGPT Enterprise / Aluguel do Escritório"
+                  placeholder="Ex: Assinatura OpenAI / Hospedagem Vercel / Aluguel do Escritório"
                   className="text-xs"
                   value={form.description}
                   onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                 />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Valor (R$) *</Label>
+                  <Label className="text-xs font-semibold text-foreground">Valor (R$) *</Label>
                   <Input
                     type="number"
-                    placeholder="1500"
+                    placeholder="1500.00"
                     className="text-xs"
                     value={form.amount}
                     onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Tipo de Gasto</Label>
+                  <Label className="text-xs font-semibold text-foreground">Tipo de Gasto / Recorrência</Label>
                   <Select
                     value={form.nature}
                     onValueChange={(v) => setForm((f) => ({ ...f, nature: v as ExpenseNature }))}
@@ -1350,16 +1518,20 @@ function GestorFinanceView() {
                     <SelectContent>
                       {NATURES.map((n) => (
                         <SelectItem key={n.value} value={n.value}>
-                          {n.label}
+                          <div className="flex flex-col text-left py-0.5">
+                            <span className="font-semibold text-xs text-foreground">{n.label}</span>
+                            <span className="text-[10px] text-muted-foreground">{n.description}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Categoria</Label>
+                  <Label className="text-xs font-semibold text-foreground">Categoria</Label>
                   <Select
                     value={form.category}
                     onValueChange={(v) => setForm((f) => ({ ...f, category: v as ExpenseCategory }))}
@@ -1367,17 +1539,30 @@ function GestorFinanceView() {
                     <SelectTrigger className="w-full text-xs">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      {CATEGORIES.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>
-                          {c.label}
-                        </SelectItem>
-                      ))}
+                    <SelectContent className="max-h-72">
+                      {CATEGORIES.map((c) => {
+                        const Icon = c.icon;
+                        return (
+                          <SelectItem key={c.value} value={c.value}>
+                            <div className="flex items-center gap-2.5 py-0.5">
+                              <div className={`p-1 rounded-md bg-muted/60 ${c.colorClass}`}>
+                                <Icon className="h-3.5 w-3.5" />
+                              </div>
+                              <div className="flex flex-col text-left">
+                                <span className="font-medium text-xs text-foreground">{c.label}</span>
+                                <span className="text-[10px] text-muted-foreground truncate max-w-[260px]">
+                                  {c.description}
+                                </span>
+                              </div>
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Data de Vencimento</Label>
+                  <Label className="text-xs font-semibold text-foreground">Data de Vencimento</Label>
                   <Input
                     type="date"
                     className="text-xs"
@@ -1386,9 +1571,10 @@ function GestorFinanceView() {
                   />
                 </div>
               </div>
-              {form.category === "freelancer" && (
+
+              {(form.category === "freelancers" || form.category === "freelancer") && (
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-semibold">Freelancer Alocado</Label>
+                  <Label className="text-xs font-semibold text-foreground">Freelancer Alocado (Opcional)</Label>
                   <Select
                     value={form.freelancerId}
                     onValueChange={(v) => setForm((f) => ({ ...f, freelancerId: v }))}
@@ -1399,15 +1585,19 @@ function GestorFinanceView() {
                     <SelectContent>
                       {freelancersStore.map((fl) => (
                         <SelectItem key={fl.id} value={fl.id}>
-                          {fl.name} ({(fl as any).role || (fl as any).specialty || "Freelancer"})
+                          <div className="flex items-center gap-2">
+                            <Users className="h-3.5 w-3.5 text-violet-500" />
+                            <span>{fl.name} ({(fl as any).role || (fl as any).specialty || "Freelancer"})</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
+
               <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Status Inicial</Label>
+                <Label className="text-xs font-semibold text-foreground">Status Inicial</Label>
                 <Select
                   value={form.status}
                   onValueChange={(v) => setForm((f) => ({ ...f, status: v as ExpenseStatus }))}
@@ -1441,64 +1631,90 @@ function GestorFinanceView() {
         </Dialog>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-card">
+        {/* Card 1: Receita Total */}
+        <Card className="bg-card border-border">
           <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium">Receita total</div>
+                <div className="text-xs text-muted-foreground font-medium">Receita Total</div>
                 <div className="mt-0.5 text-lg sm:text-xl font-bold text-foreground break-all">
                   {money(totals.revenue)}
                 </div>
+                <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
+                  <FolderKanban className="h-3 w-3 text-blue-500" />
+                  <span>{projects.length} projetos cadastrados</span>
+                </div>
               </div>
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-500/10 text-indigo-400">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-500">
                 <DollarSign className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card">
+        {/* Card 2: Custos com Freelancers */}
+        <Card className="bg-card border-border">
           <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium">Já pago</div>
+                <div className="text-xs text-muted-foreground font-medium">Custos com Freelancers</div>
                 <div className="mt-0.5 text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 break-all">
-                  {money(payoutTotals.paid)}
+                  {money(totals.freelancerCosts)}
+                </div>
+                <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Wallet className="h-3 w-3 text-emerald-500" />
+                  <span>{money(payoutTotals.paid)} pagos • {money(payoutTotals.owed)} a pagar</span>
                 </div>
               </div>
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-400">
-                <Wallet className="h-4 w-4" />
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                <Users className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card">
+        {/* Card 3: Despesas Operacionais / Projetos */}
+        <Card className="bg-card border-border">
           <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium">A pagar (freelas)</div>
-                <div className="mt-0.5 text-lg sm:text-xl font-bold text-amber-600 dark:text-amber-400 break-all">
-                  {money(payoutTotals.owed)}
+                <div className="text-xs text-muted-foreground font-medium">Despesas Operacionais / Projetos</div>
+                <div className="mt-0.5 text-lg sm:text-xl font-bold text-rose-600 dark:text-rose-400 break-all">
+                  {money(totals.totalExpenses)}
+                </div>
+                <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
+                  <Layers className="h-3 w-3 text-rose-500" />
+                  <span>{totals.projectExpensesCount} em projetos • {totals.corporateExpensesCount} corporativas</span>
                 </div>
               </div>
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-amber-500/10 text-amber-400">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-500/10 text-rose-500">
                 <TrendingDown className="h-4 w-4" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-card">
+        {/* Card 4: Lucro Real Consolidado */}
+        <Card className="bg-card border-border">
           <CardContent className="p-3.5 sm:p-4">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium">Lucro estimado</div>
-                <div className="mt-0.5 text-lg sm:text-xl font-bold text-indigo-600 dark:text-indigo-400 break-all">
-                  {money(totals.profit)}
+                <div className="text-xs text-muted-foreground font-medium">Lucro Real Consolidado</div>
+                <div
+                  className={`mt-0.5 text-lg sm:text-xl font-bold break-all ${
+                    totals.realProfit >= 0
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-rose-600 dark:text-rose-400"
+                  }`}
+                >
+                  {money(totals.realProfit)}
+                </div>
+                <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                  <TrendingUp className="h-3 w-3 text-indigo-500" />
+                  <span>Margem Líquida Real: {totals.profitMargin.toFixed(1)}%</span>
                 </div>
               </div>
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-500/10 text-indigo-400">
+              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500">
                 <TrendingUp className="h-4 w-4" />
               </div>
             </div>
@@ -1517,9 +1733,9 @@ function GestorFinanceView() {
 
         {/* TAB 1: LUCRO POR PROJETO */}
         <TabsContent value="profit">
-          <Card className="bg-card">
+          <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="text-base font-bold">Receita vs custo por projeto</CardTitle>
+              <CardTitle className="text-base font-bold text-foreground">Receita vs custo por projeto</CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
@@ -1539,9 +1755,12 @@ function GestorFinanceView() {
                     {perProject.map((p) => (
                       <tr key={p.id} className="hover:bg-muted/30 transition-colors">
                         <td className="px-4 py-3.5 font-bold text-foreground">
-                          {p.title}
+                          <div className="flex items-center gap-2">
+                            <FolderKanban className="h-4 w-4 text-blue-500 shrink-0" />
+                            <span>{p.title}</span>
+                          </div>
                           {p.client?.full_name && (
-                            <span className="block text-xs font-normal text-muted-foreground">
+                            <span className="block text-xs font-normal text-muted-foreground mt-0.5">
                               {p.client.full_name}
                             </span>
                           )}
@@ -1551,11 +1770,16 @@ function GestorFinanceView() {
                             {SERVICE_LABEL[p.service_type] || p.service_type}
                           </Badge>
                         </td>
-                        <td className="px-4 py-3.5 text-right font-medium">
+                        <td className="px-4 py-3.5 text-right font-medium text-foreground">
                           {money(p.budget || 0)}
                         </td>
-                        <td className="px-4 py-3.5 text-right text-rose-500 font-medium">
-                          {money(p.cost)}
+                        <td className="px-4 py-3.5 text-right">
+                          <span className="font-semibold text-rose-600 dark:text-rose-400">
+                            {money(p.cost)}
+                          </span>
+                          <span className="block text-[10px] font-normal text-muted-foreground">
+                            {money(p.freelancerCost)} freela {p.directExpensesTotal > 0 ? `+ ${money(p.directExpensesTotal)} direto` : ""}
+                          </span>
                         </td>
                         <td
                           className={`px-4 py-3.5 text-right font-extrabold ${
@@ -1566,7 +1790,7 @@ function GestorFinanceView() {
                         >
                           {money(p.profit)}
                         </td>
-                        <td className="px-4 py-3.5 text-right font-medium">
+                        <td className="px-4 py-3.5 text-right font-medium text-foreground">
                           {p.margin.toFixed(0)}%
                         </td>
                         <td className="px-4 py-3.5 text-right">
@@ -1575,7 +1799,7 @@ function GestorFinanceView() {
                             variant="ghost"
                             onClick={() => handleOpenEditModal(p)}
                             title="Editar Financeiro do Projeto"
-                            className="h-8 w-8 p-0 text-stone-500 hover:text-blue-700 hover:bg-blue-50 rounded-md"
+                            className="h-8 w-8 p-0 text-muted-foreground hover:text-blue-600 hover:bg-blue-500/10 rounded-md"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
@@ -1591,14 +1815,14 @@ function GestorFinanceView() {
 
         {/* TAB 2: LANÇAMENTOS DE DESPESAS */}
         <TabsContent value="expenses">
-          <Card className="bg-card border border-stone-200">
+          <Card className="bg-card border-border">
             <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between pb-4">
               <div>
-                <CardTitle className="text-base font-bold text-stone-900">
+                <CardTitle className="text-base font-bold text-foreground">
                   Lançamentos de despesas
                 </CardTitle>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Despesas operacionais, verba de anúncios e pagamentos gerais de serviços.
+                  Despesas operacionais, verba de anúncios, ferramentas de IA e pagamentos gerais de serviços.
                 </p>
               </div>
               <Button
@@ -1612,30 +1836,40 @@ function GestorFinanceView() {
             <CardContent className="p-0">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
-                  <thead className="bg-stone-50/80 text-[11px] uppercase tracking-wider text-stone-500 border-y border-stone-200">
+                  <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b border-border">
                     <tr>
-                      <th className="text-left px-4 py-3 font-bold">Descrição / Origem</th>
-                      <th className="text-left px-4 py-3 font-bold">Tipo</th>
-                      <th className="text-left px-4 py-3 font-bold">Categoria</th>
-                      <th className="text-left px-4 py-3 font-bold">Vencimento</th>
-                      <th className="text-right px-4 py-3 font-bold">Valor</th>
-                      <th className="text-left px-4 py-3 font-bold">Status</th>
-                      <th className="text-right px-4 py-3 font-bold">Ações</th>
+                      <th className="text-left px-4 py-3 font-semibold">Descrição / Origem</th>
+                      <th className="text-left px-4 py-3 font-semibold">Tipo</th>
+                      <th className="text-left px-4 py-3 font-semibold">Categoria</th>
+                      <th className="text-left px-4 py-3 font-semibold">Vencimento</th>
+                      <th className="text-right px-4 py-3 font-semibold">Valor</th>
+                      <th className="text-left px-4 py-3 font-semibold">Status</th>
+                      <th className="text-right px-4 py-3 font-semibold">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-stone-200">
+                  <tbody className="divide-y divide-border">
                     {combinedExpenses.map((e) => {
                       const isFixo = e.nature === "fixo";
                       const formattedDueDate = formatDate(e.dueDate);
+                      const catInfo = getCategoryInfo(e.category);
+                      const CatIcon = catInfo.icon;
 
                       return (
-                        <tr key={e.id} className="hover:bg-stone-50/50 transition-colors">
-                          <td className="px-4 py-3.5 font-semibold text-stone-900">
+                        <tr key={e.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3.5 font-semibold text-foreground">
                             <div>{e.description}</div>
-                            <span className="text-[11px] font-normal text-stone-500">
-                              {e.projectName
-                                ? `Projeto: ${e.projectName}`
-                                : "🏢 Despesa Corporativa (Empresa)"}
+                            <span className="text-[11px] font-normal text-muted-foreground flex items-center gap-1 mt-0.5">
+                              {e.projectId ? (
+                                <>
+                                  <FolderKanban className="h-3 w-3 text-blue-500 shrink-0" />
+                                  <span>Projeto: {e.projectName}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Building2 className="h-3 w-3 text-muted-foreground shrink-0" />
+                                  <span>Empresa (Corporativo Geral)</span>
+                                </>
+                              )}
                             </span>
                           </td>
                           <td className="px-4 py-3.5">
@@ -1643,22 +1877,26 @@ function GestorFinanceView() {
                               variant="outline"
                               className={
                                 isFixo
-                                  ? "bg-purple-50 text-purple-700 border-purple-200 text-xs font-semibold"
-                                  : "bg-slate-50 text-slate-700 border-slate-200 text-xs font-normal"
+                                  ? "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20 text-xs font-semibold"
+                                  : "bg-muted text-muted-foreground border-border text-xs font-normal"
                               }
                             >
-                              {isFixo ? "Gasto Fixo Mensal" : "Variável"}
+                              {isFixo ? "Fixo Mensal" : "Variável"}
                             </Badge>
                           </td>
-                          <td className="px-4 py-3.5 capitalize text-xs text-stone-600">
-                            <Badge variant="outline" className="text-xs font-normal">
-                              {CATEGORIES.find((c) => c.value === e.category)?.label || e.category}
+                          <td className="px-4 py-3.5 capitalize text-xs">
+                            <Badge
+                              variant="outline"
+                              className={`text-xs font-medium inline-flex items-center gap-1.5 px-2.5 py-0.5 ${catInfo.badgeClass}`}
+                            >
+                              <CatIcon className="h-3 w-3" />
+                              <span>{catInfo.label}</span>
                             </Badge>
                           </td>
-                          <td className="px-4 py-3.5 text-xs text-stone-600">
+                          <td className="px-4 py-3.5 text-xs text-muted-foreground">
                             {formattedDueDate}
                           </td>
-                          <td className="px-4 py-3.5 text-right font-extrabold text-stone-900">
+                          <td className="px-4 py-3.5 text-right font-extrabold text-foreground">
                             {money(e.amount)}
                           </td>
                           <td className="px-4 py-3.5">
@@ -1668,7 +1906,7 @@ function GestorFinanceView() {
                                 handleUpdateExpenseStatus(e.id, st as ExpenseStatus)
                               }
                             >
-                              <SelectTrigger className="w-32 h-8 text-xs bg-white border-stone-200">
+                              <SelectTrigger className="w-32 h-8 text-xs bg-card border-border text-foreground">
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -1684,7 +1922,7 @@ function GestorFinanceView() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md"
+                              className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 rounded-md"
                               onClick={() => handleDeleteExpense(e.id)}
                               title="Remover despesa"
                             >
@@ -1697,17 +1935,17 @@ function GestorFinanceView() {
 
                     {combinedExpenses.length === 0 && (
                       <tr>
-                        <td colSpan={5} className="py-12 text-center text-sm text-stone-500">
+                        <td colSpan={7} className="py-12 text-center text-sm text-muted-foreground">
                           <div className="flex flex-col items-center justify-center space-y-2">
-                            <FileText className="h-8 w-8 text-stone-300" />
-                            <p className="font-semibold text-stone-700">Nenhuma despesa lançada</p>
-                            <p className="text-xs text-stone-400">
+                            <FileText className="h-8 w-8 text-muted-foreground/40" />
+                            <p className="font-semibold text-foreground">Nenhuma despesa lançada</p>
+                            <p className="text-xs text-muted-foreground">
                               Clique no botão "+ Nova despesa" para registrar lançamentos.
                             </p>
                             <Button
                               size="sm"
                               onClick={() => setOpenAdd(true)}
-                              className="mt-2 bg-indigo-600 text-white text-xs"
+                              className="mt-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
                             >
                               <Plus className="h-3.5 w-3.5 mr-1" /> Criar Lançamento
                             </Button>
@@ -2047,90 +2285,163 @@ function GestorFinanceView() {
 
       {/* Edit Project Finance Modal */}
       <Dialog open={editModalOpen} onOpenChange={setEditModalOpen}>
-        <DialogContent className="sm:max-w-md bg-white">
+        <DialogContent className="sm:max-w-lg bg-card border-border text-foreground">
           <DialogHeader>
-            <DialogTitle className="text-lg font-bold text-stone-900 flex items-center gap-2">
-              <Pencil className="h-5 w-5 text-blue-700" /> Editar Financeiro do Projeto
+            <DialogTitle className="text-lg font-bold text-foreground flex items-center gap-2">
+              <Pencil className="h-5 w-5 text-blue-500" /> Editar Financeiro do Projeto
             </DialogTitle>
-            <DialogDescription className="text-xs text-stone-500">
-              Altere a Receita (Orçamento) e inclua Custos Adicionais para o cálculo preciso de
-              Custo Total e Lucro.
+            <DialogDescription className="text-xs text-muted-foreground">
+              Altere a Receita do projeto e confira a soma automática de repasses a freelancers e custos diretos.
             </DialogDescription>
           </DialogHeader>
 
-          {editingProject && (
-            <div className="space-y-4 py-2">
-              <div className="p-3 bg-stone-50 border border-stone-200 rounded-lg space-y-1">
-                <span className="text-[11px] uppercase tracking-wider font-semibold text-stone-500">
-                  Projeto
-                </span>
-                <p className="text-sm font-bold text-stone-900">{editingProject.title}</p>
-              </div>
+          {editingProject && (() => {
+            const budgetNum = Number(editBudget || 0);
+            const freelaCost = Number(editingProject.freelancer_cost || 0);
+            const projectExpenses = combinedExpenses.filter((e) => e.projectId === editingProject.id);
+            const directExpensesTotal = projectExpenses.reduce((a, b) => a + Number(b.amount || 0), 0);
+            const totalProjectCost = freelaCost + directExpensesTotal;
+            const netProfit = budgetNum - totalProjectCost;
+            const marginPct = budgetNum > 0 ? (netProfit / budgetNum) * 100 : 0;
 
-              <div className="space-y-2">
-                <Label htmlFor="edit-budget" className="text-xs font-semibold text-stone-700">
-                  Receita do Projeto (R$)
-                </Label>
-                <Input
-                  id="edit-budget"
-                  type="number"
-                  placeholder="0.00"
-                  className="bg-white border-stone-200 text-sm focus-visible:ring-blue-900"
-                  value={editBudget}
-                  onChange={(e) => setEditBudget(e.target.value)}
-                />
-              </div>
+            return (
+              <div className="space-y-4 py-2">
+                {/* Project Header Info */}
+                <div className="p-3 bg-muted/40 border border-border rounded-xl flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground flex items-center gap-1">
+                      <FolderKanban className="h-3 w-3 text-blue-500" /> Projeto
+                    </span>
+                    <p className="text-sm font-bold text-foreground">{editingProject.title}</p>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {SERVICE_LABEL[editingProject.service_type] || editingProject.service_type}
+                  </Badge>
+                </div>
 
-              <div className="space-y-2">
-                <Label
-                  htmlFor="edit-additional-costs"
-                  className="text-xs font-semibold text-stone-700"
-                >
-                  Custos Adicionais / Despesas Extras (R$)
-                </Label>
-                <Input
-                  id="edit-additional-costs"
-                  type="number"
-                  placeholder="0.00"
-                  className="bg-white border-stone-200 text-sm focus-visible:ring-blue-900"
-                  value={editAdditionalCosts}
-                  onChange={(e) => setEditAdditionalCosts(e.target.value)}
-                />
-              </div>
-
-              <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-lg text-xs space-y-1.5 text-stone-700">
-                <div className="flex justify-between">
-                  <span>Pagamento Freelancer:</span>
-                  <span className="font-semibold">
-                    {money(Number(editingProject.freelancer_cost || 0))}
+                {/* Budget Input */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-budget" className="text-xs font-semibold text-foreground">
+                    Receita do Projeto (R$) *
+                  </Label>
+                  <Input
+                    id="edit-budget"
+                    type="number"
+                    placeholder="0.00"
+                    className="text-sm"
+                    value={editBudget}
+                    onChange={(e) => setEditBudget(e.target.value)}
+                  />
+                  <span className="text-[11px] text-muted-foreground">
+                    Valor total de orçamento contratado pelo cliente para este projeto.
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span>Custos Adicionais:</span>
-                  <span className="font-semibold">{money(Number(editAdditionalCosts || 0))}</span>
+
+                {/* Calculation Breakdown Card */}
+                <div className="p-3.5 bg-card border border-border rounded-xl text-xs space-y-2 shadow-xs">
+                  <div className="flex items-center justify-between font-medium text-muted-foreground">
+                    <span className="flex items-center gap-1.5 text-foreground font-semibold">
+                      <Plus className="h-3.5 w-3.5 text-emerald-500" /> (+) Receita do Projeto:
+                    </span>
+                    <span className="font-bold text-foreground">{money(budgetNum)}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1.5 text-rose-500 dark:text-rose-400 font-medium">
+                      <Users className="h-3.5 w-3.5" /> (-) Pagamento Freelancers:
+                    </span>
+                    <span className="font-semibold text-rose-600 dark:text-rose-400">
+                      {money(freelaCost)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span className="flex items-center gap-1.5 text-amber-500 dark:text-amber-400 font-medium">
+                      <Zap className="h-3.5 w-3.5" /> (-) Custos Diretos (APIs, Mídia, IA, etc.):
+                    </span>
+                    <span className="font-semibold text-amber-600 dark:text-amber-400">
+                      {money(directExpensesTotal)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-border pt-2 font-bold text-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Calculator className="h-3.5 w-3.5 text-blue-500" /> (=) Custo Total do Projeto:
+                    </span>
+                    <span className="text-rose-600 dark:text-rose-400 text-sm font-bold">
+                      {money(totalProjectCost)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between border-t border-border/80 pt-2 font-extrabold text-foreground">
+                    <span className="flex items-center gap-1.5 text-sm">
+                      <TrendingUp className="h-4 w-4 text-emerald-500" /> (=) Lucro Líquido Real:
+                    </span>
+                    <div className="text-right">
+                      <span
+                        className={`text-sm ${
+                          netProfit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"
+                        }`}
+                      >
+                        {money(netProfit)}
+                      </span>
+                      <span className="block text-[10px] font-normal text-muted-foreground">
+                        Margem: {marginPct.toFixed(1)}%
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between border-t border-blue-200/60 pt-1 font-bold text-stone-900">
-                  <span>Custo Total Estimado:</span>
-                  <span className="text-rose-600">
-                    {money(
-                      Number(editingProject.freelancer_cost || 0) +
-                        Number(editAdditionalCosts || 0),
-                    )}
-                  </span>
-                </div>
-                <div className="flex justify-between font-bold text-stone-900">
-                  <span>Lucro Estimado:</span>
-                  <span className="text-emerald-700">
-                    {money(
-                      Number(editBudget || 0) -
-                        (Number(editingProject.freelancer_cost || 0) +
-                          Number(editAdditionalCosts || 0)),
-                    )}
-                  </span>
+
+                {/* Direct Expenses Detailed List */}
+                <div className="space-y-2 pt-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <Layers className="h-3.5 w-3.5 text-blue-500" /> Despesas Diretas Vinculadas ({projectExpenses.length})
+                    </span>
+                  </div>
+
+                  {projectExpenses.length > 0 ? (
+                    <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                      {projectExpenses.map((exp) => {
+                        const catInfo = getCategoryInfo(exp.category);
+                        const CatIcon = catInfo.icon;
+                        return (
+                          <div
+                            key={exp.id}
+                            className="flex items-center justify-between p-2 rounded-lg bg-muted/30 border border-border text-xs"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className={`p-1 rounded-md bg-background ${catInfo.colorClass}`}>
+                                <CatIcon className="h-3 w-3" />
+                              </div>
+                              <div className="min-w-0 truncate">
+                                <p className="font-medium text-foreground truncate">{exp.description}</p>
+                                <span className="text-[10px] text-muted-foreground">
+                                  {catInfo.label} • {exp.nature === "fixo" ? "Fixo Mensal" : "Variável"}
+                                </span>
+                              </div>
+                            </div>
+                            <span className="font-bold text-rose-500 shrink-0 ml-2">
+                              {money(exp.amount)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-muted/20 border border-dashed border-border rounded-xl text-center">
+                      <p className="text-xs text-muted-foreground">
+                        Nenhuma despesa direta vinculada a este projeto ainda.
+                      </p>
+                      <p className="text-[11px] text-muted-foreground/80 mt-0.5">
+                        Lance despesas selecionando este projeto no botão "+ Nova despesa".
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button
@@ -2138,7 +2449,6 @@ function GestorFinanceView() {
               variant="outline"
               size="sm"
               onClick={() => setEditModalOpen(false)}
-              className="border-stone-200 text-stone-700"
             >
               Cancelar
             </Button>
@@ -2147,7 +2457,7 @@ function GestorFinanceView() {
               size="sm"
               onClick={handleSaveProjectFinance}
               disabled={isSavingProjectFinance}
-              className="bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 text-white font-medium shadow-sm"
+              className="bg-blue-600 hover:bg-blue-700 text-white font-medium shadow-sm"
             >
               {isSavingProjectFinance ? (
                 <>

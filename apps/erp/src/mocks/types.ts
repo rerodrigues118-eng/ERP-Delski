@@ -199,9 +199,16 @@ export interface Lead {
 }
 
 export type ExpenseCategory =
-  | "freelancer"
-  | "ads"
+  | "apis"
   | "ferramentas"
+  | "ads"
+  | "ia_automacao"
+  | "influencers"
+  | "aquisicao_leads"
+  | "dominios_infra"
+  | "freelancers"
+  | "freelancer"
+  | "custos_fixos"
   | "infra"
   | "escritorio"
   | "impostos"

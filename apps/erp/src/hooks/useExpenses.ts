@@ -2,7 +2,23 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type ExpenseCategory = "freelancer" | "ads" | "ferramentas" | "outros";
+export type ExpenseCategory =
+  | "apis"
+  | "ferramentas"
+  | "ads"
+  | "ia_automacao"
+  | "influencers"
+  | "aquisicao_leads"
+  | "dominios_infra"
+  | "freelancers"
+  | "freelancer"
+  | "custos_fixos"
+  | "infra"
+  | "escritorio"
+  | "impostos"
+  | "equipamentos"
+  | "outros";
+export type ExpenseNature = "fixo" | "variavel";
 export type ExpenseStatus = "Pendente" | "Aprovado" | "Pago";
 
 export interface Expense {
