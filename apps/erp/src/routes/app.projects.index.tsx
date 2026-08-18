@@ -5,6 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Search, Folder, Loader2, LayoutGrid, List } from "lucide-react";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   DndContext,
   DragEndEvent,
@@ -430,22 +432,45 @@ function GestorProjectsView() {
         </div>
       </div>
 
-      {/* Loading state */}
-      {isLoading && (
-        <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <p className="text-sm font-medium">Carregando projetos...</p>
-        </div>
-      )}
-
       {/* Projects Display */}
-      {!isLoading && filteredProjects.length === 0 ? (
-        <div className="bg-card rounded-2xl border border-border p-16 text-center">
-          <Folder className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="font-semibold text-foreground">Nenhum projeto encontrado</p>
-          <p className="text-xs text-muted-foreground mt-1">Cadastre um novo projeto ou altere os filtros.</p>
+      {isLoading ? (
+        viewMode === "list" ? (
+          <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-subtle">
+            <TableSkeleton rows={5} cols={7} />
+          </div>
+        ) : (
+          <div className="flex gap-4 overflow-x-auto pb-6">
+            {statuses.map((s) => (
+              <div key={s} className="w-[320px] min-w-[320px] rounded-2xl bg-muted/40 border border-border p-4 space-y-3">
+                <div className="h-5 w-24 bg-muted animate-pulse rounded" />
+                <div className="h-28 bg-muted animate-pulse rounded-xl" />
+                <div className="h-28 bg-muted/70 animate-pulse rounded-xl" />
+              </div>
+            ))}
+          </div>
+        )
+      ) : filteredProjects.length === 0 ? (
+        <div className="bg-card rounded-2xl border border-border p-6 shadow-subtle">
+          <EmptyState
+            icon={Folder}
+            title="Nenhum projeto encontrado"
+            description={
+              search || selectedService !== "all"
+                ? "Nenhum projeto corresponde aos critérios de busca ou filtros selecionados."
+                : "Você ainda não possui projetos ativos cadastrados no sistema."
+            }
+            primaryAction={
+              !search && selectedService === "all"
+                ? {
+                    label: "Criar Primeiro Projeto",
+                    icon: PlusCircle,
+                    to: "/app/projects/new",
+                  }
+                : undefined
+            }
+          />
         </div>
-      ) : !isLoading && viewMode === "kanban" ? (
+      ) : viewMode === "kanban" ? (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div className="overflow-x-auto pb-6 scrollbar-thin">
             <div className="flex gap-4 min-w-max pb-2">
@@ -470,7 +495,7 @@ function GestorProjectsView() {
             </DragOverlay>
           )}
         </DndContext>
-      ) : !isLoading && viewMode === "list" ? (
+      ) : (
         <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-subtle">
           <table className="data-table w-full">
             <thead>
@@ -491,7 +516,7 @@ function GestorProjectsView() {
                     <Link
                       to="/app/projects/$id"
                       params={{ id: project.id }}
-                      className="font-semibold text-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
+                      className="font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                     >
                       {project.title}
                     </Link>
@@ -521,7 +546,7 @@ function GestorProjectsView() {
                     <Link
                       to="/app/projects/$id"
                       params={{ id: project.id }}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline transition-colors"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline transition-colors"
                     >
                       Detalhes →
                     </Link>
@@ -531,7 +556,7 @@ function GestorProjectsView() {
             </tbody>
           </table>
         </div>
-      ) : null}
+      )}
     </div>
   );
 }

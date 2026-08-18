@@ -42,6 +42,8 @@ import {
   type TicketStatus,
 } from "@/hooks/useSupportTickets";
 import { formatDate } from "@/lib/utils";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 
 export const Route = createFileRoute("/app/suporte")({
   head: () => ({
@@ -223,20 +225,30 @@ function SupportPage() {
         </div>
       </div>
 
-      {/* Tickets List / Table */}
-      {isLoading ? (
-        <div className="flex items-center justify-center py-16 gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground font-medium">Carregando chamados de suporte...</p>
+      {/* Tickets List / Table Container */}
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-subtle">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/70">
+          <h2 className="text-[14px] font-bold text-foreground">Fila de Atendimento</h2>
+          <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-lg">
+            {filteredTickets.length} chamados
+          </span>
         </div>
-      ) : filteredTickets.length === 0 ? (
-        <div className="bg-card rounded-2xl border border-border p-16 text-center">
-          <LifeBuoy className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="font-semibold text-foreground">Nenhum chamado encontrado</p>
-          <p className="text-xs text-muted-foreground mt-1">Tente ajustar a busca ou filtro de status.</p>
-        </div>
-      ) : (
-        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-subtle">
+
+        {isLoading ? (
+          <TableSkeleton rows={5} cols={6} />
+        ) : filteredTickets.length === 0 ? (
+          <div className="p-6">
+            <EmptyState
+              icon={LifeBuoy}
+              title="Nenhum chamado encontrado"
+              description={
+                search || statusFilter !== "all"
+                  ? "Nenhum chamado corresponde aos filtros selecionados. Tente limpar os filtros ou o termo de busca."
+                  : "Não há chamados de suporte abertos no momento. Toda a operação está em dia!"
+              }
+            />
+          </div>
+        ) : (
           <div className="overflow-x-auto">
             <table className="data-table w-full">
               <thead>
@@ -245,8 +257,8 @@ function SupportPage() {
                   <th>Categoria</th>
                   <th>Assunto</th>
                   <th>Data</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3 text-right">Ação</th>
+                  <th>Status</th>
+                  <th className="text-right">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -267,15 +279,15 @@ function SupportPage() {
                     <td className="px-4 py-3.5">
                       <Badge
                         variant="outline"
-                        className="text-[11px] bg-stone-50 text-stone-700 border-stone-200 font-medium"
+                        className="text-[11px] bg-muted text-muted-foreground border-border font-medium"
                       >
                         {ticket.category || "Dúvida / Informação"}
                       </Badge>
                     </td>
-                    <td className="px-4 py-3.5 font-medium text-stone-800 max-w-xs truncate">
+                    <td className="px-4 py-3.5 font-medium text-foreground max-w-xs truncate">
                       {ticket.subject}
                     </td>
-                    <td className="px-4 py-3.5 text-xs text-stone-500 font-medium">
+                    <td className="px-4 py-3.5 text-xs text-muted-foreground font-medium">
                       {formatDate(ticket.created_at, {
                         day: "2-digit",
                         month: "2-digit",
@@ -287,7 +299,7 @@ function SupportPage() {
                     <td className="px-4 py-3.5">
                       <Badge
                         className={
-                          STATUS_BADGE_STYLES[ticket.status] || "bg-stone-100 text-stone-800"
+                          STATUS_BADGE_STYLES[ticket.status] || "bg-muted text-foreground"
                         }
                       >
                         {ticket.status}
@@ -301,7 +313,7 @@ function SupportPage() {
                           e.stopPropagation();
                           setActiveTicket(ticket);
                         }}
-                        className="h-8 text-xs border-stone-200 hover:bg-blue-50 hover:text-blue-900 hover:border-blue-300 font-medium"
+                        className="h-8 text-xs border-border hover:bg-accent font-medium cursor-pointer"
                       >
                         <MessageSquare className="h-3.5 w-3.5 mr-1" /> Atender
                       </Button>
@@ -311,16 +323,16 @@ function SupportPage() {
               </tbody>
             </table>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Ticket Details & Reply Sheet (Drawer) */}
       <Sheet open={!!currentActiveTicket} onOpenChange={(open) => !open && setActiveTicket(null)}>
-        <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col h-full bg-white p-0">
+        <SheetContent side="right" className="w-full sm:max-w-lg flex flex-col h-full bg-card border-border p-0 text-foreground">
           {currentActiveTicket && (
             <>
               {/* Sheet Header */}
-              <SheetHeader className="p-6 border-b border-stone-100 bg-stone-50/50 space-y-3">
+              <SheetHeader className="p-6 border-b border-border bg-muted/20 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <Badge className={STATUS_BADGE_STYLES[currentActiveTicket.status]}>
                     {currentActiveTicket.status}

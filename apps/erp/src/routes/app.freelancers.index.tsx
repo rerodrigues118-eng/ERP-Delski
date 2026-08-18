@@ -14,9 +14,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Mail, Loader2, ShieldCheck, CheckCircle2, AlertCircle, Ban, Trash2 } from "lucide-react";
+import { Plus, Mail, Loader2, ShieldCheck, CheckCircle2, AlertCircle, Ban, Trash2, Users } from "lucide-react";
 import { sendWelcomeEmail } from "@/integrations/brevo";
 import { toast } from "sonner";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useFreelancers, useToggleFreelancerBlock, useDeleteFreelancer, type Profile } from "@/hooks/useProfiles";
 import { useProjects } from "@/hooks/useProjects";
 import { supabase } from "@/integrations/supabase/client";
@@ -208,127 +210,130 @@ function FreelancersPage() {
           </span>
         </div>
 
-        {isLoading && (
-          <div className="flex items-center justify-center py-16 gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-primary" />
-            <span className="text-sm text-muted-foreground">Buscando freelancers...</span>
+        {isLoading ? (
+          <TableSkeleton rows={5} cols={5} />
+        ) : freelancers.length === 0 ? (
+          <div className="p-6">
+            <EmptyState
+              icon={Users}
+              title="Nenhum freelancer cadastrado"
+              description="Cadastre especialistas e parceiros para alocar em projetos e acompanhar repasses."
+              primaryAction={{
+                label: "Convidar Freelancer",
+                icon: Plus,
+                onClick: () => setOpen(true),
+              }}
+            />
           </div>
-        )}
-
-        {!isLoading && (
-          <table className="data-table w-full">
-            <thead>
-              <tr>
-                <th>Freelancer</th>
-                <th>E-mail</th>
-                <th>Status</th>
-                <th>Projetos</th>
-                <th className="text-right">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              {freelancers.map((f) => {
-                const count = projects.filter((p) =>
-                  p.freelancers?.some((pf: any) => {
-                    const pfId = pf?.id || pf?.profile?.id;
-                    const pfEmail = pf?.email || pf?.profile?.email;
-                    return (
-                      (f.id && pfId === f.id) ||
-                      (f.email && pfEmail?.toLowerCase() === f.email?.toLowerCase())
-                    );
-                  }),
-                ).length;
-
-                const docStatus = f.documents_status ?? "pendente";
-
-                const { label: statusLabel, cls: statusCls } =
-                  docStatus === "aprovado"
-                    ? { label: "Aprovado", cls: "badge-green" }
-                    : docStatus === "rejeitado"
-                      ? { label: "Adequação Solicitada", cls: "badge-red" }
-                      : docStatus === "em_analise"
-                        ? { label: "Em Análise", cls: "badge-purple" }
-                        : { label: "Incompleto", cls: "badge-gray" };
-
-                return (
-                  <tr key={f.id} className="hover:bg-accent/40 transition-colors">
-                    <td>
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-bold text-primary">
-                            {(f.full_name || "?").charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <Link
-                          to="/app/freelancers/$id"
-                          params={{ id: f.id }}
-                          className="font-semibold text-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
-                        >
-                          {f.full_name}
-                        </Link>
-                      </div>
-                    </td>
-                    <td className="text-muted-foreground">{f.email}</td>
-                    <td>
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${statusCls}`}>
-                        {statusLabel}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="text-sm font-semibold text-foreground">{count}</span>
-                      <span className="text-xs text-muted-foreground ml-1">projeto(s)</span>
-                    </td>
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Link
-                          to="/app/freelancers/$id"
-                          params={{ id: f.id }}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline transition-colors"
-                        >
-                          Ver Ficha →
-                        </Link>
-                        <button
-                          onClick={() => {
-                            sendWelcomeEmail({ name: f.full_name, email: f.email });
-                            toast.success(`E-mail de boas-vindas enviado para ${f.email}`);
-                          }}
-                          title="Reenviar boas-vindas"
-                          className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
-                        >
-                          <Mail className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => toggleBlock.mutate({ id: f.id, newStatus: f.status === "bloqueado" ? "ativo" : "bloqueado" })}
-                          title={f.status === "bloqueado" ? "Desbloquear Acesso" : "Bloquear Acesso"}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            f.status === "bloqueado"
-                              ? "text-emerald-600 hover:bg-emerald-500/10"
-                              : "text-amber-600 hover:bg-amber-500/10"
-                          }`}
-                        >
-                          <Ban className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeletingFreelancer(f)}
-                          title="Excluir Freelancer"
-                          className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-600 transition-colors"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {freelancers.length === 0 && (
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="data-table w-full">
+              <thead>
                 <tr>
-                  <td colSpan={5} className="text-center py-16 text-gray-300">
-                    Nenhum freelancer cadastrado ainda.
-                  </td>
+                  <th>Freelancer</th>
+                  <th>E-mail</th>
+                  <th>Status</th>
+                  <th>Projetos</th>
+                  <th className="text-right">Ações</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {freelancers.map((f) => {
+                  const count = projects.filter((p) =>
+                    p.freelancers?.some((pf: any) => {
+                      const pfId = pf?.id || pf?.profile?.id;
+                      const pfEmail = pf?.email || pf?.profile?.email;
+                      return (
+                        (f.id && pfId === f.id) ||
+                        (f.email && pfEmail?.toLowerCase() === f.email?.toLowerCase())
+                      );
+                    }),
+                  ).length;
+
+                  const docStatus = f.documents_status ?? "pendente";
+
+                  const { label: statusLabel, cls: statusCls } =
+                    docStatus === "aprovado"
+                      ? { label: "Aprovado", cls: "badge-green" }
+                      : docStatus === "rejeitado"
+                        ? { label: "Adequação Solicitada", cls: "badge-red" }
+                        : docStatus === "em_analise"
+                          ? { label: "Em Análise", cls: "badge-purple" }
+                          : { label: "Incompleto", cls: "badge-gray" };
+
+                  return (
+                    <tr key={f.id} className="hover:bg-accent/40 transition-colors">
+                      <td>
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                            <span className="text-xs font-bold text-primary">
+                              {(f.full_name || "?").charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <Link
+                            to="/app/freelancers/$id"
+                            params={{ id: f.id }}
+                            className="font-semibold text-foreground hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                          >
+                            {f.full_name}
+                          </Link>
+                        </div>
+                      </td>
+                      <td className="text-muted-foreground">{f.email}</td>
+                      <td>
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${statusCls}`}>
+                          {statusLabel}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="text-sm font-semibold text-foreground">{count}</span>
+                        <span className="text-xs text-muted-foreground ml-1">projeto(s)</span>
+                      </td>
+                      <td className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Link
+                            to="/app/freelancers/$id"
+                            params={{ id: f.id }}
+                            className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline transition-colors"
+                          >
+                            Ver Ficha →
+                          </Link>
+                          <button
+                            onClick={() => {
+                              sendWelcomeEmail({ name: f.full_name, email: f.email });
+                              toast.success(`E-mail de boas-vindas enviado para ${f.email}`);
+                            }}
+                            title="Reenviar boas-vindas"
+                            className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                          >
+                            <Mail className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => toggleBlock.mutate({ id: f.id, newStatus: f.status === "bloqueado" ? "ativo" : "bloqueado" })}
+                            title={f.status === "bloqueado" ? "Desbloquear Acesso" : "Bloquear Acesso"}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              f.status === "bloqueado"
+                                ? "text-emerald-600 hover:bg-emerald-500/10"
+                                : "text-amber-600 hover:bg-amber-500/10"
+                            }`}
+                          >
+                            <Ban className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeletingFreelancer(f)}
+                            title="Excluir Freelancer"
+                            className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-600 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* Delete Freelancer Confirmation Modal */}

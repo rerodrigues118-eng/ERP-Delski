@@ -27,6 +27,8 @@ import {
   Rocket,
 } from "lucide-react";
 import { toast } from "sonner";
+import { TableSkeleton } from "@/components/ui/table-skeleton";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   useClientsList,
   useCreateClient,
@@ -521,14 +523,27 @@ function ClientsPage() {
             </div>
 
             {isLoading ? (
-              <div className="flex items-center justify-center py-16 gap-3">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                <span className="text-sm text-muted-foreground">Buscando clientes...</span>
-              </div>
+              <TableSkeleton rows={5} cols={5} />
             ) : filteredClients.length === 0 ? (
-              <div className="p-16 text-center text-muted-foreground space-y-2">
-                <Building2 className="h-8 w-8 mx-auto text-muted-foreground/40" />
-                <p className="text-sm font-semibold text-foreground">Nenhum cliente encontrado.</p>
+              <div className="p-6">
+                <EmptyState
+                  icon={Building2}
+                  title="Nenhum cliente encontrado"
+                  description={
+                    search || statusFilter !== "all"
+                      ? "Nenhum cliente corresponde aos filtros aplicados. Tente ajustar os termos da busca."
+                      : "Sua empresa ainda não possui clientes cadastrados. Comece cadastrando seu primeiro cliente."
+                  }
+                  primaryAction={
+                    !search && statusFilter === "all"
+                      ? {
+                          label: "Cadastrar Novo Cliente",
+                          icon: Plus,
+                          onClick: () => setOpenModal(true),
+                        }
+                      : undefined
+                  }
+                />
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -702,36 +717,36 @@ function ClientsPage() {
         </TabsContent>
 
         <TabsContent value="funil" className="space-y-6 mt-6">
-          <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+          <div className="grid gap-4 md:grid-cols-3 xl:grid-cols-5">
             {LEAD_STAGES.map((stage) => {
               const items = leads.filter((l) => l.stage === stage);
               const total = items.reduce((a, l) => a + l.estimatedValue, 0);
               return (
                 <Card
                   key={stage}
-                  className="bg-muted/30 border border-stone-200/80 shadow-subtle rounded-lg"
+                  className="bg-card border-border shadow-subtle rounded-2xl overflow-hidden"
                 >
-                  <CardHeader className="pb-2 p-4">
-                    <CardTitle className="text-sm flex items-center justify-between font-serif font-bold text-stone-900">
+                  <CardHeader className="pb-2 p-4 border-b border-border/70">
+                    <CardTitle className="text-sm flex items-center justify-between font-bold text-foreground">
                       <span>{LEAD_STAGE_LABEL[stage]}</span>
                       <Badge
                         variant="secondary"
-                        className="bg-stone-200 text-stone-700 font-semibold"
+                        className="bg-muted text-muted-foreground font-semibold px-2 py-0.5 rounded-full text-xs"
                       >
                         {items.length}
                       </Badge>
                     </CardTitle>
                     <div className="text-xs text-muted-foreground mt-0.5">{money(total)}</div>
                   </CardHeader>
-                  <CardContent className="space-y-3 min-h-[200px] p-4 pt-1">
+                  <CardContent className="space-y-3 min-h-[200px] p-3 pt-3 bg-muted/10">
                     {items.map((l) => (
                       <div
                         key={l.id}
-                        className="rounded-lg border border-stone-200 bg-white p-3 space-y-2 shadow-sm hover:border-stone-300 transition-all"
+                        className="rounded-xl border border-border bg-card dark:bg-zinc-900/90 p-3.5 space-y-2.5 shadow-xs hover:border-primary/50 transition-all"
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="font-bold text-stone-900 text-sm truncate">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-foreground text-sm truncate">
                               {l.name}
                             </div>
                             <div className="text-xs text-muted-foreground truncate">
@@ -739,29 +754,29 @@ function ClientsPage() {
                             </div>
                           </div>
                           <Badge
-                            className="bg-stone-100 text-stone-855 border border-stone-200 text-[10px] font-semibold"
+                            className="bg-muted text-muted-foreground border-border text-[10px] font-semibold shrink-0"
                             variant="outline"
                           >
                             {l.service}
                           </Badge>
                         </div>
-                        <div className="text-sm font-bold text-stone-850">
+                        <div className="text-sm font-bold text-blue-600 dark:text-blue-400">
                           {money(l.estimatedValue)}
                         </div>
                         {l.notes && (
-                          <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed bg-stone-55 p-1.5 rounded">
+                          <div className="text-xs text-muted-foreground line-clamp-2 leading-relaxed bg-muted/60 dark:bg-zinc-800/60 p-2 rounded-lg">
                             {l.notes}
                           </div>
                         )}
-                        <div className="flex items-center gap-1 pt-1.5 border-t border-stone-100">
+                        <div className="flex items-center gap-1 pt-2 border-t border-border/70">
                           <Select
                             value={l.stage}
                             onValueChange={(v) => updateStage(l.id, v as LeadStage)}
                           >
-                            <SelectTrigger className="h-7 text-xs flex-1 bg-white border-stone-200 text-stone-700">
+                            <SelectTrigger className="h-7 text-xs flex-1 bg-muted/60 dark:bg-zinc-800/80 border-border text-foreground rounded-lg">
                               <SelectValue />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-popover border-border">
                               {LEAD_STAGES.map((s) => (
                                 <SelectItem key={s} value={s}>
                                   {LEAD_STAGE_LABEL[s]}
@@ -775,7 +790,7 @@ function ClientsPage() {
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="h-7 w-7 text-stone-500 hover:text-stone-900 cursor-pointer"
+                                className="h-7 w-7 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-lg cursor-pointer"
                                 onClick={() => handleConvertLead(l.id)}
                                 title="Converter em projeto"
                               >
@@ -786,7 +801,7 @@ function ClientsPage() {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7 text-blue-700 hover:text-blue-900 cursor-pointer"
+                              className="h-7 w-7 text-blue-600 dark:text-blue-400 hover:bg-blue-500/10 rounded-lg cursor-pointer"
                               onClick={() =>
                                 navigate({
                                   to: "/app/projects/$id",
@@ -801,8 +816,9 @@ function ClientsPage() {
                           <Button
                             size="icon"
                             variant="ghost"
-                            className="h-7 w-7 text-rose-500 hover:text-rose-700 cursor-pointer"
+                            className="h-7 w-7 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg cursor-pointer"
                             onClick={() => removeLead(l.id)}
+                            title="Excluir lead"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                           </Button>
@@ -810,7 +826,7 @@ function ClientsPage() {
                       </div>
                     ))}
                     {items.length === 0 && (
-                      <div className="text-xs text-stone-400 text-center py-8 border border-dashed border-stone-200 rounded-md bg-stone-50/30">
+                      <div className="text-xs text-muted-foreground text-center py-10 border border-dashed border-border rounded-xl bg-muted/20 font-medium">
                         Vazio
                       </div>
                     )}

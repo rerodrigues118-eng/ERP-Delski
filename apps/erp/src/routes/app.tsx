@@ -1,5 +1,5 @@
 import { createFileRoute, Outlet, useNavigate, useRouterState } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import { Bell, Search, ChevronRight } from "lucide-react";
@@ -62,7 +62,7 @@ function getBreadcrumbs(pathname: string): { label: string; href: string }[] {
   return crumbs;
 }
 
-function AppHeader() {
+function AppHeader({ onOpenCommandPalette }: { onOpenCommandPalette: () => void }) {
   const { profile, user } = useAuth();
   const pathname = useRouterState({ select: (r) => r.location.pathname });
   const breadcrumbs = useMemo(() => getBreadcrumbs(pathname), [pathname]);
@@ -108,14 +108,19 @@ function AppHeader() {
         ))}
       </nav>
 
-      {/* Center: search */}
-      <div className="hidden md:flex items-center gap-2 bg-muted/60 dark:bg-zinc-900/90 border border-border dark:border-zinc-800 rounded-xl px-3 py-1.5 w-64 xl:w-80 text-sm text-muted-foreground cursor-text hover:border-border/80 transition-colors">
-        <Search className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
-        <span className="select-none text-xs text-muted-foreground">Buscar no ERP...</span>
-        <span className="ml-auto text-[10px] bg-background dark:bg-zinc-800 text-muted-foreground border border-border/50 px-1.5 py-0.5 rounded-md font-mono">
+      {/* Center: interactive search trigger */}
+      <button
+        onClick={onOpenCommandPalette}
+        className="hidden md:flex items-center gap-2 bg-muted/60 dark:bg-zinc-900/90 border border-border dark:border-zinc-800 rounded-xl px-3 py-1.5 w-64 xl:w-80 text-sm text-muted-foreground cursor-pointer hover:border-primary/50 hover:bg-muted/80 transition-all text-left group"
+      >
+        <Search className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
+        <span className="select-none text-xs text-muted-foreground group-hover:text-foreground transition-colors">
+          Buscar no ERP...
+        </span>
+        <span className="ml-auto text-[10px] bg-background dark:bg-zinc-800 text-muted-foreground border border-border/50 px-1.5 py-0.5 rounded-md font-mono font-medium shadow-2xs">
           ⌘K
         </span>
-      </div>
+      </button>
 
       {/* Right: theme toggle + notifications */}
       <div className="flex items-center gap-1.5">
@@ -134,19 +139,32 @@ function AppHeader() {
 }
 
 function AppLayout() {
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setCommandPaletteOpen((open) => !open);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
+  }, []);
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex w-full bg-background dark:bg-zinc-950 text-foreground transition-colors">
         {/* Fixed sidebar */}
         <AppSidebar />
 
-        {/* Main area shifted right of sidebar */}
-        <div
-          className="flex-1 flex flex-col min-w-0 min-h-screen"
-          style={{ marginLeft: "var(--sidebar-width, 220px)" }}
-        >
-          <AppHeader />
-          <main className="flex-1 p-7 xl:p-8">
+        {/* Command Palette Modal */}
+        <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
+
+        {/* Main Content Area */}
+        <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+          <AppHeader onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
+          <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full">
             <Outlet />
           </main>
         </div>

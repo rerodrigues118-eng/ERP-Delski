@@ -41,8 +41,12 @@ export function useClientsList() {
         .order("created_at", { ascending: false });
 
       const profileByEmail = new Map<string, any>();
+      const profileById = new Map<string, any>();
       (profilesData ?? []).forEach((p: any) => {
-        profileByEmail.set((p.email || "").toLowerCase().trim(), p);
+        profileById.set(p.id, p);
+        if (p.email) {
+          profileByEmail.set(p.email.toLowerCase().trim(), p);
+        }
       });
 
       // 3. Fetch all projects to map client_id
@@ -59,12 +63,14 @@ export function useClientsList() {
       });
 
       const clientMap = new Map<string, ClientItem>();
+      const processedEmails = new Set<string>();
 
       // Populate from clients table first
       if (!clientsErr && clientsData) {
         (clientsData as any[]).forEach((c) => {
-          const resolvedId =
-            c.auth_user_id || profileByEmail.get((c.email || "").toLowerCase().trim())?.id || c.id;
+          const normEmail = (c.email || "").toLowerCase().trim();
+          const matchedProfile = normEmail ? profileByEmail.get(normEmail) : null;
+          const resolvedId = c.auth_user_id || matchedProfile?.id || c.id;
 
           const projects = [
             ...(projectsMap.get(resolvedId) ?? []),
@@ -74,34 +80,38 @@ export function useClientsList() {
             new Map(projects.map((proj) => [proj.id, proj])).values(),
           );
 
+          if (normEmail) processedEmails.add(normEmail);
+
           clientMap.set(c.id, {
             id: c.id,
-            auth_user_id: c.auth_user_id,
+            auth_user_id: c.auth_user_id || matchedProfile?.id || null,
             resolved_id: resolvedId,
-            full_name: c.full_name,
-            email: c.email,
+            full_name: c.full_name || matchedProfile?.full_name || "Cliente",
+            email: c.email || matchedProfile?.email || "",
             company_name: c.company_name || "",
-            phone: c.phone || "",
-            status: c.status || "convidado",
-            created_at: c.created_at,
+            phone: c.phone || matchedProfile?.phone || "",
+            status: c.status || "ativo",
+            created_at: c.created_at || matchedProfile?.created_at || new Date().toISOString(),
             projects: uniqueProjects,
           });
         });
       }
 
-      // Merge profiles with role='cliente' if not already in clientMap
+      // Merge profiles with role='cliente' if not already processed by email or id
       (profilesData ?? []).forEach((p: any) => {
-        if (!clientMap.has(p.id)) {
+        const normEmail = (p.email || "").toLowerCase().trim();
+        if (!clientMap.has(p.id) && (!normEmail || !processedEmails.has(normEmail))) {
+          if (normEmail) processedEmails.add(normEmail);
           clientMap.set(p.id, {
             id: p.id,
             auth_user_id: p.id,
             resolved_id: p.id,
-            full_name: p.full_name,
-            email: p.email,
+            full_name: p.full_name || "Cliente",
+            email: p.email || "",
             company_name: "",
-            phone: "",
+            phone: p.phone || "",
             status: "ativo",
-            created_at: p.created_at,
+            created_at: p.created_at || new Date().toISOString(),
             projects: projectsMap.get(p.id) || [],
           });
         }
@@ -120,47 +130,55 @@ export function useClientDetail(id: string) {
     queryFn: async (): Promise<ClientItem | null> => {
       try {
         let client: ClientItem | null = null;
+        let clientData: any = null;
 
-        // 1. Try clients table by id or auth_user_id
-        const { data: clientRow } = await (supabase.from("clients") as any)
-          .select("*")
-          .or(`id.eq.${id},auth_user_id.eq.${id}`)
-          .limit(1)
-          .maybeSingle();
-
-        let clientData = clientRow;
-        if (!clientData) {
-          const { data: adminClient } = await (supabaseAdmin.from("clients") as any)
+        // 1. Try clients table by direct id
+        try {
+          const { data: byId } = await (supabase.from("clients") as any)
             .select("*")
-            .or(`id.eq.${id},auth_user_id.eq.${id}`)
-            .limit(1)
+            .eq("id", id)
             .maybeSingle();
-          clientData = adminClient;
+          if (byId) clientData = byId;
+        } catch {}
+
+        // 2. Try clients table by auth_user_id
+        if (!clientData) {
+          try {
+            const { data: byAuth } = await (supabase.from("clients") as any)
+              .select("*")
+              .eq("auth_user_id", id)
+              .maybeSingle();
+            if (byAuth) clientData = byAuth;
+          } catch {}
         }
 
+        // If client found in clients table
         if (clientData) {
           const normalizedEmail = (clientData.email || "").toLowerCase().trim();
-          const { data: profileByEmail } = normalizedEmail
-            ? await supabase
+          let profileByEmail: any = null;
+          if (normalizedEmail) {
+            try {
+              const { data } = await supabase
                 .from("profiles")
                 .select("*")
                 .ilike("email", normalizedEmail)
-                .limit(1)
-                .maybeSingle()
-            : { data: null };
+                .maybeSingle();
+              profileByEmail = data;
+            } catch {}
+          }
 
           const resolvedId = clientData.auth_user_id || profileByEmail?.id || clientData.id;
 
           client = {
             id: clientData.id,
-            auth_user_id: clientData.auth_user_id,
+            auth_user_id: clientData.auth_user_id || profileByEmail?.id || null,
             resolved_id: resolvedId,
-            full_name: clientData.full_name || clientData.company_name || "Cliente",
-            email: clientData.email || "",
+            full_name: clientData.full_name || profileByEmail?.full_name || clientData.company_name || "Cliente",
+            email: clientData.email || profileByEmail?.email || "",
             company_name: clientData.company_name || "",
             corporate_name: clientData.corporate_name || "",
             cnpj: clientData.cnpj || "",
-            phone: clientData.phone || "",
+            phone: clientData.phone || profileByEmail?.phone || "",
             status: clientData.status || "ativo",
             created_at: clientData.created_at || new Date().toISOString(),
             contract_model: clientData.contract_model || "Mensal",
@@ -172,46 +190,42 @@ export function useClientDetail(id: string) {
             financial_status: clientData.financial_status || "Pendente",
           } as any;
         } else {
-          // 2. Fallback to profiles table by id
-          const { data: profileRow } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", id)
-            .maybeSingle();
-
-          let pData = profileRow;
-          if (!pData) {
-            const { data: adminProfile } = await supabaseAdmin
+          // 3. Fallback to profiles table by id
+          let profileRow: any = null;
+          try {
+            const { data } = await supabase
               .from("profiles")
               .select("*")
               .eq("id", id)
               .maybeSingle();
-            pData = adminProfile;
-          }
+            profileRow = data;
+          } catch {}
 
-          if (pData) {
-            // Also check if there's a client record by email
-            const normEmail = (pData.email || "").toLowerCase().trim();
-            const { data: matchedClient } = normEmail
-              ? await (supabaseAdmin.from("clients") as any)
+          if (profileRow) {
+            const normEmail = (profileRow.email || "").toLowerCase().trim();
+            let matchedClient: any = null;
+            if (normEmail) {
+              try {
+                const { data } = await (supabase.from("clients") as any)
                   .select("*")
                   .ilike("email", normEmail)
-                  .limit(1)
-                  .maybeSingle()
-              : { data: null };
+                  .maybeSingle();
+                matchedClient = data;
+              } catch {}
+            }
 
             client = {
-              id: matchedClient?.id || pData.id,
-              auth_user_id: pData.id,
-              resolved_id: pData.id,
-              full_name: matchedClient?.full_name || pData.full_name || "Cliente",
-              email: matchedClient?.email || pData.email || "",
+              id: matchedClient?.id || profileRow.id,
+              auth_user_id: profileRow.id,
+              resolved_id: profileRow.id,
+              full_name: matchedClient?.full_name || profileRow.full_name || "Cliente",
+              email: matchedClient?.email || profileRow.email || "",
               company_name: matchedClient?.company_name || "",
               corporate_name: matchedClient?.corporate_name || "",
               cnpj: matchedClient?.cnpj || "",
-              phone: matchedClient?.phone || pData.phone || "",
+              phone: matchedClient?.phone || profileRow.phone || "",
               status: matchedClient?.status || "ativo",
-              created_at: matchedClient?.created_at || pData.created_at || new Date().toISOString(),
+              created_at: matchedClient?.created_at || profileRow.created_at || new Date().toISOString(),
               contract_model: matchedClient?.contract_model || "Mensal",
               contract_value: matchedClient?.contract_value || 0,
               setup_value: matchedClient?.setup_value || 0,
