@@ -85,20 +85,20 @@ function AppHeader() {
 
   return (
     <header
-      className="sticky top-0 z-20 flex items-center justify-between bg-white border-b border-gray-100 px-6"
+      className="sticky top-0 z-20 flex items-center justify-between bg-card/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-border dark:border-zinc-800/80 px-6 transition-colors"
       style={{ height: "var(--header-height, 56px)" }}
     >
       {/* Left: breadcrumb */}
       <nav className="flex items-center gap-1.5 text-sm" aria-label="Breadcrumb">
         {breadcrumbs.map((crumb, idx) => (
           <span key={`${crumb.href}-${idx}`} className="flex items-center gap-1.5">
-            {idx > 0 && <ChevronRight className="h-3.5 w-3.5 text-gray-300 flex-shrink-0" />}
+            {idx > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 flex-shrink-0" />}
             {idx === breadcrumbs.length - 1 ? (
-              <span className="font-semibold text-gray-800">{crumb.label}</span>
+              <span className="font-semibold text-foreground">{crumb.label}</span>
             ) : (
               <Link
                 to={crumb.href}
-                className="text-gray-400 hover:text-gray-700 font-medium"
+                className="text-muted-foreground hover:text-foreground font-medium transition-colors"
               >
                 {crumb.label}
               </Link>
@@ -108,10 +108,10 @@ function AppHeader() {
       </nav>
 
       {/* Center: search */}
-      <div className="hidden md:flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 w-64 xl:w-80 text-sm text-gray-400 cursor-text hover:border-gray-300">
-        <Search className="h-3.5 w-3.5 flex-shrink-0" />
-        <span className="select-none">Buscar no ERP...</span>
-        <span className="ml-auto text-[11px] bg-gray-100 text-gray-400 px-1.5 py-0.5 rounded-md font-mono">
+      <div className="hidden md:flex items-center gap-2 bg-muted/60 dark:bg-zinc-900/90 border border-border dark:border-zinc-800 rounded-xl px-3 py-1.5 w-64 xl:w-80 text-sm text-muted-foreground cursor-text hover:border-border/80 transition-colors">
+        <Search className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" />
+        <span className="select-none text-xs text-muted-foreground">Buscar no ERP...</span>
+        <span className="ml-auto text-[10px] bg-background dark:bg-zinc-800 text-muted-foreground border border-border/50 px-1.5 py-0.5 rounded-md font-mono">
           ⌘K
         </span>
       </div>
@@ -120,10 +120,10 @@ function AppHeader() {
       <div className="flex items-center gap-2">
         <Link
           to="/app/notifications"
-          className="relative flex items-center justify-center w-9 h-9 rounded-xl hover:bg-gray-50 text-gray-500 hover:text-gray-700"
+          className="relative flex items-center justify-center w-9 h-9 rounded-xl hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
         >
           <Bell className="h-4.5 w-4.5" strokeWidth={1.75} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-white" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-600 ring-2 ring-card dark:ring-zinc-900" />
         </Link>
       </div>
     </header>
@@ -133,7 +133,7 @@ function AppHeader() {
 function AppLayout() {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex w-full bg-slate-50">
+      <div className="min-h-screen flex w-full bg-background dark:bg-zinc-950 text-foreground transition-colors">
         {/* Fixed sidebar */}
         <AppSidebar />
 

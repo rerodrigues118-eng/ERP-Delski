@@ -512,28 +512,28 @@ function ClientsPage() {
           </div>
 
           {/* Table / List */}
-          <Card className="border border-stone-200/80 rounded-lg shadow-subtle overflow-hidden">
-            <CardHeader className="pb-3 p-4">
-              <CardTitle className="text-base font-bold text-stone-900">
+          <Card className="border border-border bg-card rounded-2xl shadow-subtle overflow-hidden">
+            <CardHeader className="pb-3 p-4 border-b border-border/70">
+              <CardTitle className="text-base font-bold text-foreground">
                 Lista de Clientes ({filteredClients.length})
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0">
               {isLoading ? (
-                <div className="p-12 text-center text-sm text-stone-500 flex justify-center items-center gap-2">
-                  <Loader2 className="h-4 w-4 animate-spin text-blue-900" /> Carregando clientes...
+                <div className="p-12 text-center text-sm text-muted-foreground flex justify-center items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-primary" /> Carregando clientes...
                 </div>
               ) : filteredClients.length === 0 ? (
-                <div className="p-16 text-center text-stone-500 space-y-2 border-t">
-                  <Building2 className="h-8 w-8 mx-auto text-stone-400" />
-                  <p className="text-sm font-semibold">Nenhum cliente encontrado.</p>
+                <div className="p-16 text-center text-muted-foreground space-y-2 border-t border-border">
+                  <Building2 className="h-8 w-8 mx-auto text-muted-foreground/40" />
+                  <p className="text-sm font-semibold text-foreground">Nenhum cliente encontrado.</p>
                 </div>
               ) : (
-                <div className="divide-y divide-stone-100 border-t">
+                <div className="divide-y divide-border border-t border-border">
                   {filteredClients.map((client) => (
                     <div
                       key={client.id}
-                      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-stone-50/50 transition-colors"
+                      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-accent/40 transition-colors"
                     >
                       {/* Left: Info */}
                       <div className="space-y-1">
@@ -541,7 +541,7 @@ function ClientsPage() {
                           <Link
                             to="/app/clients/$id"
                             params={{ id: client.id }}
-                            className="font-bold text-blue-900 hover:underline flex items-center gap-1.5 text-base"
+                            className="font-bold text-foreground hover:text-purple-600 dark:hover:text-purple-400 flex items-center gap-1.5 text-base transition-colors"
                           >
                             {client.full_name}
                           </Link>
@@ -549,7 +549,7 @@ function ClientsPage() {
                           {client.company_name && (
                             <Badge
                               variant="outline"
-                              className="bg-stone-100 text-stone-600 text-xs font-semibold border-stone-200"
+                              className="bg-muted text-muted-foreground text-xs font-semibold border-border"
                             >
                               {client.company_name}
                             </Badge>
@@ -559,7 +559,7 @@ function ClientsPage() {
                           {client.status === "ativo" && (
                             <Badge
                               variant="outline"
-                              className="bg-emerald-50 text-emerald-800 border-emerald-200 font-semibold gap-1 text-xs px-2 py-0.5"
+                              className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 font-semibold gap-1 text-xs px-2 py-0.5"
                             >
                               <CheckCircle2 className="h-3 w-3" /> Ativo
                             </Badge>
@@ -567,7 +567,7 @@ function ClientsPage() {
                           {client.status === "convidado" && (
                             <Badge
                               variant="outline"
-                              className="bg-amber-50 text-amber-800 border-amber-200 font-semibold gap-1 text-xs px-2 py-0.5"
+                              className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20 font-semibold gap-1 text-xs px-2 py-0.5"
                             >
                               <Clock className="h-3 w-3" /> Convidado
                             </Badge>
@@ -575,7 +575,7 @@ function ClientsPage() {
                           {client.status === "bloqueado" && (
                             <Badge
                               variant="outline"
-                              className="bg-rose-50 text-rose-800 border-rose-200 font-semibold gap-1 text-xs px-2 py-0.5"
+                              className="bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20 font-semibold gap-1 text-xs px-2 py-0.5"
                             >
                               <Ban className="h-3 w-3" /> Bloqueado
                             </Badge>
@@ -592,7 +592,7 @@ function ClientsPage() {
                             </span>
                           )}
                           <span className="flex items-center gap-1">
-                            <FolderKanban className="h-3.5 w-3.5 text-blue-600" />
+                            <FolderKanban className="h-3.5 w-3.5 text-primary" />
                             {client.projects?.length || 0}{" "}
                             {client.projects?.length === 1
                               ? "projeto vinculado"
@@ -615,7 +615,7 @@ function ClientsPage() {
                                 companyName: client.company_name || undefined,
                               })
                             }
-                            className="gap-1.5 text-xs text-blue-700 border-blue-200 hover:bg-blue-50 cursor-pointer"
+                            className="gap-1.5 text-xs text-purple-600 dark:text-purple-400 border-border hover:bg-accent cursor-pointer"
                           >
                             <Send className="h-3.5 w-3.5" /> Reenviar Convite
                           </Button>
@@ -627,8 +627,8 @@ function ClientsPage() {
                           onClick={() => handleToggleStatus(client)}
                           className={
                             client.status === "bloqueado"
-                              ? "text-xs text-emerald-600 hover:text-emerald-700 cursor-pointer"
-                              : "text-xs text-amber-600 hover:text-amber-700 cursor-pointer"
+                              ? "text-xs text-emerald-600 hover:bg-emerald-500/10 cursor-pointer"
+                              : "text-xs text-amber-600 hover:bg-amber-500/10 cursor-pointer"
                           }
                         >
                           {client.status === "bloqueado" ? "Desbloquear" : "Bloquear"}
@@ -638,7 +638,7 @@ function ClientsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => setDeletingClient(client)}
-                          className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 cursor-pointer gap-1"
+                          className="text-xs text-rose-600 hover:bg-rose-500/10 cursor-pointer gap-1"
                         >
                           <Trash2 className="h-3.5 w-3.5" /> Excluir
                         </Button>
@@ -647,10 +647,10 @@ function ClientsPage() {
                           asChild
                           variant="outline"
                           size="sm"
-                          className="gap-1 text-xs cursor-pointer border-stone-200 text-stone-700 hover:bg-stone-50"
+                          className="gap-1 text-xs cursor-pointer border-border text-foreground hover:bg-accent"
                         >
                           <Link to="/app/clients/$id" params={{ id: client.id }}>
-                            Ver Detalhes <ExternalLink className="h-3 w-3" />
+                            Ver Detalhes →
                           </Link>
                         </Button>
                       </div>

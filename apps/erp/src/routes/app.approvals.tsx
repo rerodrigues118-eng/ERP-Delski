@@ -184,8 +184,8 @@ function ApprovalsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-5">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 flex items-center gap-2.5">
-            <UserCheck className="h-7 w-7 text-blue-600" />
+          <h1 className="text-2xl font-bold tracking-tight text-foreground flex items-center gap-2.5">
+            <UserCheck className="h-7 w-7 text-primary" />
             Solicitações de Acesso
           </h1>
           <p className="text-sm text-muted-foreground mt-0.5">

@@ -190,12 +190,12 @@ function SupportPage() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-white rounded-2xl border border-gray-100 p-3 shadow-card">
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-card rounded-2xl border border-border p-3 shadow-subtle">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por cliente, e-mail ou assunto..."
-            className="pl-9 bg-gray-50 border-gray-100 text-sm rounded-xl h-9 focus-visible:ring-blue-500"
+            className="pl-9 bg-muted/50 border-border text-sm rounded-xl h-9 focus-visible:ring-primary"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -207,10 +207,14 @@ function SupportPage() {
               onClick={() => setSelectedStatus(status)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 selectedStatus === status
-                  ? status === "Aberto" ? "bg-red-100 text-red-700" :
-                    status === "Em Andamento" ? "bg-blue-100 text-blue-700" :
-                    status === "Resolvido" ? "bg-green-100 text-green-700" : "bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] text-white shadow-xs"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  ? status === "Aberto"
+                    ? "bg-red-500/15 text-red-600 dark:text-red-400"
+                    : status === "Em Andamento"
+                    ? "bg-blue-500/15 text-blue-600 dark:text-blue-400"
+                    : status === "Resolvido"
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                    : "btn-gradient text-white shadow-xs"
+                  : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
               {status === "all" ? "Todos" : status}
@@ -222,17 +226,17 @@ function SupportPage() {
       {/* Tickets List / Table */}
       {isLoading ? (
         <div className="flex items-center justify-center py-16 gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-          <p className="text-sm text-gray-400 font-medium">Carregando chamados de suporte...</p>
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground font-medium">Carregando chamados de suporte...</p>
         </div>
       ) : filteredTickets.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
-          <LifeBuoy className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-          <p className="font-semibold text-gray-700">Nenhum chamado encontrado</p>
-          <p className="text-xs text-gray-400 mt-1">Tente ajustar a busca ou filtro de status.</p>
+        <div className="bg-card rounded-2xl border border-border p-16 text-center">
+          <LifeBuoy className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="font-semibold text-foreground">Nenhum chamado encontrado</p>
+          <p className="text-xs text-muted-foreground mt-1">Tente ajustar a busca ou filtro de status.</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-card">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-subtle">
           <div className="overflow-x-auto">
             <table className="data-table w-full">
               <thead>
@@ -245,17 +249,17 @@ function SupportPage() {
                   <th className="px-4 py-3 text-right">Ação</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-stone-100">
+              <tbody className="divide-y divide-border">
                 {filteredTickets.map((ticket) => (
                   <tr
                     key={ticket.id}
-                    className="hover:bg-stone-50/80 transition-colors cursor-pointer"
+                    className="hover:bg-accent/40 transition-colors cursor-pointer"
                     onClick={() => setActiveTicket(ticket)}
                   >
                     <td className="px-4 py-3.5">
-                      <div className="font-semibold text-stone-900">{ticket.client_name}</div>
+                      <div className="font-semibold text-foreground">{ticket.client_name}</div>
                       {ticket.client_email && (
-                        <div className="text-xs text-stone-500 font-normal">
+                        <div className="text-xs text-muted-foreground font-normal">
                           {ticket.client_email}
                         </div>
                       )}

@@ -84,21 +84,21 @@ function ClienteLayout() {
   const contactName = clientData?.contact_name || clientData?.full_name || profile?.full_name || "Representante";
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-background dark:bg-zinc-950 text-foreground flex flex-col transition-colors">
       {/* Top Client Navbar */}
-      <header className="sticky top-0 z-30 bg-white border-b border-gray-200/80 shadow-xs">
+      <header className="sticky top-0 z-30 bg-card/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-border dark:border-zinc-800/80 shadow-xs transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Brand Logo & Company Badge */}
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2.5">
               <img src="/logo.png" alt="Delski" className="h-8 w-8 object-contain" />
-              <span className="font-bold tracking-tight text-gray-900 text-lg">
-                DELSKI <span className="text-blue-600 font-extrabold">CLOUD</span>
+              <span className="font-bold tracking-tight text-foreground text-lg">
+                DELSKI <span className="text-blue-600 dark:text-blue-400 font-extrabold">CLOUD</span>
               </span>
             </div>
-            <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-gray-200">
-              <Building2 className="h-4 w-4 text-gray-400" />
-              <span className="text-xs font-semibold text-gray-700 truncate max-w-[220px]">
+            <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-border">
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-semibold text-foreground truncate max-w-[220px]">
                 {displayName}
               </span>
             </div>
@@ -106,8 +106,8 @@ function ClienteLayout() {
 
           {/* Right: Support button, User Menu */}
           <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs px-3 py-1.5 rounded-full font-medium border border-blue-100">
-              <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
+            <div className="hidden md:flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs px-3 py-1.5 rounded-full font-medium border border-blue-500/20">
+              <ShieldCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
               <span>Acesso Seguro</span>
             </div>
 
@@ -115,34 +115,34 @@ function ClienteLayout() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-gray-50 transition-colors border border-gray-200/60"
+                  className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-accent transition-colors border border-border"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg border border-gray-200">
+                  <Avatar className="h-8 w-8 rounded-lg border border-border">
                     <AvatarImage src={profile?.avatar_url || ""} />
                     <AvatarFallback className="bg-blue-600 text-white text-xs font-bold rounded-lg">
                       {displayName.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="text-left hidden sm:block">
-                    <p className="text-xs font-semibold text-gray-900 leading-tight truncate max-w-[140px]">
+                    <p className="text-xs font-semibold text-foreground leading-tight truncate max-w-[140px]">
                       {contactName}
                     </p>
-                    <p className="text-[11px] text-gray-500 truncate max-w-[140px]">
+                    <p className="text-[11px] text-muted-foreground truncate max-w-[140px]">
                       {user?.email}
                     </p>
                   </div>
-                  <ChevronDown className="h-3.5 w-3.5 text-gray-400" />
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-xl shadow-lg">
+              <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-xl shadow-lg bg-popover border-border">
                 <DropdownMenuLabel className="font-normal px-2 py-1.5">
-                  <div className="text-xs font-semibold text-gray-900 truncate">{displayName}</div>
-                  <div className="text-[11px] text-gray-500 truncate">{user?.email}</div>
+                  <div className="text-xs font-semibold text-foreground truncate">{displayName}</div>
+                  <div className="text-[11px] text-muted-foreground truncate">{user?.email}</div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+                <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem
                   onClick={() => signOut()}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-2"
+                  className="text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-500/10 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-2"
                 >
                   <LogOut className="h-3.5 w-3.5" /> Encerrar Sessão
                 </DropdownMenuItem>
@@ -158,13 +158,13 @@ function ClienteLayout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white py-6 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+      <footer className="border-t border-border bg-card py-6 mt-auto transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
           <div className="flex items-center gap-2">
             <span>DELSKI &copy; {new Date().getFullYear()} — Todos os direitos reservados.</span>
           </div>
           <div className="flex items-center gap-4">
-            <span className="text-gray-400">Suporte Delski: contato@delski.co</span>
+            <span className="text-muted-foreground">Suporte Delski: contato@delski.co</span>
           </div>
         </div>
       </footer>

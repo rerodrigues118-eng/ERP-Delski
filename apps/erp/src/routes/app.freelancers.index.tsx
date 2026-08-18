@@ -200,18 +200,18 @@ function FreelancersPage() {
         </Dialog>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-card">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-50">
-          <h2 className="text-[14px] font-bold text-gray-900">Time de Freelancers</h2>
-          <span className="text-xs font-medium text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg">
+      <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-subtle">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border/70">
+          <h2 className="text-[14px] font-bold text-foreground">Time de Freelancers</h2>
+          <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-lg">
             {freelancers.length} registros
           </span>
         </div>
 
         {isLoading && (
           <div className="flex items-center justify-center py-16 gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-            <span className="text-sm text-gray-400">Buscando freelancers...</span>
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span className="text-sm text-muted-foreground">Buscando freelancers...</span>
           </div>
         )}
 
@@ -251,39 +251,39 @@ function FreelancersPage() {
                         : { label: "Incompleto", cls: "badge-gray" };
 
                 return (
-                  <tr key={f.id}>
+                  <tr key={f.id} className="hover:bg-accent/40 transition-colors">
                     <td>
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                          <span className="text-xs font-bold text-blue-600">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <span className="text-xs font-bold text-primary">
                             {(f.full_name || "?").charAt(0).toUpperCase()}
                           </span>
                         </div>
                         <Link
                           to="/app/freelancers/$id"
                           params={{ id: f.id }}
-                          className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                          className="font-semibold text-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                         >
                           {f.full_name}
                         </Link>
                       </div>
                     </td>
-                    <td className="text-gray-500">{f.email}</td>
+                    <td className="text-muted-foreground">{f.email}</td>
                     <td>
                       <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${statusCls}`}>
                         {statusLabel}
                       </span>
                     </td>
                     <td>
-                      <span className="text-sm font-semibold text-gray-800">{count}</span>
-                      <span className="text-xs text-gray-400 ml-1">projeto(s)</span>
+                      <span className="text-sm font-semibold text-foreground">{count}</span>
+                      <span className="text-xs text-muted-foreground ml-1">projeto(s)</span>
                     </td>
                     <td className="text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link
                           to="/app/freelancers/$id"
                           params={{ id: f.id }}
-                          className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                          className="inline-flex items-center gap-1 text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline transition-colors"
                         >
                           Ver Ficha →
                         </Link>
@@ -293,22 +293,17 @@ function FreelancersPage() {
                             toast.success(`E-mail de boas-vindas enviado para ${f.email}`);
                           }}
                           title="Reenviar boas-vindas"
-                          className="p-1.5 rounded-lg hover:bg-gray-50 text-gray-400 hover:text-gray-600 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-accent text-muted-foreground hover:text-foreground transition-colors"
                         >
                           <Mail className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() =>
-                            toggleBlock.mutate({
-                              id: f.id,
-                              newStatus: f.status === "bloqueado" ? "ativo" : "bloqueado",
-                            })
-                          }
+                          onClick={() => toggleBlock.mutate({ id: f.id, newStatus: f.status === "bloqueado" ? "ativo" : "bloqueado" })}
                           title={f.status === "bloqueado" ? "Desbloquear Acesso" : "Bloquear Acesso"}
                           className={`p-1.5 rounded-lg transition-colors ${
                             f.status === "bloqueado"
-                              ? "hover:bg-emerald-50 text-emerald-600"
-                              : "hover:bg-amber-50 text-amber-500"
+                              ? "text-emerald-600 hover:bg-emerald-500/10"
+                              : "text-amber-600 hover:bg-amber-500/10"
                           }`}
                         >
                           <Ban className="h-4 w-4" />
@@ -316,7 +311,7 @@ function FreelancersPage() {
                         <button
                           onClick={() => setDeletingFreelancer(f)}
                           title="Excluir Freelancer"
-                          className="p-1.5 rounded-lg hover:bg-rose-50 text-rose-500 hover:text-rose-700 transition-colors"
+                          className="p-1.5 rounded-lg hover:bg-rose-500/10 text-rose-600 transition-colors"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>

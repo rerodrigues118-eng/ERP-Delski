@@ -384,16 +384,16 @@ function AuthPage() {
       </div>
 
       {/* Main Form Box */}
-      <div className="w-full max-w-md my-auto bg-white p-8 rounded-2xl border border-gray-100 shadow-sm space-y-6">
+      <div className="w-full max-w-md my-auto bg-card p-8 rounded-2xl border border-border shadow-subtle space-y-6">
         {/* Simple CSS Tabs — no Radix, no controlled state, no re-renders */}
         {tab !== "reset-password" && (
           <div className="grid grid-cols-2 w-full bg-muted p-1 border border-border rounded-lg mb-6">
             <button
               type="button"
               onClick={() => setTab("login")}
-              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium ${
+              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
                 tab === "login"
-                  ? "bg-white shadow-sm text-foreground"
+                  ? "bg-card shadow-xs text-foreground font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -402,9 +402,9 @@ function AuthPage() {
             <button
               type="button"
               onClick={() => setTab("register")}
-              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium ${
+              className={`flex items-center justify-center gap-2 py-2 rounded-md text-sm font-medium transition-all ${
                 tab === "register"
-                  ? "bg-white shadow-sm text-indigo-500"
+                  ? "bg-card shadow-xs text-primary font-semibold"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >

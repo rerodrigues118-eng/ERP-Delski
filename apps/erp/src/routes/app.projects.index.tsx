@@ -89,17 +89,17 @@ function FreelancerProjectsView() {
         <div>
           <p className="section-label mb-1">Área do Freelancer</p>
           <h1 className="page-title">Projetos Atribuídos</h1>
-          <p className="text-sm text-gray-400 mt-1">Projetos em que você está alocado(a).</p>
+          <p className="text-sm text-muted-foreground mt-1">Projetos em que você está alocado(a).</p>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-white rounded-2xl border border-gray-100 p-3 shadow-card">
+      {/* Search & Filters */}
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-card rounded-2xl border border-border p-3 shadow-subtle">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por título, cliente..."
-            className="pl-9 bg-gray-50 border-gray-100 text-sm rounded-xl h-9 focus-visible:ring-blue-500"
+            className="pl-9 bg-muted/50 border-border text-sm rounded-xl h-9 focus-visible:ring-primary"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -111,8 +111,8 @@ function FreelancerProjectsView() {
               onClick={() => setSelectedService(service)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                 selectedService === service
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
               {service === "all" ? "Todos" : service === "IA" ? "IA" : service === "Trafego" ? "Tráfego" : "Sites"}
@@ -123,16 +123,16 @@ function FreelancerProjectsView() {
 
       {isLoading && (
         <div className="flex items-center justify-center py-16 gap-3">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
-          <p className="text-sm text-gray-400 font-medium">Carregando projetos...</p>
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground font-medium">Carregando projetos...</p>
         </div>
       )}
 
       {!isLoading && filteredProjects.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
-          <Folder className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-          <p className="font-semibold text-gray-700">Nenhum projeto atribuído no momento</p>
-          <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
+        <div className="bg-card rounded-2xl border border-border p-16 text-center">
+          <Folder className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="font-semibold text-foreground">Nenhum projeto atribuído no momento</p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
             Assim que um gestor alocar você a um projeto, ele aparecerá nesta lista.
           </p>
         </div>
@@ -161,10 +161,10 @@ function FreelancerProjectCard({ project }: { project: Project }) {
   }
 
   return (
-    <div className="group bg-white rounded-2xl border border-gray-100 p-5 shadow-card hover:shadow-card-hover hover:border-gray-200 transition-all">
+    <div className="group bg-card rounded-2xl border border-border p-5 shadow-subtle hover:shadow-lg hover:border-purple-500/30 transition-all">
       <div className="flex items-start justify-between gap-2 mb-3">
         <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
-          SERVICE_BADGE_COLORS[project.service_type] || "bg-gray-100 text-gray-600 border-gray-200"
+          SERVICE_BADGE_COLORS[project.service_type] || "bg-muted text-muted-foreground border-border"
         }`}>
           {SERVICE_LABEL[project.service_type] || project.service_type}
         </span>
@@ -172,26 +172,26 @@ function FreelancerProjectCard({ project }: { project: Project }) {
       <Link
         to="/app/projects/$id"
         params={{ id: project.id }}
-        className="block text-[14px] font-bold text-gray-900 hover:text-blue-600 transition-colors line-clamp-1 mb-1"
+        className="block text-[14px] font-bold text-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors line-clamp-1 mb-1"
       >
         {project.title}
       </Link>
-      <p className="text-[12px] text-gray-400 font-medium truncate mb-3">
+      <p className="text-[12px] text-muted-foreground font-medium truncate mb-3">
         {project.client?.full_name || "—"}
       </p>
-      <p className="line-clamp-2 text-xs text-gray-500 leading-relaxed mb-4">
+      <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed mb-4">
         {project.briefing_content || "Sem briefing ainda."}
       </p>
-      <div className="flex items-center justify-between pt-3 border-t border-gray-50">
-        <span className="text-[11px] text-gray-400">{formattedDate}</span>
-        <span className="text-[12px] font-bold text-green-700">
+      <div className="flex items-center justify-between pt-3 border-t border-border">
+        <span className="text-[11px] text-muted-foreground">{formattedDate}</span>
+        <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400">
           R$ {Number(project.freelancer_cost || project.budget || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
         </span>
       </div>
       <Link
         to="/app/projects/$id"
         params={{ id: project.id }}
-        className="mt-3 flex items-center justify-center w-full py-2 rounded-xl bg-gray-50 hover:bg-blue-50 text-xs font-semibold text-gray-600 hover:text-blue-600 transition-colors border border-gray-100 hover:border-blue-100"
+        className="mt-3 flex items-center justify-center w-full py-2 rounded-xl bg-muted/60 hover:bg-accent text-xs font-semibold text-foreground transition-colors border border-border"
       >
         Ver Detalhes →
       </Link>
@@ -287,15 +287,15 @@ function GestorProjectsView() {
     return (
       <div
         ref={setNodeRef}
-        className={`flex flex-col gap-3 rounded-2xl bg-slate-50 border border-gray-200/80 p-4 w-[320px] min-w-[320px] shrink-0 transition-all ${
-          isOver ? "ring-2 ring-blue-400/40 bg-blue-50/40" : ""
+        className={`flex flex-col gap-3 rounded-2xl bg-muted/40 dark:bg-zinc-900/40 border border-border dark:border-zinc-800/80 p-4 w-[320px] min-w-[320px] shrink-0 transition-all ${
+          isOver ? "ring-2 ring-primary/40 bg-accent/40" : ""
         }`}
       >
         {/* Column header */}
-        <div className="flex items-center justify-between px-1 pb-3 border-b border-gray-200/70">
+        <div className="flex items-center justify-between px-1 pb-3 border-b border-border/70">
           <div className="flex items-center gap-2">
-            <span className="text-[12px] font-bold text-gray-800 uppercase tracking-wider">{title}</span>
-            <span className="flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-blue-100 text-[11px] font-bold text-blue-700">
+            <span className="text-[12px] font-bold text-foreground uppercase tracking-wider">{title}</span>
+            <span className="flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-primary/15 text-[11px] font-bold text-primary">
               {items.length}
             </span>
           </div>
@@ -303,7 +303,7 @@ function GestorProjectsView() {
         {/* Cards container */}
         <div className="flex flex-col gap-3.5 min-h-[140px]">
           {items.length === 0 ? (
-            <div className="rounded-xl border-2 border-dashed border-gray-200 bg-white/50 p-6 text-xs text-gray-400 text-center font-medium">
+            <div className="rounded-xl border-2 border-dashed border-border/60 bg-card/40 p-6 text-xs text-muted-foreground text-center font-medium">
               Arraste um projeto para esta coluna
             </div>
           ) : (
@@ -322,10 +322,10 @@ function GestorProjectsView() {
       <div
         ref={setNodeRef}
         style={{ transform: CSS.Translate.toString(transform) }}
-        className={`group bg-white rounded-2xl border border-gray-200/80 p-5 transition-all cursor-grab active:cursor-grabbing ${
+        className={`group bg-card rounded-2xl border border-border p-5 transition-all cursor-grab active:cursor-grabbing ${
           isDragging
-            ? "opacity-60 shadow-2xl border-blue-400 scale-105"
-            : "shadow-sm hover:shadow-md hover:border-gray-300"
+            ? "opacity-60 shadow-2xl border-primary scale-105"
+            : "shadow-subtle hover:shadow-md hover:border-purple-500/30"
         }`}
         {...attributes}
         {...listeners}
@@ -333,7 +333,7 @@ function GestorProjectsView() {
         {/* Badge row */}
         <div className="flex items-center justify-between gap-2 mb-2.5">
           <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold border ${
-            SERVICE_BADGE_COLORS[project.service_type] || "bg-gray-100 text-gray-700 border-gray-200"
+            SERVICE_BADGE_COLORS[project.service_type] || "bg-muted text-muted-foreground border-border"
           }`}>
             {SERVICE_LABEL[project.service_type] || project.service_type}
           </span>
@@ -342,20 +342,20 @@ function GestorProjectsView() {
         <Link
           to="/app/projects/$id"
           params={{ id: project.id }}
-          className="block text-sm sm:text-base font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 leading-snug mb-1.5"
+          className="block text-sm sm:text-base font-bold text-foreground group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors line-clamp-2 leading-snug mb-1.5"
         >
           {project.title}
         </Link>
         {/* Client */}
-        <p className="text-xs text-gray-500 font-medium truncate mb-4">
-          Cliente: <span className="text-gray-700 font-semibold">{project.client?.full_name || "—"}</span>
+        <p className="text-xs text-muted-foreground font-medium truncate mb-4">
+          Cliente: <span className="text-foreground font-semibold">{project.client?.full_name || "—"}</span>
         </p>
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-          <span className="text-[11px] font-medium text-gray-400">
+        <div className="flex items-center justify-between pt-3 border-t border-border">
+          <span className="text-[11px] font-medium text-muted-foreground">
             Prazo: {project.deadline ? new Date(project.deadline).toLocaleDateString("pt-BR") : "Sem prazo"}
           </span>
-          <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100">
+          <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-lg border border-emerald-500/20">
             {project.budget ? `R$ ${Number(project.budget).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}` : "R$ 0"}
           </span>
         </div>
@@ -369,12 +369,12 @@ function GestorProjectsView() {
         <div>
           <p className="section-label mb-1">Gestão de Projetos</p>
           <h1 className="page-title">Projetos</h1>
-          <p className="text-sm text-gray-400 mt-1">Visão geral dos projetos de IA, Tráfego e Sites.</p>
+          <p className="text-sm text-muted-foreground mt-1">Visão geral dos projetos de IA, Tráfego e Sites.</p>
         </div>
         {isGestor && (
           <Button
             asChild
-            className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white rounded-xl shadow-xs gap-1.5 border-0"
+            className="btn-gradient text-white rounded-xl shadow-xs gap-1.5 border-0 hover:opacity-95"
           >
             <Link to="/app/projects/new">
               <PlusCircle className="h-4 w-4" /> Novo Projeto
@@ -384,12 +384,12 @@ function GestorProjectsView() {
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-white rounded-2xl border border-gray-100 p-3 shadow-card">
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-card rounded-2xl border border-border p-3 shadow-subtle">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por título, cliente ou palavra-chave..."
-            className="pl-9 bg-gray-50 border-gray-100 text-sm focus-visible:ring-blue-500 rounded-xl h-9"
+            className="pl-9 bg-muted/50 border-border text-sm focus-visible:ring-primary rounded-xl h-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -401,19 +401,19 @@ function GestorProjectsView() {
               onClick={() => setSelectedService(service)}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
                 selectedService === service
-                  ? "bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] text-white shadow-xs"
-                  : "bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700"
+                  ? "btn-gradient text-white shadow-xs"
+                  : "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground"
               }`}
             >
               {service === "all" ? "Todos" : service === "IA" ? "IA" : service === "Trafego" ? "Tráfego" : "Sites"}
             </button>
           ))}
-          <div className="w-px h-5 bg-gray-100 mx-1" />
-          <div className="flex items-center bg-gray-100 rounded-lg p-0.5">
+          <div className="w-px h-5 bg-border mx-1" />
+          <div className="flex items-center bg-muted rounded-lg p-0.5">
             <button
               onClick={() => setViewMode("kanban")}
               className={`flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-semibold transition-all ${
-                viewMode === "kanban" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                viewMode === "kanban" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <LayoutGrid className="h-3.5 w-3.5" /> Kanban
@@ -421,7 +421,7 @@ function GestorProjectsView() {
             <button
               onClick={() => setViewMode("list")}
               className={`flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-semibold transition-all ${
-                viewMode === "list" ? "bg-white text-gray-800 shadow-sm" : "text-gray-400 hover:text-gray-600"
+                viewMode === "list" ? "bg-card text-foreground shadow-xs" : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <List className="h-3.5 w-3.5" /> Lista
@@ -432,18 +432,18 @@ function GestorProjectsView() {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="flex items-center justify-center py-16 gap-3 text-gray-400">
-          <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+        <div className="flex items-center justify-center py-16 gap-3 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
           <p className="text-sm font-medium">Carregando projetos...</p>
         </div>
       )}
 
       {/* Projects Display */}
       {!isLoading && filteredProjects.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
-          <Folder className="h-10 w-10 text-gray-200 mx-auto mb-3" />
-          <p className="font-semibold text-gray-700">Nenhum projeto encontrado</p>
-          <p className="text-xs text-gray-400 mt-1">Cadastre um novo projeto ou altere os filtros.</p>
+        <div className="bg-card rounded-2xl border border-border p-16 text-center">
+          <Folder className="h-10 w-10 text-muted-foreground/30 mx-auto mb-3" />
+          <p className="font-semibold text-foreground">Nenhum projeto encontrado</p>
+          <p className="text-xs text-muted-foreground mt-1">Cadastre um novo projeto ou altere os filtros.</p>
         </div>
       ) : !isLoading && viewMode === "kanban" ? (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
@@ -461,9 +461,9 @@ function GestorProjectsView() {
           </div>
           {activeId && projectMap.has(activeId) && (
             <DragOverlay>
-              <div className="w-80 rounded-lg border border-blue-900 bg-white p-4 shadow-xl">
-                <p className="text-sm font-semibold">{projectMap.get(activeId)?.title}</p>
-                <p className="text-xs text-stone-500">
+              <div className="w-80 rounded-2xl border border-primary bg-card p-4 shadow-xl">
+                <p className="text-sm font-semibold text-foreground">{projectMap.get(activeId)?.title}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">
                   Arraste para outra coluna para atualizar o status
                 </p>
               </div>
@@ -471,7 +471,7 @@ function GestorProjectsView() {
           )}
         </DndContext>
       ) : !isLoading && viewMode === "list" ? (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-card">
+        <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-subtle">
           <table className="data-table w-full">
             <thead>
               <tr>
@@ -486,20 +486,20 @@ function GestorProjectsView() {
             </thead>
             <tbody>
               {filteredProjects.map((project) => (
-                <tr key={project.id}>
+                <tr key={project.id} className="hover:bg-accent/40 transition-colors">
                   <td>
                     <Link
                       to="/app/projects/$id"
                       params={{ id: project.id }}
-                      className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
+                      className="font-semibold text-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors"
                     >
                       {project.title}
                     </Link>
                   </td>
-                  <td className="text-gray-500">{project.client?.full_name || "—"}</td>
+                  <td className="text-muted-foreground">{project.client?.full_name || "—"}</td>
                   <td>
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border ${
-                      SERVICE_BADGE_COLORS[project.service_type] || "bg-gray-100 text-gray-600 border-gray-200"
+                      SERVICE_BADGE_COLORS[project.service_type] || "bg-muted text-muted-foreground border-border"
                     }`}>
                       {SERVICE_LABEL[project.service_type] || project.service_type}
                     </span>
@@ -513,15 +513,15 @@ function GestorProjectsView() {
                       {STATUS_LABEL[project.status] || project.status}
                     </span>
                   </td>
-                  <td className="text-gray-400 text-xs">{project.deadline ? new Date(project.deadline).toLocaleDateString("pt-BR") : "—"}</td>
-                  <td className="text-right font-semibold text-gray-800">
+                  <td className="text-muted-foreground text-xs">{project.deadline ? new Date(project.deadline).toLocaleDateString("pt-BR") : "—"}</td>
+                  <td className="text-right font-semibold text-foreground">
                     {project.budget ? `R$ ${Number(project.budget).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}` : "—"}
                   </td>
                   <td className="text-right">
                     <Link
                       to="/app/projects/$id"
                       params={{ id: project.id }}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 hover:text-blue-800 transition-colors"
+                      className="inline-flex items-center gap-1 text-xs font-medium text-purple-600 dark:text-purple-400 hover:underline transition-colors"
                     >
                       Detalhes →
                     </Link>
@@ -535,3 +535,4 @@ function GestorProjectsView() {
     </div>
   );
 }
+
