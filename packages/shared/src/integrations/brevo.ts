@@ -267,7 +267,7 @@ export async function sendClientAccessInviteEmail(args: {
               Portal do Cliente
             </span>
             <h1 style="color: #09090b; font-size: 22px; font-weight: 700; margin: 14px 0 6px 0; letter-spacing: -0.5px;">
-              Convite de Acesso — Delski ERP
+              Convite de Acesso | Delski ERP
             </h1>
             <p style="color: #71717a; font-size: 14px; margin: 0;">Gestão Integrada de Projetos & Demandas</p>
           </div>
@@ -313,7 +313,7 @@ export async function sendClientAccessInviteEmail(args: {
 
   const result = await sendBrevoEmail({
     to: [{ email: args.to.email, name: args.to.name }],
-    subject: "Convite de Acesso ao Portal do Cliente — Delski ERP",
+    subject: "Convite de Acesso ao Portal do Cliente | Delski ERP",
     htmlContent: html,
   });
 
