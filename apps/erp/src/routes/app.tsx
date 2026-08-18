@@ -162,8 +162,11 @@ function AppLayout() {
         {/* Command Palette Modal */}
         <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
 
-        {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
+        {/* Main Content Area shifted right of fixed sidebar */}
+        <div
+          className="flex-1 flex flex-col min-w-0 min-h-screen transition-all duration-300"
+          style={{ marginLeft: "var(--sidebar-width, 220px)" }}
+        >
           <AppHeader onOpenCommandPalette={() => setCommandPaletteOpen(true)} />
           <main className="flex-1 p-6 md:p-8 max-w-7xl mx-auto w-full">
             <Outlet />

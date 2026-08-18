@@ -242,7 +242,7 @@ function SupportPage() {
               icon={LifeBuoy}
               title="Nenhum chamado encontrado"
               description={
-                search || statusFilter !== "all"
+                search || selectedStatus !== "all"
                   ? "Nenhum chamado corresponde aos filtros selecionados. Tente limpar os filtros ou o termo de busca."
                   : "Não há chamados de suporte abertos no momento. Toda a operação está em dia!"
               }
