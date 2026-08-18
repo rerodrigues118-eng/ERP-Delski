@@ -341,6 +341,199 @@ export function useUnlinkProjectClient() {
   });
 }
 
+// ── Query: current logged-in client profile ─────────────────────────────────
+export function useCurrentClientProfile(userId?: string, userEmail?: string) {
+  const emailLower = userEmail?.toLowerCase().trim() || "";
+
+  return useQuery({
+    queryKey: ["current-client-profile", userId, emailLower],
+    enabled: !!(userId || emailLower),
+    queryFn: async () => {
+      let clientRow: any = null;
+
+      if (userId || emailLower) {
+        const { data } = await (supabase.from("clients") as any)
+          .select("*")
+          .or(`auth_user_id.eq.${userId},email.ilike.${emailLower}`)
+          .limit(1)
+          .maybeSingle();
+        clientRow = data;
+      }
+
+      // Fetch profile data
+      let profileRow: any = null;
+      if (userId) {
+        const { data: pData } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .maybeSingle();
+        profileRow = pData;
+      }
+
+      // If no client row exists, build a draft from profile
+      if (!clientRow && profileRow) {
+        clientRow = {
+          id: profileRow.id,
+          auth_user_id: profileRow.id,
+          full_name: profileRow.full_name,
+          email: profileRow.email,
+          company_name: "",
+          corporate_name: "",
+          phone: profileRow.phone || "",
+          onboarding_completed: profileRow.onboarding_completed || false,
+          status: "ativo",
+          created_at: profileRow.created_at,
+        };
+      }
+
+      // Fetch linked projects
+      const resolvedId = clientRow?.id || userId;
+      let projects: any[] = [];
+
+      try {
+        const { data: projData } = await supabase
+          .from("projects")
+          .select(
+            `
+            id,
+            title,
+            service_type,
+            status,
+            budget,
+            deadline,
+            briefing_content,
+            google_drive_link,
+            client_contract_url,
+            created_at
+          `
+          )
+          .or(`client_id.eq.${resolvedId},client_id.eq.${userId}`);
+
+        if (projData) {
+          projects = projData;
+        }
+      } catch (err) {
+        console.warn("Error fetching client projects:", err);
+      }
+
+      return {
+        ...clientRow,
+        projects,
+      };
+    },
+  });
+}
+
+// ── Mutation: update current client corporate data ───────────────────────────
+export function useUpdateCurrentClientProfile() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      clientId,
+      userId,
+      patch,
+    }: {
+      clientId?: string;
+      userId?: string;
+      patch: Record<string, any>;
+    }) => {
+      // 1. Update clients table
+      if (clientId) {
+        const { error: cErr } = await (supabase.from("clients") as any)
+          .update({
+            ...patch,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", clientId);
+        if (cErr) console.warn("Error updating clients:", cErr);
+      }
+
+      // 2. Update profiles table if name or phone changed
+      if (userId) {
+        const profilePatch: any = {};
+        if (patch.full_name || patch.contact_name) {
+          profilePatch.full_name = patch.full_name || patch.contact_name;
+        }
+        if (patch.phone) profilePatch.phone = patch.phone;
+        if (typeof patch.onboarding_completed === "boolean") {
+          profilePatch.onboarding_completed = patch.onboarding_completed;
+        }
+
+        if (Object.keys(profilePatch).length > 0) {
+          await supabase.from("profiles").update(profilePatch).eq("id", userId);
+        }
+      }
+
+      return patch;
+    },
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["current-client-profile"] });
+      qc.invalidateQueries({ queryKey: ["client-detail", v.clientId] });
+      qc.invalidateQueries({ queryKey: ["clients-list"] });
+      toast.success("Dados cadastrais atualizados com sucesso!");
+    },
+    onError: (e: Error) => toast.error(`Erro ao atualizar dados: ${e.message}`),
+  });
+}
+
+// ── Mutation: upload client payment receipt ──────────────────────────────────
+export function useUploadClientPaymentReceipt() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      clientId,
+      file,
+      notes,
+    }: {
+      clientId: string;
+      file: File;
+      notes?: string;
+    }) => {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `receipts/${clientId}/comprovante_${Date.now()}.${fileExt}`;
+
+      // 1. Upload to Supabase Storage
+      const { error: uploadErr } = await supabase.storage
+        .from("client-documents")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadErr) throw uploadErr;
+
+      const { data: pubData } = supabase.storage
+        .from("client-documents")
+        .getPublicUrl(filePath);
+
+      const fileUrl = pubData?.publicUrl || null;
+
+      // 2. Insert into client_documents
+      const { error: docErr } = await (supabase.from("client_documents") as any).insert([
+        {
+          client_id: clientId,
+          document_type: "comprovante_pagamento",
+          file_path: filePath,
+          file_url: fileUrl,
+          status: "em_analise",
+          review_notes: notes || "Comprovante enviado pelo cliente",
+          uploaded_at: new Date().toISOString(),
+        },
+      ]);
+
+      if (docErr) throw docErr;
+
+      return { filePath, fileUrl };
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["client_documents"] });
+      qc.invalidateQueries({ queryKey: ["current-client-profile"] });
+      toast.success("Comprovante de pagamento enviado com sucesso!");
+    },
+    onError: (e: Error) => toast.error(`Erro ao enviar comprovante: ${e.message}`),
+  });
+}
+
 // ── Mutation: resend invite email ─────────────────────────────────────────────
 export function useResendClientInvite() {
   return useMutation({
@@ -354,3 +547,5 @@ export function useResendClientInvite() {
     onError: (e: Error) => toast.error(`Erro ao reenviar convite: ${e.message}`),
   });
 }
+
+

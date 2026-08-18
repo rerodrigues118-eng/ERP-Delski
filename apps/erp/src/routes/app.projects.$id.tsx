@@ -78,6 +78,7 @@ import {
 import { SERVICE_LABEL, STATUS_LABEL, STATUSES } from "@/mocks/types";
 import { ProjectContractFieldsSection } from "@/components/ProjectContractFieldsSection";
 import { TriageFormBuilderSection } from "@/components/TriageFormBuilderSection";
+import { formatDate } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/projects/$id")({
   head: () => ({
@@ -1151,7 +1152,7 @@ function ProjectDetailPage() {
                             <p className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-3">
                               <span>{candidatura.freelancer_email}</span>
                               {candidatura.phone && <span>• {candidatura.phone}</span>}
-                              <span>• Enviado em {new Date(candidatura.created_at).toLocaleDateString("pt-BR")}</span>
+                              <span>• Enviado em {formatDate(candidatura.created_at)}</span>
                             </p>
                           </div>
 
@@ -1502,7 +1503,7 @@ function ProjectDetailPage() {
                     </DialogTitle>
                     <DialogDescription className="text-xs text-muted-foreground mt-0.5">
                       {viewingCandidaturaDetail.freelancer_email} • Enviado em{" "}
-                      {new Date(viewingCandidaturaDetail.created_at).toLocaleDateString("pt-BR")}
+                      {formatDate(viewingCandidaturaDetail.created_at)}
                     </DialogDescription>
                   </div>
                   <Badge

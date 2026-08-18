@@ -3,14 +3,51 @@ import { useNavigate } from '@tanstack/react-router';
 import { useAuth } from '@/contexts/AuthContext';
 
 export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { isAuthenticated, isLoading } = useAuth();
+  const {
+    isAuthenticated,
+    isLoading,
+    isGestor,
+    isCliente,
+    isFreelancer,
+    onboardingCompleted,
+    isPendingApproval,
+    isRejected,
+  } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate({ to: '/auth', replace: true });
+    if (!isLoading) {
+      if (!isAuthenticated) {
+        navigate({ to: '/auth', replace: true });
+      } else if (!isGestor && isPendingApproval) {
+        navigate({ to: '/aguardando-aprovacao' as any, replace: true });
+      } else if (!isGestor && isRejected) {
+        navigate({ to: '/acesso-negado' as any, replace: true });
+      } else if (isCliente) {
+        if (!onboardingCompleted) {
+          navigate({ to: '/onboarding' as any, replace: true });
+        } else {
+          navigate({ to: '/cliente' as any, replace: true });
+        }
+      } else if (isFreelancer) {
+        if (!onboardingCompleted) {
+          navigate({ to: '/onboarding' as any, replace: true });
+        } else {
+          navigate({ to: '/freelancer' as any, replace: true });
+        }
+      }
     }
-  }, [isAuthenticated, isLoading, navigate]);
+  }, [
+    isAuthenticated,
+    isLoading,
+    isGestor,
+    isCliente,
+    isFreelancer,
+    onboardingCompleted,
+    isPendingApproval,
+    isRejected,
+    navigate,
+  ]);
 
   if (isLoading) {
     return (
@@ -20,7 +57,10 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     );
   }
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || (!isGestor && (isPendingApproval || isRejected)) || isCliente || isFreelancer) {
+    return null;
+  }
 
   return <>{children}</>;
 };
+

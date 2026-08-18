@@ -6,13 +6,22 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,892 +36,1169 @@ import {
   Loader2,
   FileText,
   ShieldCheck,
-  FileSignature,
   MoreVertical,
   CheckCheck,
   XOctagon,
   Save,
-  Info,
   Eye,
   Download,
   Upload,
   Ban,
   Trash2,
+  ArrowLeft,
+  Building2,
+  CreditCard,
+  Receipt,
+  DollarSign,
+  Send,
+  UploadCloud,
+  FileCheck,
+  FileCode,
+  ExternalLink,
+  Plus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToggleFreelancerBlock, useDeleteFreelancer } from "@/hooks/useProfiles";
 import {
-  useFreelancerContractInfo,
-  useFreelancerDocuments,
-  useReviewFreelancerDocument,
-  useBatchReviewFreelancerDocuments,
-  useFreelancerGeneratedContracts,
-  useSaveFreelancerContractFields,
-  useFreelancerContractVariables,
-  useUploadManagerContractPdf,
-  type FreelancerDocument,
-} from "@/hooks/useFreelancerContractFields";
+  useCurrentFreelancerProfile,
+  useUpdateCurrentFreelancerProfile,
+  useFreelancerPortalDocuments,
+  useUploadFreelancerPortalDocument,
+  useDeleteFreelancerPortalDocument,
+  useUploadFreelancerPaymentReceipt,
+  useUpdateFreelancerFinancialTerms,
+  type FreelancerPortalDocumentItem,
+} from "@/hooks/useFreelancerPortal";
+import {
+  useFreelancerInvoices,
+  useReviewFreelancerInvoice,
+  useDeleteFreelancerInvoice,
+  type FreelancerInvoiceItem,
+} from "@/hooks/useFreelancerInvoices";
 
 export const Route = createFileRoute("/app/freelancers/$id")({
   head: () => ({
-    meta: [{ title: "Perfil do Freelancer — DELSKI CLOUD" }],
+    meta: [{ title: "Gestão do Prestador — DELSKI CLOUD" }],
   }),
   component: FreelancerDetailPage,
 });
 
-const DOC_TYPE_LABELS: Record<string, string> = {
-  foto_rosto_3x4: "Foto do Rosto (tipo 3x4)",
-  documento_identidade_1: "Documento de Identidade (RG/CNH)",
-  documento_identidade_2: "Documento de Identidade — Verso",
-  rg_frente: "RG — Frente",
-  rg_verso: "RG — Verso",
-  cnh: "CNH (Carteira Nacional de Habilitação)",
-  comprovante_residencia: "Comprovante de Residência",
-  situacao_cadastral_cpf: "Comprovante de Situação Cadastral do CPF",
-  certidao_antecedentes_criminais: "Certidão de Antecedentes Criminais",
+const money = (n: number) =>
+  `R$\u00A0${(n || 0).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+
+const formatDate = (val?: string | null) => {
+  if (!val) return "—";
+  try {
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return "—";
+    return d.toLocaleDateString("pt-BR");
+  } catch {
+    return "—";
+  }
 };
 
-function humanizeFieldName(key: string, variables: any[] = []): string {
-  const matched = variables.find((v) => v.name === key);
-  if (matched?.label && matched.label.trim().length > 0) {
-    return matched.label;
-  }
+const STATUS_BADGE_STYLES: Record<string, string> = {
+  Pendente: "bg-amber-50 text-amber-700 border-amber-200",
+  Pago: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Atrasado: "bg-red-50 text-red-700 border-red-200",
+  "Em análise": "bg-purple-50 text-purple-700 border-purple-200",
+  Aprovada: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Reprovada: "bg-red-50 text-red-700 border-red-200",
+  aprovado: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  em_analise: "bg-purple-50 text-purple-700 border-purple-200",
+  rejeitado: "bg-red-50 text-red-700 border-red-200",
+  pendente: "bg-amber-50 text-amber-700 border-amber-200",
+};
 
-  const map: Record<string, string> = {
-    valor_inteiro: "Valor Inteiro",
-    email_contratado: "E-mail",
-    cnpj_cpf_contratado: "CNPJ / CPF do Contratado",
-    telefone_contratado: "Telefone do Contratado",
-    nome_responsavel_contratado: "Nome do Responsável",
-    endereco_completo_contratado: "Endereço Completo",
-    razao_social_nome_contratado: "Razão Social / Nome do Contratado",
-    area_atuacao_funcao_contratado: "Área de Atuação / Função",
-    dados_bancarios_pix_contratado: "Dados Bancários PIX",
-  };
-
-  if (map[key.toLowerCase()]) {
-    return map[key.toLowerCase()];
-  }
-
-  return key
-    .replace(/_/g, " ")
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .toLowerCase()
-    .replace(/\b\w/g, (l) => l.toUpperCase())
-    .replace(/\bCpf\b/g, "CPF")
-    .replace(/\bCnpj\b/g, "CNPJ")
-    .replace(/\bPix\b/g, "PIX")
-    .replace(/\bEmail\b/g, "E-mail");
-}
+const DOC_LABELS: Record<string, string> = {
+  cartao_cnpj: "Comprovante de CNPJ Ativo",
+  doc_constitutivo: "Documento Constitutivo ou CCMEI",
+  consulta_projudi: "Consulta ProJudi",
+  rg_cnh: "RG ou CNH do Responsável",
+  certidao_trabalhista: "Certidão de Débitos Trabalhistas",
+  contrato_prestacao: "Contrato Oficial de Prestação de Serviços",
+  comprovante_pagamento: "Comprovante de Pagamento Bancário",
+};
 
 function FreelancerDetailPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const [profile, setProfile] = useState<any | null>(null);
-  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>("cadastrais");
 
-  const handleDownloadContractFile = (url?: string | null, filename?: string) => {
-    if (!url) {
-      toast.error("O arquivo do contrato não está disponível para download.");
-      return;
-    }
+  // Queries
+  const { data: freelancer, isLoading: loadingFreelancer } =
+    useCurrentFreelancerProfile(id);
+  const { data: docs = [], isLoading: loadingDocs } =
+    useFreelancerPortalDocuments(id);
+  const { data: invoices = [], isLoading: loadingInvoices } =
+    useFreelancerInvoices(id);
 
-    const link = document.createElement("a");
-    link.href = url;
-    link.target = "_blank";
-    link.rel = "noreferrer";
-    link.download = filename || `Contrato_${profile?.full_name || "freelancer"}.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const activeFreelancerId = profile?.id || id;
-
-  const contractVariables = useFreelancerContractVariables();
-  const { data: contractInfo } = useFreelancerContractInfo(activeFreelancerId);
-  const { data: documents = [], isLoading: loadingDocs } =
-    useFreelancerDocuments(activeFreelancerId);
-  const { data: contracts = [], isLoading: loadingContracts } =
-    useFreelancerGeneratedContracts(activeFreelancerId);
-  const reviewDoc = useReviewFreelancerDocument();
-  const batchReviewDoc = useBatchReviewFreelancerDocuments();
-  const saveContractFields = useSaveFreelancerContractFields();
-  const uploadManagerContractPdf = useUploadManagerContractPdf();
+  // Mutations
+  const updateProfile = useUpdateCurrentFreelancerProfile();
+  const uploadDoc = useUploadFreelancerPortalDocument();
+  const deleteDoc = useDeleteFreelancerPortalDocument();
+  const uploadReceipt = useUploadFreelancerPaymentReceipt();
+  const updateFinancial = useUpdateFreelancerFinancialTerms();
+  const reviewInvoice = useReviewFreelancerInvoice();
+  const deleteInvoice = useDeleteFreelancerInvoice();
   const toggleBlock = useToggleFreelancerBlock();
   const deleteFreelancer = useDeleteFreelancer();
 
-  const [openDeleteFreelancerModal, setOpenDeleteFreelancerModal] = useState(false);
+  // ── Tab 1: Form state (Dados Cadastrais) ──────────────────────────────────
+  const [companyName, setCompanyName] = useState("");
+  const [corporateName, setCorporateName] = useState("");
+  const [cnpj, setCnpj] = useState("");
+  const [segment, setSegment] = useState("");
+  const [email, setEmail] = useState("");
+  const [address, setAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [cep, setCep] = useState("");
+  const [contactName, setContactName] = useState("");
+  const [rolePosition, setRolePosition] = useState("");
+  const [phone, setPhone] = useState("");
+  const [instagram, setInstagram] = useState("");
+  const [linkedin, setLinkedin] = useState("");
+  const [website, setWebsite] = useState("");
 
-  // Rejection modal state
-  const [openRejectModal, setOpenRejectModal] = useState(false);
-  const [rejectingDoc, setRejectingDoc] = useState<FreelancerDocument | null>(null);
-  const [rejectReason, setRejectReason] = useState("");
-  const [isBatchProcessing, setIsBatchProcessing] = useState(false);
-  const [uploadingContractPdfId, setUploadingContractPdfId] = useState<string | null>(null);
+  // ── Tab 3: Gestor Financial Form state ────────────────────────────────────
+  const [contractModel, setContractModel] = useState("Mensal");
+  const [contractValue, setContractValue] = useState("0");
+  const [paymentDate, setPaymentDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [financialStatus, setFinancialStatus] = useState("Pendente");
 
-  // Editable contract field values state
-  const [editableFieldValues, setEditableFieldValues] = useState<Record<string, string>>({});
-  const [isSavingContractFields, setIsSavingContractFields] = useState(false);
-  const [finalizingContractId, setFinalizingContractId] = useState<string | null>(null);
+  // ── Document Review Modal State ───────────────────────────────────────────
+  const [openDocRejectModal, setOpenDocRejectModal] = useState(false);
+  const [rejectingDoc, setRejectingDoc] =
+    useState<FreelancerPortalDocumentItem | null>(null);
+  const [docRejectReason, setDocRejectReason] = useState("");
 
-  useEffect(() => {
-    let isMounted = true;
-    (async () => {
-      setLoadingProfile(true);
-      const { data: p } = await supabase.from("profiles").select("*").eq("id", id).maybeSingle();
-      if (isMounted && p) {
-        setProfile(p);
-        setLoadingProfile(false);
-        return;
-      }
+  // ── Invoice Review Modal State ────────────────────────────────────────────
+  const [openInvRejectModal, setOpenInvRejectModal] = useState(false);
+  const [rejectingInvoice, setRejectingInvoice] =
+    useState<FreelancerInvoiceItem | null>(null);
+  const [invRejectReason, setInvRejectReason] = useState("");
 
-      const { data: pAuth } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("auth_user_id", id)
-        .maybeSingle();
-      if (isMounted && pAuth) {
-        setProfile(pAuth);
-        setLoadingProfile(false);
-        return;
-      }
-
-      const { data: allProfiles } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("role", "freelancer")
-        .limit(1);
-      if (isMounted) {
-        setProfile(allProfiles?.[0] ?? null);
-        setLoadingProfile(false);
-      }
-    })();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [id]);
+  // ── Receipt Upload Modal State ────────────────────────────────────────────
+  const [openReceiptModal, setOpenReceiptModal] = useState(false);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptNotes, setReceiptNotes] = useState("");
+  const [uploadingReceipt, setUploadingReceipt] = useState(false);
 
   useEffect(() => {
-    if (contractInfo?.contract_field_values) {
-      setEditableFieldValues(contractInfo.contract_field_values);
+    if (freelancer) {
+      setCompanyName(freelancer.company_name || "");
+      setCorporateName(freelancer.corporate_name || "");
+      setCnpj(freelancer.cnpj || "");
+      setSegment(freelancer.segment || "");
+      setEmail(freelancer.email || "");
+      setAddress(freelancer.address || "");
+      setCity(freelancer.city || "");
+      setState(freelancer.state || "");
+      setCep(freelancer.cep || "");
+      setContactName(freelancer.full_name || "");
+      setRolePosition(freelancer.role_position || "");
+      setPhone(freelancer.phone || "");
+      setInstagram(freelancer.instagram || "");
+      setLinkedin(freelancer.linkedin || "");
+      setWebsite(freelancer.website || "");
+
+      setContractModel(freelancer.contract_model || "Mensal");
+      setContractValue(String(freelancer.contract_value || "0"));
+      setPaymentDate(freelancer.payment_date || "");
+      setDueDate(freelancer.due_date || "");
+      setFinancialStatus(freelancer.financial_status || "Pendente");
     }
-  }, [contractInfo]);
+  }, [freelancer]);
 
-  if (loadingProfile) {
+  const handleSaveCadastral = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProfile.mutate({
+      freelancerId: id,
+      patch: {
+        company_name: companyName.trim(),
+        corporate_name: corporateName.trim(),
+        cnpj: cnpj.trim(),
+        segment: segment.trim(),
+        email: email.trim().toLowerCase(),
+        address: address.trim(),
+        city: city.trim(),
+        state: state.trim(),
+        cep: cep.trim(),
+        full_name: contactName.trim(),
+        role_position: rolePosition.trim(),
+        phone: phone.trim(),
+        instagram: instagram.trim(),
+        linkedin: linkedin.trim(),
+        website: website.trim(),
+      },
+    });
+  };
+
+  const handleSaveFinancial = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateFinancial.mutate({
+      freelancerId: id,
+      contractModel,
+      contractValue: Number(contractValue) || 0,
+      paymentDate: paymentDate || null,
+      dueDate: dueDate || null,
+      financialStatus,
+    });
+  };
+
+  const handleApproveDoc = async (docId: string) => {
+    const { error } = await (supabase.from("freelancer_documents") as any)
+      .update({
+        status: "aprovado",
+        review_notes: null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", docId);
+
+    if (error) {
+      toast.error(`Erro ao aprovar documento: ${error.message}`);
+    } else {
+      qc.invalidateQueries({ queryKey: ["freelancer_documents"] });
+      toast.success("Documento aprovado!");
+    }
+  };
+
+  const handleRejectDocSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectingDoc) return;
+
+    const { error } = await (supabase.from("freelancer_documents") as any)
+      .update({
+        status: "rejeitado",
+        review_notes: docRejectReason.trim() || "Documento rejeitado na análise",
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq("id", rejectingDoc.id);
+
+    if (error) {
+      toast.error(`Erro ao rejeitar documento: ${error.message}`);
+    } else {
+      qc.invalidateQueries({ queryKey: ["freelancer_documents"] });
+      toast.success("Documento marcado como rejeitado.");
+      setOpenDocRejectModal(false);
+      setRejectingDoc(null);
+      setDocRejectReason("");
+    }
+  };
+
+  const handleRejectInvoiceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!rejectingInvoice) return;
+
+    await reviewInvoice.mutateAsync({
+      invoiceId: rejectingInvoice.id,
+      status: "Reprovada",
+      reviewNotes: invRejectReason.trim() || "Nota fiscal reprovada na análise",
+    });
+
+    setOpenInvRejectModal(false);
+    setRejectingInvoice(null);
+    setInvRejectReason("");
+  };
+
+  const handleReceiptUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!receiptFile) return toast.error("Selecione o comprovante bancário.");
+
+    setUploadingReceipt(true);
+    try {
+      await uploadReceipt.mutateAsync({
+        freelancerId: id,
+        file: receiptFile,
+        notes: receiptNotes.trim() || undefined,
+      });
+      setReceiptFile(null);
+      setReceiptNotes("");
+      setOpenReceiptModal(false);
+    } finally {
+      setUploadingReceipt(false);
+    }
+  };
+
+  if (loadingFreelancer) {
     return (
       <div className="p-16 text-center space-y-3">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-indigo-600" />
-        <p className="text-sm text-muted-foreground">Carregando ficha do freelancer...</p>
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div className="p-16 text-center space-y-4 max-w-md mx-auto">
-        <p className="text-base font-semibold text-muted-foreground">
-          Perfil de freelancer não encontrado ou atualizado.
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-indigo-600 border-t-transparent mx-auto" />
+        <p className="text-sm text-muted-foreground">
+          Carregando informações do prestador...
         </p>
-        <Button asChild variant="outline" className="bg-indigo-600 text-white hover:bg-indigo-700">
-          <Link to="/app/freelancers">Voltar para lista de freelancers</Link>
-        </Button>
       </div>
     );
   }
 
-  const isContractComplete = contractInfo?.contract_fields_status === "completo";
-  const docStatus = contractInfo?.documents_status ?? "pendente";
+  if (!loadingFreelancer && (!freelancer || (!freelancer.id && !freelancer.email && !freelancer.full_name))) {
+    return (
+      <div className="space-y-6 max-w-6xl mx-auto pb-16">
+        <Link
+          to="/app/freelancers"
+          className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1 w-fit"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Voltar para Lista de Prestadores
+        </Link>
+        <Card className="p-12 text-center space-y-3 border-dashed">
+          <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
+          <h2 className="text-base font-bold text-foreground">Prestador não encontrado</h2>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            O prestador de serviços com ID <span className="font-mono">{id}</span> não foi encontrado no banco de dados.
+          </p>
+          <div className="pt-2">
+            <Button asChild size="sm" variant="outline" className="text-xs">
+              <Link to="/app/freelancers">Voltar para a Lista de Freelancers</Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
-  // ── Handlers de Ações em Lote de Documentos ──────────────────────────────────
-  const handleApproveAllDocuments = async () => {
-    const pendingDocs = documents.filter((d) => d.status !== "aprovado");
-    if (pendingDocs.length === 0) {
-      return toast.info("Todos os documentos já estão aprovados!");
-    }
-
-    setIsBatchProcessing(true);
-    try {
-      await batchReviewDoc.mutateAsync({
-        freelancerId: activeFreelancerId,
-        status: "aprovado",
-      });
-      toast.success("Todos os documentos foram aprovados com sucesso!");
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao aprovar documentos em lote.");
-    } finally {
-      setIsBatchProcessing(false);
-    }
-  };
-
-  const handleConfirmRejection = async () => {
-    if (!rejectReason.trim()) {
-      return toast.error("Informe o motivo da solicitação de adequação.");
-    }
-
-    const reason = rejectReason.trim();
-    const targetDoc = rejectingDoc;
-
-    // Immediately close modal and reset state to prevent modal loop
-    setOpenRejectModal(false);
-    setRejectingDoc(null);
-    setRejectReason("");
-
-    setIsBatchProcessing(true);
-    try {
-      if (targetDoc) {
-        // Rejecting only one specific document
-        await reviewDoc.mutateAsync({
-          documentId: targetDoc.id,
-          freelancerId: activeFreelancerId,
-          status: "rejeitado",
-          reviewNotes: reason,
-        });
-        toast.success(
-          `Solicitada adequação para "${DOC_TYPE_LABELS[targetDoc.document_type] || targetDoc.document_type}".`,
-        );
-      } else {
-        // Bulk rejecting ALL documents in ONE SINGLE SQL query
-        await batchReviewDoc.mutateAsync({
-          freelancerId: activeFreelancerId,
-          status: "rejeitado",
-          reviewNotes: reason,
-        });
-        toast.success("Solicitada adequação para todos os documentos do freelancer.");
-      }
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao solicitar adequação.");
-    } finally {
-      setIsBatchProcessing(false);
-    }
-  };
-
-  // ── Handlers de Edição de Dados de Contrato pelo Gestor ────────────────────────
-  const handleContractFieldChange = (key: string, value: string) => {
-    setEditableFieldValues((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  const handleSaveContractFields = async () => {
-    setIsSavingContractFields(true);
-    try {
-      await saveContractFields.mutateAsync({
-        freelancerId: activeFreelancerId,
-        values: editableFieldValues,
-        requiredVariables: contractVariables,
-      });
-      toast.success("Dados cadastrais do contrato salvos e atualizados com sucesso!");
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao salvar dados cadastrais.");
-    } finally {
-      setIsSavingContractFields(false);
-    }
-  };
-
-  const handleUploadManagerPdf = async (contractId: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setUploadingContractPdfId(contractId);
-    try {
-      await uploadManagerContractPdf.mutateAsync({
-        contractId,
-        freelancerId: activeFreelancerId,
-        file,
-      });
-    } catch (err: any) {
-      console.error(err);
-      toast.error(err?.message || "Falha ao enviar o contrato em PDF.");
-    } finally {
-      setUploadingContractPdfId(null);
-      if (e.target) e.target.value = "";
-    }
-  };
-
-  const handleFinalizeContract = async (contractId: string) => {
-    setFinalizingContractId(contractId);
-    try {
-      const { error } = await (supabase.from("generated_contracts") as any)
-        .update({ status: "concluido", updated_at: new Date().toISOString() })
-        .eq("id", contractId);
-
-      if (error) throw error;
-
-      qc.invalidateQueries({ queryKey: ["freelancer_generated_contracts", activeFreelancerId] });
-      toast.success("Contrato finalizado com sucesso!");
-    } catch (err: any) {
-      toast.error(err?.message || "Erro ao finalizar contrato.");
-    } finally {
-      setFinalizingContractId(null);
-    }
-  };
-
-  // Build field keys list from contractVariables + existing editableFieldValues
-  const allFieldKeys = Array.from(
-    new Set([...contractVariables.map((v) => v.name), ...Object.keys(editableFieldValues)]),
-  );
+  const isBlocked = freelancer?.status === "bloqueado";
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-16">
-      {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
-        <div>
+    <div className="space-y-6 max-w-6xl mx-auto pb-16">
+      {/* Back button & Header */}
+      <div className="space-y-2">
+        <Link
+          to="/app/freelancers"
+          className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1 w-fit"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Voltar para Lista de Prestadores
+        </Link>
+
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <h1 className="text-2xl font-bold tracking-tight text-foreground">
+                {freelancer?.company_name || freelancer?.full_name || "Prestador de Serviço"}
+              </h1>
+              {freelancer?.corporate_name && (
+                <Badge variant="outline" className="bg-muted text-muted-foreground">
+                  {freelancer.corporate_name}
+                </Badge>
+              )}
+              {isBlocked ? (
+                <Badge variant="outline" className="bg-rose-500/15 text-rose-700 border-rose-500/30 gap-1 text-xs">
+                  <Ban className="h-3 w-3" /> Bloqueado
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 gap-1 text-xs">
+                  <CheckCircle2 className="h-3 w-3" /> Acesso Ativo
+                </Badge>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground flex items-center gap-3">
+              <span>E-mail: {freelancer?.email}</span>
+              {freelancer?.phone && <span>• WhatsApp: {freelancer.phone}</span>}
+              {freelancer?.cnpj && <span>• CNPJ: {freelancer.cnpj}</span>}
+            </p>
+          </div>
+
           <div className="flex items-center gap-2">
-            <h1 className="font-serif text-3xl font-bold tracking-tight text-stone-900">
-              {profile.full_name}
-            </h1>
-            <Badge
+            <Button
               variant="outline"
-              className="border-stone-200 bg-stone-50 text-stone-700 capitalize text-xs"
-            >
-              {profile.role || "Freelancer"}
-            </Badge>
-          </div>
-          <p className="text-sm text-stone-500 mt-1">{profile.email}</p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="text-right">
-            <p className="text-[11px] text-muted-foreground uppercase font-semibold">
-              Status Geral
-            </p>
-            {docStatus === "aprovado" ? (
-              <Badge className="bg-green-100 text-green-900 border-green-300 font-bold gap-1 shadow-sm hover:bg-green-100">
-                <CheckCircle2 className="h-3 w-3" /> APROVADO
-              </Badge>
-            ) : (
-              <Badge
-                variant="outline"
-                className="bg-amber-500/15 text-amber-700 border-amber-500/30 font-semibold gap-1"
-              >
-                <AlertCircle className="h-3 w-3" /> Pendente
-              </Badge>
-            )}
-          </div>
-
-          <div className="text-right">
-            <p className="text-[11px] text-muted-foreground uppercase font-semibold">
-              Dados de Contrato
-            </p>
-            <Badge
-              variant="outline"
+              size="sm"
+              onClick={() =>
+                toggleBlock.mutate({
+                  id,
+                  currentStatus: isBlocked ? "bloqueado" : "ativo",
+                })
+              }
               className={
-                isContractComplete
-                  ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 font-semibold"
-                  : "bg-amber-500/15 text-amber-700 border-amber-500/30 font-semibold"
+                isBlocked
+                  ? "text-emerald-600 hover:text-emerald-700 text-xs"
+                  : "text-rose-600 hover:text-rose-700 text-xs"
               }
             >
-              {isContractComplete ? "Completo" : "Pendente"}
-            </Badge>
+              {isBlocked ? "Desbloquear Prestador" : "Bloquear Acesso"}
+            </Button>
           </div>
-
-          <div className="text-right">
-            <p className="text-[11px] text-muted-foreground uppercase font-semibold">Documentos</p>
-            <Badge
-              variant="outline"
-              className={
-                docStatus === "aprovado"
-                  ? "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 font-semibold"
-                  : docStatus === "em_analise"
-                    ? "bg-blue-500/15 text-blue-700 border-blue-500/30 font-semibold"
-                    : docStatus === "rejeitado"
-                      ? "bg-rose-500/15 text-rose-700 border-rose-500/30 font-semibold"
-                      : "bg-amber-500/15 text-amber-700 border-amber-500/30 font-semibold"
-              }
-            >
-              {docStatus === "aprovado"
-                ? "Aprovado"
-                : docStatus === "em_analise"
-                  ? "Em Análise"
-                  : docStatus === "rejeitado"
-                    ? "Adequação Solicitada"
-                    : "Pendente"}
-            </Badge>
-          </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              toggleBlock.mutate({
-                id: activeFreelancerId,
-                newStatus: profile.status === "bloqueado" ? "ativo" : "bloqueado",
-              })
-            }
-            className={
-              profile.status === "bloqueado"
-                ? "text-xs border-emerald-500/30 text-emerald-600 hover:bg-emerald-50 gap-1.5"
-                : "text-xs border-amber-500/30 text-amber-600 hover:bg-amber-50 gap-1.5"
-            }
-          >
-            <Ban className="h-3.5 w-3.5" />
-            {profile.status === "bloqueado" ? "Ativar Acesso" : "Bloquear Acesso"}
-          </Button>
-
-          <Dialog open={openDeleteFreelancerModal} onOpenChange={setOpenDeleteFreelancerModal}>
-            <DialogTrigger asChild>
-              <Button variant="destructive" size="sm" className="gap-1.5 text-xs">
-                <Trash2 className="h-3.5 w-3.5" /> Excluir Freelancer
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="flex items-center gap-2 text-rose-600">
-                  <Trash2 className="h-5 w-5" /> Excluir Perfil do Freelancer
-                </DialogTitle>
-                <DialogDescription>
-                  Tem certeza de que deseja excluir o freelancer{" "}
-                  <strong>"{profile.full_name}"</strong>? O cadastro, documentos e permissões
-                  serão excluídos do banco de dados.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="gap-2 sm:gap-0 mt-4">
-                <Button variant="outline" onClick={() => setOpenDeleteFreelancerModal(false)}>
-                  Cancelar
-                </Button>
-                <Button
-                  variant="destructive"
-                  disabled={deleteFreelancer.isPending}
-                  onClick={() => {
-                    deleteFreelancer.mutate(activeFreelancerId, {
-                      onSuccess: () => {
-                        setOpenDeleteFreelancerModal(false);
-                        navigate({ to: "/app/freelancers" });
-                      },
-                    });
-                  }}
-                >
-                  {deleteFreelancer.isPending ? "Excluindo..." : "Sim, Excluir Freelancer"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <Button variant="outline" size="sm" asChild>
-            <Link to="/app/freelancers">Voltar</Link>
-          </Button>
         </div>
       </div>
 
-      {/* 1. BLOCO: Documentos Pessoais & Validação Cadastral */}
-      <Card className="border-border shadow-sm">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="space-y-1">
+      {/* Tabs Workspace for Gestor */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <div className="bg-card p-1.5 rounded-xl border border-border shadow-xs overflow-x-auto">
+          <TabsList className="bg-transparent h-auto p-0 flex gap-1 min-w-max">
+            <TabsTrigger
+              value="cadastrais"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+            >
+              <Building2 className="h-4 w-4" /> 1. Dados Cadastrais
+            </TabsTrigger>
+            <TabsTrigger
+              value="documentacao"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+            >
+              <FileText className="h-4 w-4" /> 2. Documentação ({docs.length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="financeiro"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+            >
+              <CreditCard className="h-4 w-4" /> 3. Dados Financeiros
+            </TabsTrigger>
+            <TabsTrigger
+              value="notas"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+            >
+              <Receipt className="h-4 w-4" /> 4. Notas Fiscais ({invoices.length})
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* ── ABA 1: DADOS CADASTRAIS ──────────────────────────────────────── */}
+        <TabsContent value="cadastrais" className="space-y-6">
+          <Card>
+            <CardHeader className="pb-3">
               <CardTitle className="text-base font-bold flex items-center gap-2">
-                <ShieldCheck className="h-5 w-5 text-indigo-600" /> Documentos Pessoais & Validação
-                Cadastral
+                <Building2 className="h-4 w-4 text-primary" />
+                Dados Cadastrais do Prestador
               </CardTitle>
               <CardDescription className="text-xs">
-                Análise e validação dos documentos comprobatórios do freelancer ({documents.length}{" "}
-                enviado(s)).
+                Informações da pessoa jurídica e do representante legal.
               </CardDescription>
-            </div>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveCadastral} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Nome Fantasia</Label>
+                    <Input
+                      value={companyName}
+                      onChange={(e) => setCompanyName(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
 
-            {/* Ações em Lote no Topo */}
-            {documents.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-medium gap-1.5 shadow-sm"
-                  disabled={isBatchProcessing || reviewDoc.isPending}
-                  onClick={handleApproveAllDocuments}
-                >
-                  {isBatchProcessing ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  ) : (
-                    <CheckCheck className="h-3.5 w-3.5" />
-                  )}
-                  Aprovar Todos os Documentos
-                </Button>
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label className="text-xs font-semibold">Razão Social</Label>
+                    <Input
+                      value={corporateName}
+                      onChange={(e) => setCorporateName(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
 
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs text-rose-600 border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950 font-medium gap-1.5 shadow-sm"
-                  disabled={isBatchProcessing || reviewDoc.isPending}
-                  onClick={() => {
-                    setRejectingDoc(null);
-                    setRejectReason("");
-                    setOpenRejectModal(true);
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">CNPJ</Label>
+                    <Input
+                      value={cnpj}
+                      onChange={(e) => setCnpj(e.target.value)}
+                      className="h-9 font-mono text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Segmento</Label>
+                    <Input
+                      value={segment}
+                      onChange={(e) => setSegment(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">E-mail Corporativo *</Label>
+                    <Input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="h-9"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label className="text-xs font-semibold">Endereço Completo</Label>
+                    <Input
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">CEP</Label>
+                    <Input
+                      value={cep}
+                      onChange={(e) => setCep(e.target.value)}
+                      className="h-9 font-mono text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Cidade / UF</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        className="h-9 flex-1"
+                      />
+                      <Input
+                        value={state}
+                        onChange={(e) => setState(e.target.value.toUpperCase())}
+                        className="h-9 w-16 text-center font-mono text-sm"
+                        maxLength={2}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Nome do Responsável</Label>
+                    <Input
+                      value={contactName}
+                      onChange={(e) => setContactName(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Cargo / Função</Label>
+                    <Input
+                      value={rolePosition}
+                      onChange={(e) => setRolePosition(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">WhatsApp</Label>
+                    <Input
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      className="h-9 font-mono text-sm"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Instagram</Label>
+                    <Input
+                      value={instagram}
+                      onChange={(e) => setInstagram(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">LinkedIn</Label>
+                    <Input
+                      value={linkedin}
+                      onChange={(e) => setLinkedin(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Site / Portfólio</Label>
+                    <Input
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-3 border-t">
+                  <Button
+                    type="submit"
+                    disabled={updateProfile.isPending}
+                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium gap-1.5"
+                  >
+                    {updateProfile.isPending && (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    )}
+                    Salvar Dados Cadastrais
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── ABA 2: DOCUMENTAÇÃO ─────────────────────────────────────────── */}
+        <TabsContent value="documentacao" className="space-y-6">
+          {/* Card: Upload de Contrato Oficial pelo Gestor */}
+          <Card className="border-primary/20 bg-primary/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                Contrato Oficial de Prestação de Serviços (Delski)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Anexe o contrato formal assinado pela diretoria para disponibilizar no portal do prestador.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-white transition-colors">
+                <input
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.docx"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      uploadDoc.mutate({
+                        freelancerId: id,
+                        documentType: "contrato_prestacao",
+                        file,
+                      });
+                    }
                   }}
-                >
-                  <XOctagon className="h-3.5 w-3.5" /> Solicitar Adequação
-                </Button>
-              </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {documents.some((d) => d.status === "rejeitado" && d.review_notes) && (
-            <div className="rounded-lg border border-rose-500/20 bg-rose-500/10 p-3 text-xs text-rose-700 dark:text-rose-300 flex items-start gap-2">
-              <AlertCircle className="h-4 w-4 text-rose-500 shrink-0 mt-0.5" />
-              <div>
-                <span className="font-bold">Motivo da Adequação Registrado:</span>{" "}
-                {documents.find((d) => d.status === "rejeitado" && d.review_notes)?.review_notes}
-              </div>
-            </div>
-          )}
+                />
+                <UploadCloud className="h-4 w-4" /> Anexar Contrato Oficial
+              </label>
+            </CardContent>
+          </Card>
 
-          {loadingDocs ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mx-auto mb-2" /> Buscando documentos...
-            </div>
-          ) : documents.length === 0 ? (
-            <div className="rounded-xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-              Nenhum documento comprobatório foi enviado por este freelancer até o momento.
-            </div>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {documents.map((doc) => (
-                <div
-                  key={doc.id}
-                  className="rounded-xl border border-border bg-card p-4 space-y-3 shadow-sm flex flex-col justify-between"
-                >
-                  <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <div>
-                        <h4 className="font-semibold text-sm">
-                          {DOC_TYPE_LABELS[doc.document_type] || doc.document_type}
-                        </h4>
+          {/* Card: Análise e Homologação de Documentos do Prestador */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <FileCheck className="h-4 w-4 text-emerald-600" />
+                Documentos Societários & Certidões ({docs.length})
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Valide os comprovantes e certidões enviadas pelo prestador de serviços.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {docs.length === 0 ? (
+                <div className="p-8 text-center border border-dashed rounded-xl space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    Nenhum documento anexado pelo prestador ainda.
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-border border rounded-xl">
+                  {docs.map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:bg-muted/30"
+                    >
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-foreground">
+                            {DOC_LABELS[doc.document_type] || doc.document_type}
+                          </span>
+                          <Badge
+                            className={`text-[10px] py-0 px-2 font-medium ${
+                              STATUS_BADGE_STYLES[doc.status] || "bg-muted text-muted-foreground"
+                            }`}
+                          >
+                            {doc.status === "aprovado"
+                              ? "Aprovado"
+                              : doc.status === "rejeitado"
+                                ? "Rejeitado"
+                                : "Em Análise"}
+                          </Badge>
+                        </div>
                         <p className="text-[11px] text-muted-foreground">
-                          Enviado em: {new Date(doc.uploaded_at).toLocaleDateString("pt-BR")}
+                          Anexado em {formatDate(doc.uploaded_at || doc.created_at)}
+                          {doc.review_notes && (
+                            <span className="text-rose-500 font-medium ml-2">
+                              • Motivo: {doc.review_notes}
+                            </span>
+                          )}
                         </p>
                       </div>
 
-                      {doc.status === "aprovado" && (
-                        <Badge
-                          variant="outline"
-                          className="bg-emerald-500/15 text-emerald-700 border-emerald-500/30 gap-1 text-xs font-medium"
+                      <div className="flex items-center gap-2">
+                        <a
+                          href={doc.file_url || doc.public_url || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border text-xs font-semibold hover:bg-muted"
                         >
-                          <CheckCircle2 className="h-3 w-3" /> Aprovado
-                        </Badge>
-                      )}
-                      {doc.status === "pendente" && (
-                        <Badge
-                          variant="outline"
-                          className="bg-amber-500/15 text-amber-700 border-amber-500/30 gap-1 text-xs font-medium"
-                        >
-                          <Clock className="h-3 w-3" /> Em Análise
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t flex items-center justify-between gap-2">
-                    {doc.public_url ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        asChild
-                        className="gap-1.5 text-xs h-8 text-indigo-600 hover:text-indigo-700 font-medium"
-                      >
-                        <a href={doc.public_url} target="_blank" rel="noreferrer">
-                          <Eye className="h-3.5 w-3.5" /> Visualizar Arquivo
+                          <Eye className="h-3.5 w-3.5" /> Ver Arquivo
                         </a>
-                      </Button>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">Sem URL</span>
-                    )}
 
-                    {/* Ação secundária discreta por documento */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                        {doc.status !== "aprovado" && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleApproveDoc(doc.id)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs px-2.5"
+                          >
+                            <CheckCheck className="h-3.5 w-3.5 mr-1" /> Aprovar
+                          </Button>
+                        )}
+
+                        {doc.status !== "rejeitado" && (
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => {
+                              setRejectingDoc(doc);
+                              setOpenDocRejectModal(true);
+                            }}
+                            className="h-7 text-xs px-2.5"
+                          >
+                            <XOctagon className="h-3.5 w-3.5 mr-1" /> Rejeitar
+                          </Button>
+                        )}
+
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                          size="sm"
+                          onClick={() =>
+                            deleteDoc.mutate({
+                              documentId: doc.id,
+                              filePath: doc.file_path,
+                            })
+                          }
+                          className="text-rose-500 hover:bg-rose-50 h-7 text-xs px-2"
                         >
-                          <MoreVertical className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          className="text-xs text-rose-600 focus:text-rose-600 focus:bg-rose-50 dark:focus:bg-rose-950 cursor-pointer gap-2"
-                          onClick={() => {
-                            setRejectingDoc(doc);
-                            setRejectReason(doc.review_notes || "");
-                            setOpenRejectModal(true);
-                          }}
-                        >
-                          <XCircle className="h-3.5 w-3.5" /> Rejeitar apenas este
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* 2. BLOCO: Dados Cadastrais para Minutas de Contrato */}
-      <Card className="border-border shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="h-5 w-5 text-indigo-600" /> Dados Cadastrais para Minutas de
-            Contrato
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Valores cadastrais reutilizados nas minutas de contrato da agência Delski.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          {/* Aviso Discreto de Edição Administrativa */}
-          <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-muted-foreground flex items-center gap-2">
-            <Info className="h-4 w-4 text-amber-500 shrink-0" />
-            <span>
-              Estes dados foram preenchidos pelo freelancer. Edite apenas se necessário — alterações
-              aqui também atualizam o cadastro dele.
-            </span>
-          </div>
+        {/* ── ABA 3: DADOS FINANCEIROS ─────────────────────────────────────── */}
+        <TabsContent value="financeiro" className="space-y-6">
+          {/* Card: Dados Bancários informados pelo Prestador */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-emerald-600" />
+                Dados Bancários & Chave PIX (Informados pelo Prestador)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Dados da conta jurídica fornecidos para crédito de pagamentos.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl bg-muted/40 border">
+                <div>
+                  <span className="text-xs text-muted-foreground">Instituição Bancária:</span>
+                  <p className="text-sm font-bold text-foreground mt-0.5">
+                    {freelancer?.bank_name || "—"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Tipo de PIX:</span>
+                  <p className="text-sm font-bold text-foreground mt-0.5">
+                    {freelancer?.pix_type || "—"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Chave PIX:</span>
+                  <p className="text-sm font-bold text-foreground font-mono mt-0.5">
+                    {freelancer?.pix_key || "—"}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-xs text-muted-foreground">Agência / Conta:</span>
+                  <p className="text-sm font-bold text-foreground font-mono mt-0.5">
+                    {freelancer?.bank_agency ? `Ag: ${freelancer.bank_agency}` : ""}{" "}
+                    {freelancer?.bank_account ? `Cc: ${freelancer.bank_account}` : "—"}
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-          {allFieldKeys.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic py-2">
-              Nenhum dado cadastral para contrato foi configurado ou preenchido ainda por este
-              profissional.
-            </p>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {allFieldKeys.map((key) => {
-                const labelText = humanizeFieldName(key, contractVariables);
-                const val = editableFieldValues[key] ?? "";
-                return (
-                  <div key={key} className="space-y-1.5">
-                    <Label className="text-xs font-semibold text-foreground">{labelText}</Label>
+          {/* Card: Parâmetros Financeiros definidos pelo Gestor */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-primary" />
+                Condições Contratuais & Pagamentos (Gestor)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Defina o modelo de remuneração, valores e datas que aparecerão na área restrita deste prestador.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveFinancial} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Modelo de Contrato</Label>
+                    <Select value={contractModel} onValueChange={setContractModel}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Mensal">Mensal (Recorrência)</SelectItem>
+                        <SelectItem value="Único">Único (Por Projeto)</SelectItem>
+                        <SelectItem value="Por Hora">Por Hora</SelectItem>
+                        <SelectItem value="Por Entrega">Por Entrega</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Valor Contratado (R$)</Label>
                     <Input
-                      value={val}
-                      onChange={(e) => handleContractFieldChange(key, e.target.value)}
-                      placeholder={`Informe ${labelText}`}
-                      className="text-xs h-9"
+                      type="number"
+                      step="0.01"
+                      value={contractValue}
+                      onChange={(e) => setContractValue(e.target.value)}
+                      className="h-9"
                     />
                   </div>
-                );
-              })}
-            </div>
-          )}
 
-          {allFieldKeys.length > 0 && (
-            <div className="flex justify-end pt-4 border-t border-border">
-              <Button
-                onClick={handleSaveContractFields}
-                disabled={isSavingContractFields}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white font-medium text-xs gap-2"
-              >
-                {isSavingContractFields ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Save className="h-3.5 w-3.5" />
-                )}
-                Salvar Alterações
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* 3. BLOCO: Contratos Gerados & Assinados */}
-      <Card className="border-border shadow-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileSignature className="h-5 w-5 text-indigo-600" /> Contratos Gerados & Assinados
-          </CardTitle>
-          <CardDescription className="text-xs">
-            Acompanhe o envio do contrato assinado pelo freelancer e finalize o processo contratual.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {loadingContracts ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin mx-auto mb-1" /> Buscando contratos...
-            </div>
-          ) : contracts.length === 0 ? (
-            <p className="text-sm text-muted-foreground italic">
-              Nenhum contrato gerado para este freelancer ainda.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {contracts.map((contract: any) => {
-                const isSigned = contract.status === "assinado_freelancer";
-                const isConcluido = contract.status === "concluido";
-
-                return (
-                  <div
-                    key={contract.id}
-                    className="rounded-xl border border-border bg-card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm"
-                  >
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h4 className="font-bold text-sm">
-                          Projeto: {contract.project?.title || "Contrato Geral"}
-                        </h4>
-                        {isConcluido && (
-                          <Badge className="bg-emerald-600 text-white text-xs">Concluído</Badge>
-                        )}
-                        {isSigned && (
-                          <Badge className="bg-blue-600 text-white text-xs">
-                            Assinado pelo Freelancer
-                          </Badge>
-                        )}
-                        {!isSigned && !isConcluido && (
-                          <Badge variant="outline" className="text-xs">
-                            Pendente Assinatura
-                          </Badge>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Modelo: {contract.model?.name || "Padrão"} • Emitido em{" "}
-                        {new Date(contract.created_at).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      {contract.pdf_path && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-8 text-xs gap-1"
-                          onClick={() =>
-                            handleDownloadContractFile(
-                              supabase
-                                .storage
-                                .from("contract-generated")
-                                .getPublicUrl(contract.pdf_path).data.publicUrl,
-                              `Contrato_${profile?.full_name || "freelancer"}.pdf`,
-                            )
-                          }
-                        >
-                          <Download className="h-3.5 w-3.5" /> Baixar Contrato (PDF)
-                        </Button>
-                      )}
-
-                      {!contract.pdf_path && (
-                        <Label className="cursor-pointer">
-                          <span className="inline-flex items-center gap-1.5 text-xs font-medium bg-indigo-600 text-white hover:bg-indigo-700 h-8 px-3 rounded-md transition-colors shadow-sm">
-                            {uploadingContractPdfId === contract.id ? (
-                              <>
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" /> Enviando...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="h-3.5 w-3.5" /> Enviar PDF ao Freelancer
-                              </>
-                            )}
-                          </span>
-                          <Input
-                            type="file"
-                            accept=".pdf"
-                            className="hidden"
-                            disabled={uploadingContractPdfId === contract.id}
-                            onChange={(e) => handleUploadManagerPdf(contract.id, e)}
-                          />
-                        </Label>
-                      )}
-
-                      {contract.signed_docx_path && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                          className="h-8 text-xs gap-1 text-emerald-600"
-                        >
-                          <a href={contract.signed_docx_path} target="_blank" rel="noreferrer">
-                            <Download className="h-3.5 w-3.5" /> Contrato Assinado
-                          </a>
-                        </Button>
-                      )}
-
-                      {isSigned && !isConcluido && (
-                        <Button
-                          size="sm"
-                          className="h-8 text-xs bg-emerald-600 hover:bg-emerald-700 text-white gap-1"
-                          disabled={finalizingContractId === contract.id}
-                          onClick={() => handleFinalizeContract(contract.id)}
-                        >
-                          {finalizingContractId === contract.id && (
-                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                          )}
-                          Finalizar Contrato
-                        </Button>
-                      )}
-                    </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Data de Pagamento</Label>
+                    <Input
+                      type="date"
+                      value={paymentDate}
+                      onChange={(e) => setPaymentDate(e.target.value)}
+                      className="h-9"
+                    />
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {/* Modal Solicitar Adequação de Documento (Geral ou Específico) */}
-      <Dialog
-        open={openRejectModal}
-        onOpenChange={(open) => {
-          setOpenRejectModal(open);
-          if (!open) {
-            setRejectingDoc(null);
-            setRejectReason("");
-          }
-        }}
-      >
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Data de Vencimento</Label>
+                    <Input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label className="text-xs font-semibold">Status Financeiro</Label>
+                    <Select value={financialStatus} onValueChange={setFinancialStatus}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Pendente">Pendente</SelectItem>
+                        <SelectItem value="Pago">Pago</SelectItem>
+                        <SelectItem value="Atrasado">Atrasado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-3 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setOpenReceiptModal(true)}
+                    className="text-xs font-semibold text-emerald-600 gap-1.5"
+                  >
+                    <Upload className="h-3.5 w-3.5" /> Anexar Comprovante de Pagamento
+                  </Button>
+
+                  <Button
+                    type="submit"
+                    disabled={updateFinancial.isPending}
+                    className="bg-primary hover:bg-primary/90 text-white text-xs font-medium gap-1.5"
+                  >
+                    {updateFinancial.isPending && (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    )}
+                    Salvar Parâmetros Financeiros
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* ── ABA 4: NOTAS FISCAIS ─────────────────────────────────────────── */}
+        <TabsContent value="notas" className="space-y-6">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <Receipt className="h-4 w-4 text-primary" />
+                Notas Fiscais Enviadas pelo Prestador ({invoices.length})
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Revise os arquivos fiscais e aprove ou rejeite com parecer para liberação de honorários.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {invoices.length === 0 ? (
+                <div className="p-10 text-center border border-dashed rounded-xl space-y-1">
+                  <Receipt className="h-8 w-8 text-muted-foreground mx-auto" />
+                  <p className="text-xs text-muted-foreground font-medium">
+                    Nenhuma nota fiscal enviada por este prestador.
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/50 border-b text-muted-foreground font-semibold uppercase text-[11px]">
+                      <tr>
+                        <th className="py-3 px-4">Número NF</th>
+                        <th className="py-3 px-4">Competência</th>
+                        <th className="py-3 px-4">Emissão</th>
+                        <th className="py-3 px-4">Valor</th>
+                        <th className="py-3 px-4">Arquivos</th>
+                        <th className="py-3 px-4">Parecer do Gestor</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y">
+                      {invoices.map((inv) => (
+                        <tr key={inv.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="py-3.5 px-4 font-mono font-bold text-foreground">
+                            {inv.invoice_number}
+                          </td>
+                          <td className="py-3.5 px-4 text-foreground whitespace-nowrap">
+                            {inv.competence}
+                          </td>
+                          <td className="py-3.5 px-4 font-mono text-muted-foreground whitespace-nowrap">
+                            {formatDate(inv.issue_date || inv.created_at)}
+                          </td>
+                          <td className="py-3.5 px-4 font-bold text-primary whitespace-nowrap">
+                            {money(Number(inv.amount))}
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap space-x-2">
+                            {inv.file_url && (
+                              <a
+                                href={inv.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline inline-flex items-center gap-1 font-semibold"
+                              >
+                                <Download className="h-3 w-3" /> PDF
+                              </a>
+                            )}
+                            {inv.xml_file_url && (
+                              <a
+                                href={inv.xml_file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-indigo-600 hover:underline inline-flex items-center gap-1 font-semibold"
+                              >
+                                <FileCode className="h-3 w-3" /> XML
+                              </a>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 text-xs text-muted-foreground max-w-xs">
+                            {inv.review_notes ? (
+                              <span className="italic">{inv.review_notes}</span>
+                            ) : (
+                              <span className="text-muted-foreground/50">—</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-4 whitespace-nowrap">
+                            <Badge
+                              className={`text-xs px-2 py-0.5 font-medium ${
+                                STATUS_BADGE_STYLES[inv.status] || "bg-muted text-muted-foreground"
+                              }`}
+                            >
+                              {inv.status}
+                            </Badge>
+                          </td>
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1">
+                            {inv.status !== "Aprovada" && (
+                              <Button
+                                size="sm"
+                                onClick={() =>
+                                  reviewInvoice.mutate({
+                                    invoiceId: inv.id,
+                                    status: "Aprovada",
+                                    reviewNotes: "Nota fiscal validada e aprovada pelo gestor",
+                                  })
+                                }
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs px-2"
+                              >
+                                <CheckCheck className="h-3 w-3 mr-1" /> Aprovar
+                              </Button>
+                            )}
+
+                            {inv.status !== "Reprovada" && (
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                onClick={() => {
+                                  setRejectingInvoice(inv);
+                                  setOpenInvRejectModal(true);
+                                }}
+                                className="h-7 text-xs px-2"
+                              >
+                                <XOctagon className="h-3 w-3 mr-1" /> Reprovar
+                              </Button>
+                            )}
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                deleteInvoice.mutate({
+                                  invoiceId: inv.id,
+                                  filePath: inv.file_path,
+                                  xmlPath: inv.xml_file_path,
+                                })
+                              }
+                              className="text-rose-500 hover:bg-rose-50 h-7 text-xs px-1.5"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* ── MODAL: Rejeitar Documento ──────────────────────────────────────── */}
+      <Dialog open={openDocRejectModal} onOpenChange={setOpenDocRejectModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base text-rose-600">
-              <XOctagon className="h-5 w-5" />
-              {rejectingDoc
-                ? "Solicitar Adequação do Documento"
-                : "Solicitar Adequação dos Documentos"}
+            <DialogTitle className="text-base font-bold text-rose-600">
+              Rejeitar Documento
             </DialogTitle>
+            <DialogDescription className="text-xs">
+              Informe a justificativa ou instrução para que o prestador possa reenviar o arquivo correto.
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 pt-2">
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              {rejectingDoc ? (
-                <>
-                  Informe o motivo pelo qual o documento{" "}
-                  <strong className="text-foreground">
-                    {DOC_TYPE_LABELS[rejectingDoc.document_type] || rejectingDoc.document_type}
-                  </strong>{" "}
-                  precisa ser reenviado pelo freelancer.
-                </>
-              ) : (
-                <>
-                  Informe a orientação para o freelancer. Todos os documentos não aprovados serão
-                  marcados com este motivo para readequação.
-                </>
-              )}
-            </p>
+
+          <form onSubmit={handleRejectDocSubmit} className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Motivo / Orientação (Obrigatório)</Label>
+              <Label className="text-xs font-semibold">Motivo da Rejeição</Label>
               <Textarea
-                placeholder="Ex: Imagem cortada ou documento ilegível. Por favor, reenvie a foto nítida do documento original."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
+                value={docRejectReason}
+                onChange={(e) => setDocRejectReason(e.target.value)}
+                placeholder="Ex: Documento com validade expirada ou ilegível..."
                 rows={3}
-                className="text-xs"
+                required
               />
             </div>
-          </div>
-          <DialogFooter className="pt-4">
-            <Button variant="outline" size="sm" onClick={() => setOpenRejectModal(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={handleConfirmRejection}
-              disabled={isBatchProcessing || !rejectReason.trim()}
-            >
-              {isBatchProcessing ? "Salvando..." : "Confirmar Solicitação"}
-            </Button>
-          </DialogFooter>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenDocRejectModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" variant="destructive">
+                Confirmar Rejeição
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: Reprovar Nota Fiscal ────────────────────────────────────── */}
+      <Dialog open={openInvRejectModal} onOpenChange={setOpenInvRejectModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-rose-600">
+              Reprovar Nota Fiscal
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Explique o motivo da recusa para que o prestador faça a retificação necessária.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleRejectInvoiceSubmit} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Motivo da Reprovação</Label>
+              <Textarea
+                value={invRejectReason}
+                onChange={(e) => setInvRejectReason(e.target.value)}
+                placeholder="Ex: Valor incorreto ou divergência na competência informada..."
+                rows={3}
+                required
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenInvRejectModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" variant="destructive">
+                Confirmar Reprovação
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: Anexar Comprovante Bancário ──────────────────────────────── */}
+      <Dialog open={openReceiptModal} onOpenChange={setOpenReceiptModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold flex items-center gap-2">
+              <Upload className="h-5 w-5 text-emerald-600" /> Anexar Comprovante de Pagamento
+            </DialogTitle>
+            <DialogDescription className="text-xs">
+              Anexe o comprovante PIX ou TED para que o prestador visualize a confirmação no portal dele.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleReceiptUploadSubmit} className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Arquivo do Comprovante (PDF, PNG, JPG) *</Label>
+              <Input
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg"
+                onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                required
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Observações / Referência</Label>
+              <Input
+                value={receiptNotes}
+                onChange={(e) => setReceiptNotes(e.target.value)}
+                placeholder="Ex: Liquidação de honorários - Agosto/2026"
+              />
+            </div>
+
+            <DialogFooter className="pt-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenReceiptModal(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={uploadingReceipt}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold flex items-center gap-2"
+              >
+                {uploadingReceipt ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" /> Enviando...
+                  </>
+                ) : (
+                  <>
+                    <CheckCheck className="h-4 w-4" /> Anexar Comprovante
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

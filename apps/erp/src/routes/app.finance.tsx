@@ -45,8 +45,19 @@ import {
   UploadCloud,
   FileCheck,
   X,
+  Receipt,
+  FileCode,
+  CheckCheck,
+  XOctagon,
+  RotateCcw,
+  Send,
+  FileSpreadsheet,
+  Building,
+  Download,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { useDeletePayout } from "@/hooks/useExpenses";
 import {
@@ -55,6 +66,14 @@ import {
   useGestorFinanceProjects,
   type Project,
 } from "@/hooks/useProjects";
+import {
+  useEmittedServiceInvoices,
+  useEmitServiceInvoice,
+  useCancelServiceInvoice,
+  useRetryServiceInvoice,
+  type EmittedServiceInvoiceItem,
+} from "@/hooks/useServiceInvoices";
+import { useClientsList } from "@/hooks/useClients";
 import {
   SERVICE_LABEL,
   STATUS_LABEL,
@@ -367,9 +386,9 @@ function FreelancerFinanceView({ user }: { user: any }) {
   );
 }
 
-// ── 2. Visão Exclusiva do CLIENTE (RBAC Isolado) ────────────────────────────
 function ClienteFinanceView({ user }: { user: any }) {
   const { data: projects = [], isLoading } = useClienteFinanceProjects(user?.id, user?.email);
+  const { data: clientNfses = [] } = useEmittedServiceInvoices();
 
   const totalBudget = useMemo(() => {
     return projects.reduce((a, p) => a + Number(p.budget || 0), 0);
@@ -494,6 +513,84 @@ function ClienteFinanceView({ user }: { user: any }) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Notas Fiscais de Serviço (NFS-e) do Cliente */}
+      <Card className="bg-card">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-bold flex items-center gap-2">
+            <Receipt className="h-4 w-4 text-blue-600" />
+            Notas Fiscais de Serviço Emitidas ({clientNfses.filter((n) => n.status === "autorizada").length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {clientNfses.length === 0 ? (
+            <div className="p-8 text-center border-t border-dashed space-y-1">
+              <Receipt className="h-8 w-8 text-muted-foreground/40 mx-auto" />
+              <p className="text-xs text-muted-foreground font-medium">
+                Nenhuma nota fiscal de serviço emitida contra seu CNPJ até o momento.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/50 text-muted-foreground uppercase text-[11px] border-b">
+                  <tr>
+                    <th className="text-left px-4 py-3">Número NFS-e</th>
+                    <th className="text-left px-4 py-3">Cód. Verificação</th>
+                    <th className="text-left px-4 py-3">Data Emissão</th>
+                    <th className="text-left px-4 py-3">Descrição do Serviço</th>
+                    <th className="text-right px-4 py-3">Valor Bruto</th>
+                    <th className="text-right px-4 py-3">Download</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {clientNfses.map((nf) => (
+                    <tr key={nf.id} className="hover:bg-muted/20">
+                      <td className="px-4 py-3.5 font-bold font-mono text-foreground">
+                        {nf.number ? `NFS-e ${nf.number}` : "—"}
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-muted-foreground">
+                        {nf.verification_code || "—"}
+                      </td>
+                      <td className="px-4 py-3.5 font-mono text-muted-foreground whitespace-nowrap">
+                        {nf.issued_at ? new Date(nf.issued_at).toLocaleDateString("pt-BR") : "—"}
+                      </td>
+                      <td className="px-4 py-3.5 text-foreground max-w-xs truncate">
+                        {nf.service_description}
+                      </td>
+                      <td className="px-4 py-3.5 text-right font-bold text-blue-600 whitespace-nowrap">
+                        {money(Number(nf.service_value))}
+                      </td>
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap space-x-1.5">
+                        {nf.pdf_url && (
+                          <a
+                            href={nf.pdf_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100"
+                          >
+                            <Download className="h-3 w-3" /> PDF
+                          </a>
+                        )}
+                        {nf.xml_url && (
+                          <a
+                            href={nf.xml_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100"
+                          >
+                            <FileCode className="h-3 w-3" /> XML
+                          </a>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -597,6 +694,123 @@ function GestorFinanceView() {
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
   const [paymentDate, setPaymentDate] = useState<string>(new Date().toISOString().slice(0, 10));
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+
+  // ── Emitted Service Invoices (NFS-e) Query & Mutations ─────────────────────
+  const { data: emittedInvoices = [], isLoading: loadingNfse } = useEmittedServiceInvoices();
+  const { data: clientsList = [] } = useClientsList();
+  const emitNfse = useEmitServiceInvoice();
+  const cancelNfse = useCancelServiceInvoice();
+  const retryNfse = useRetryServiceInvoice();
+
+  const [activeMainFinanceTab, setActiveMainFinanceTab] = useState<string>("geral");
+  const [openNfseModal, setOpenNfseModal] = useState(false);
+  const [nfseClientId, setNfseClientId] = useState("");
+  const [nfseProjectId, setNfseProjectId] = useState("none");
+  const [nfseServiceValue, setNfseServiceValue] = useState("");
+  const [nfseDescription, setNfseDescription] = useState("");
+  const [nfseCnaeCode, setNfseCnaeCode] = useState("6201-5/01");
+  const [nfseItemLista, setNfseItemLista] = useState("01.07");
+  const [nfseIssRate, setNfseIssRate] = useState("2.0");
+  const [isSubmittingNfse, setIsSubmittingNfse] = useState(false);
+  const [nfseFilterStatus, setNfseFilterStatus] = useState<string>("all");
+  const [nfseSearch, setNfseSearch] = useState("");
+
+  const [openCancelModal, setOpenCancelModal] = useState(false);
+  const [cancelingInvoice, setCancelingInvoice] = useState<EmittedServiceInvoiceItem | null>(null);
+  const [cancelReason, setCancelReason] = useState("");
+
+  const selectedClientInfo = useMemo(() => {
+    if (!nfseClientId) return null;
+    return (clientsList as any[]).find(
+      (c: any) => c.id === nfseClientId || c.resolved_id === nfseClientId
+    );
+  }, [nfseClientId, clientsList]);
+
+  const nfseTotals = useMemo(() => {
+    const authorized = emittedInvoices.filter((i) => i.status === "autorizada");
+    const totalBilled = authorized.reduce((acc, i) => acc + Number(i.service_value || 0), 0);
+    const totalIss = authorized.reduce(
+      (acc, i) => acc + Number(i.iss_value || (i.service_value * i.iss_rate) / 100 || 0),
+      0
+    );
+    const pendingCount = emittedInvoices.filter(
+      (i) => i.status === "processando" || i.status === "erro"
+    ).length;
+    return {
+      totalBilled,
+      totalCount: emittedInvoices.length,
+      totalIss,
+      pendingCount,
+    };
+  }, [emittedInvoices]);
+
+  const filteredNfse = useMemo(() => {
+    return emittedInvoices.filter((inv) => {
+      if (nfseFilterStatus !== "all" && inv.status !== nfseFilterStatus) return false;
+      if (nfseSearch.trim()) {
+        const q = nfseSearch.toLowerCase();
+        const num = (inv.number || "").toLowerCase();
+        const clientName = (
+          inv.client?.company_name ||
+          inv.client?.full_name ||
+          ""
+        ).toLowerCase();
+        const code = (inv.verification_code || "").toLowerCase();
+        const desc = (inv.service_description || "").toLowerCase();
+        return (
+          num.includes(q) ||
+          clientName.includes(q) ||
+          code.includes(q) ||
+          desc.includes(q)
+        );
+      }
+      return true;
+    });
+  }, [emittedInvoices, nfseFilterStatus, nfseSearch]);
+
+  const handleEmitNfseSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!nfseClientId) return toast.error("Selecione o cliente tomador do serviço.");
+    const val = Number(nfseServiceValue);
+    if (isNaN(val) || val <= 0) return toast.error("Informe um valor de serviço válido.");
+    if (!nfseDescription.trim()) return toast.error("Informe a descrição detalhada do serviço.");
+
+    setIsSubmittingNfse(true);
+    try {
+      await emitNfse.mutateAsync({
+        clientId: nfseClientId,
+        projectId: nfseProjectId === "none" || !nfseProjectId ? null : nfseProjectId,
+        serviceValue: val,
+        serviceDescription: nfseDescription.trim(),
+        cnaeCode: nfseCnaeCode.trim(),
+        itemListaServico: nfseItemLista.trim(),
+        issRate: Number(nfseIssRate) || 2.0,
+      });
+
+      setNfseClientId("");
+      setNfseProjectId("none");
+      setNfseServiceValue("");
+      setNfseDescription("");
+      setOpenNfseModal(false);
+    } finally {
+      setIsSubmittingNfse(false);
+    }
+  };
+
+  const handleConfirmCancelNfse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!cancelingInvoice) return;
+    if (!cancelReason.trim()) return toast.error("Informe a justificativa do cancelamento.");
+
+    await cancelNfse.mutateAsync({
+      invoiceId: cancelingInvoice.id,
+      reason: cancelReason.trim(),
+    });
+
+    setOpenCancelModal(false);
+    setCancelingInvoice(null);
+    setCancelReason("");
+  };
 
   const perProject = useMemo(
     () =>
@@ -1028,17 +1242,52 @@ function GestorFinanceView() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Financeiro Corporativo</h1>
           <p className="text-sm text-muted-foreground">
-            Receitas, custos, margem de lucro por projeto e pagamentos de freelancers.
+            Receitas, custos por projeto, repasses a prestadores e emissão de Notas Fiscais de Serviço (NFS-e).
           </p>
         </div>
 
-        <Dialog open={openAdd} onOpenChange={setOpenAdd}>
-          <DialogTrigger asChild>
-            <Button className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5">
+        <div className="flex items-center gap-2">
+          {activeMainFinanceTab === "nfse" ? (
+            <Button
+              onClick={() => setOpenNfseModal(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white gap-1.5 text-xs font-semibold h-9 px-4 shadow-sm"
+            >
+              <Receipt className="h-4 w-4" /> Gerar Nova NFS-e
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setOpenAdd(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white gap-1.5 text-xs font-semibold h-9 px-4 shadow-sm"
+            >
               <Plus className="h-4 w-4" /> Nova despesa
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md bg-white">
+          )}
+        </div>
+      </div>
+
+      {/* Top Tabs Switcher */}
+      <Tabs value={activeMainFinanceTab} onValueChange={setActiveMainFinanceTab} className="space-y-6">
+        <div className="bg-card p-1.5 rounded-xl border border-border shadow-xs overflow-x-auto">
+          <TabsList className="bg-transparent h-auto p-0 flex gap-1 min-w-max">
+            <TabsTrigger
+              value="geral"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+            >
+              <DollarSign className="h-4 w-4" /> 1. Visão Geral & Despesas
+            </TabsTrigger>
+            <TabsTrigger
+              value="nfse"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+            >
+              <Receipt className="h-4 w-4" /> 2. Emissão de NFS-e ({emittedInvoices.length})
+            </TabsTrigger>
+          </TabsList>
+        </div>
+
+        {/* ── ABA 1: VISÃO GERAL & DESPESAS ────────────────────────────────── */}
+        <TabsContent value="geral" className="space-y-6 focus-visible:outline-none">
+          <Dialog open={openAdd} onOpenChange={setOpenAdd}>
+            <DialogContent className="sm:max-w-md bg-white">
             <DialogHeader>
               <DialogTitle className="text-lg font-bold">Registrar nova despesa</DialogTitle>
               <DialogDescription className="text-xs text-muted-foreground">
@@ -1188,7 +1437,6 @@ function GestorFinanceView() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-      </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="bg-card">
@@ -1912,6 +2160,501 @@ function GestorFinanceView() {
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </TabsContent>
+
+        {/* ── ABA 2: EMISSÃO DE NFS-E ──────────────────────────────────────── */}
+        <TabsContent value="nfse" className="space-y-6 focus-visible:outline-none">
+          {/* Métricas de Faturamento Fiscal */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <Card className="bg-card border-blue-500/20 shadow-xs">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                      Total Faturado (NFS-e)
+                    </span>
+                    <div className="mt-1.5 text-2xl font-bold text-blue-600">
+                      {money(nfseTotals.totalBilled)}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Notas fiscais autorizadas
+                    </p>
+                  </div>
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-blue-500/10 text-blue-600">
+                    <Receipt className="h-5 w-5" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-emerald-500/20 shadow-xs">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                      Notas Emitidas
+                    </span>
+                    <div className="mt-1.5 text-2xl font-bold text-foreground">
+                      {nfseTotals.totalCount}
+                    </div>
+                    <p className="text-[11px] text-emerald-600 font-medium mt-0.5">
+                      Histórico completo
+                    </p>
+                  </div>
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                    <CheckCircle2 className="h-5 w-5" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-purple-500/20 shadow-xs">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                      ISS Calculado
+                    </span>
+                    <div className="mt-1.5 text-2xl font-bold text-purple-600">
+                      {money(nfseTotals.totalIss)}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Tributo municipal provisionado
+                    </p>
+                  </div>
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-purple-500/10 text-purple-600">
+                    <Building className="h-5 w-5" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-amber-500/20 shadow-xs">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                      Em Análise / Atenção
+                    </span>
+                    <div className="mt-1.5 text-2xl font-bold text-amber-600">
+                      {nfseTotals.pendingCount}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                      Processando ou com erro
+                    </p>
+                  </div>
+                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-amber-500/10 text-amber-600">
+                    <Clock className="h-5 w-5" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Tabela de Notas Fiscais Emitidas com Filtros */}
+          <Card className="bg-card shadow-xs">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2">
+                    <Receipt className="h-4 w-4 text-blue-600" />
+                    Notas Fiscais de Serviço Eletrônicas Emitidas ({filteredNfse.length})
+                  </CardTitle>
+                  <CardDescription className="text-xs">
+                    Histórico de NFS-e transmitidas e autorizadas pela prefeitura para faturamento de clientes.
+                  </CardDescription>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Buscar por nº, cliente..."
+                      value={nfseSearch}
+                      onChange={(e) => setNfseSearch(e.target.value)}
+                      className="h-9 pl-8 w-48 text-xs"
+                    />
+                  </div>
+
+                  <Select value={nfseFilterStatus} onValueChange={setNfseFilterStatus}>
+                    <SelectTrigger className="h-9 w-36 text-xs">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Todos os Status</SelectItem>
+                      <SelectItem value="autorizada">Autorizadas</SelectItem>
+                      <SelectItem value="processando">Processando</SelectItem>
+                      <SelectItem value="cancelada">Canceladas</SelectItem>
+                      <SelectItem value="erro">Com Erro</SelectItem>
+                      <SelectItem value="rascunho">Rascunho</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  <Button
+                    onClick={() => setOpenNfseModal(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs h-9 px-3.5 gap-1.5 shadow-xs"
+                  >
+                    <Plus className="h-4 w-4" /> Nova NFS-e
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              {filteredNfse.length === 0 ? (
+                <div className="p-12 text-center border-t border-dashed space-y-2">
+                  <Receipt className="h-10 w-10 text-muted-foreground/40 mx-auto" />
+                  <h3 className="font-semibold text-sm text-foreground">
+                    Nenhuma NFS-e encontrada
+                  </h3>
+                  <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                    {nfseSearch || nfseFilterStatus !== "all"
+                      ? "Nenhuma nota corresponde aos filtros selecionados."
+                      : "Clique no botão 'Nova NFS-e' para emitir a primeira nota fiscal de serviço para um cliente."}
+                  </p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-muted/50 border-y text-muted-foreground font-semibold uppercase text-[11px] tracking-wider">
+                      <tr>
+                        <th className="py-3 px-4">Número da Nota</th>
+                        <th className="py-3 px-4">Cód. Verificação</th>
+                        <th className="py-3 px-4">Tomador / Cliente</th>
+                        <th className="py-3 px-4">Projeto</th>
+                        <th className="py-3 px-4">Emissão</th>
+                        <th className="py-3 px-4">Valor Bruto</th>
+                        <th className="py-3 px-4">ISS</th>
+                        <th className="py-3 px-4">Status</th>
+                        <th className="py-3 px-4 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {filteredNfse.map((inv) => {
+                        const statusStyles: Record<string, string> = {
+                          autorizada: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                          processando: "bg-purple-50 text-purple-700 border-purple-200",
+                          cancelada: "bg-stone-100 text-stone-600 border-stone-200",
+                          erro: "bg-rose-50 text-rose-700 border-rose-200",
+                          rascunho: "bg-amber-50 text-amber-700 border-amber-200",
+                        };
+
+                        const clientDisplayName =
+                          inv.client?.company_name ||
+                          inv.client?.corporate_name ||
+                          inv.client?.full_name ||
+                          "Cliente";
+
+                        return (
+                          <tr key={inv.id} className="hover:bg-muted/20 transition-colors">
+                            <td className="py-3.5 px-4 font-mono font-bold text-foreground">
+                              {inv.number ? `NFS-e ${inv.number}` : "—"}
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-muted-foreground text-[11px]">
+                              {inv.verification_code || "—"}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <p className="font-semibold text-foreground truncate max-w-[180px]">
+                                {clientDisplayName}
+                              </p>
+                              {inv.client?.cnpj && (
+                                <p className="text-[11px] text-muted-foreground font-mono">
+                                  {inv.client.cnpj}
+                                </p>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4 text-muted-foreground">
+                              {inv.project?.title || "Avulso"}
+                            </td>
+                            <td className="py-3.5 px-4 font-mono text-muted-foreground whitespace-nowrap">
+                              {inv.issued_at
+                                ? new Date(inv.issued_at).toLocaleDateString("pt-BR")
+                                : inv.created_at
+                                ? new Date(inv.created_at).toLocaleDateString("pt-BR")
+                                : "—"}
+                            </td>
+                            <td className="py-3.5 px-4 font-bold text-blue-600 whitespace-nowrap">
+                              {money(Number(inv.service_value))}
+                            </td>
+                            <td className="py-3.5 px-4 text-muted-foreground whitespace-nowrap">
+                              {money(Number(inv.iss_value || (inv.service_value * inv.iss_rate) / 100))}
+                              <span className="text-[10px] text-muted-foreground/60 ml-1">
+                                ({inv.iss_rate}%)
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 whitespace-nowrap">
+                              <Badge
+                                className={`text-xs px-2.5 py-0.5 font-medium capitalize ${
+                                  statusStyles[inv.status] || "bg-muted text-muted-foreground"
+                                }`}
+                              >
+                                {inv.status}
+                              </Badge>
+                            </td>
+                            <td className="py-3.5 px-4 text-right whitespace-nowrap space-x-1.5">
+                              {inv.pdf_url && (
+                                <a
+                                  href={inv.pdf_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors"
+                                  title="Visualizar PDF Oficial da NFS-e"
+                                >
+                                  <Download className="h-3 w-3" /> PDF
+                                </a>
+                              )}
+                              {inv.xml_url && (
+                                <a
+                                  href={inv.xml_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-semibold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors"
+                                  title="Baixar XML de Integração"
+                                >
+                                  <FileCode className="h-3 w-3" /> XML
+                                </a>
+                              )}
+                              {inv.status === "erro" && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => retryNfse.mutate(inv.id)}
+                                  className="h-7 text-xs px-2 text-amber-700 border-amber-300 hover:bg-amber-50"
+                                >
+                                  <RotateCcw className="h-3 w-3 mr-1" /> Reenviar
+                                </Button>
+                              )}
+                              {inv.status === "autorizada" && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    setCancelingInvoice(inv);
+                                    setOpenCancelModal(true);
+                                  }}
+                                  className="h-7 text-xs px-2 text-rose-600 hover:bg-rose-50"
+                                  title="Cancelar Nota Fiscal"
+                                >
+                                  <XOctagon className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* ── MODAL: Gerar Nova NFS-e ────────────────────────────────────────── */}
+      <Dialog open={openNfseModal} onOpenChange={setOpenNfseModal}>
+        <DialogContent className="sm:max-w-xl bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-stone-900 flex items-center gap-2">
+              <Receipt className="h-5 w-5 text-blue-600" /> Emitir Nota Fiscal de Serviço (NFS-e)
+            </DialogTitle>
+            <DialogDescription className="text-xs text-stone-500">
+              Gere a NFS-e oficial preenchendo os dados do tomador e as especificações tributárias do serviço prestado.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleEmitNfseSubmit} className="space-y-4 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-stone-700">
+                Cliente Tomador do Serviço <span className="text-rose-500">*</span>
+              </Label>
+              <Select value={nfseClientId} onValueChange={setNfseClientId} required>
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="Selecione a empresa / cliente tomador" />
+                </SelectTrigger>
+                <SelectContent>
+                  {clientsList.map((c: any) => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.company_name || c.full_name} {c.cnpj ? `— CNPJ: ${c.cnpj}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedClientInfo && (
+              <div className="p-3 rounded-lg bg-blue-50/50 border border-blue-100 text-xs space-y-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-blue-800">
+                  Dados Fiscais do Tomador
+                </span>
+                <p className="font-semibold text-stone-800">
+                  {selectedClientInfo.corporate_name || selectedClientInfo.company_name || selectedClientInfo.full_name}
+                </p>
+                <div className="grid grid-cols-2 gap-2 text-stone-500 text-[11px]">
+                  <span>CNPJ/CPF: {selectedClientInfo.cnpj || "Não cadastrado"}</span>
+                  <span>E-mail: {selectedClientInfo.email || "—"}</span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Projeto Vinculado (Opcional)
+                </Label>
+                <Select value={nfseProjectId} onValueChange={setNfseProjectId}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue placeholder="Selecione um projeto ou Avulso" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Nenhum (Faturamento Avulso)</SelectItem>
+                    {projects.map((p) => (
+                      <SelectItem key={p.id} value={p.id}>
+                        {p.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Item da Lista de Serviços (LC 116) <span className="text-rose-500">*</span>
+                </Label>
+                <Select value={nfseItemLista} onValueChange={setNfseItemLista}>
+                  <SelectTrigger className="h-9 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="01.07">01.07 - Suporte Técnico e Software</SelectItem>
+                    <SelectItem value="17.06">17.06 - Propaganda e Marketing Digital</SelectItem>
+                    <SelectItem value="01.05">01.05 - Licenciamento de Programas</SelectItem>
+                    <SelectItem value="10.02">10.02 - Agenciamento e Intermediação</SelectItem>
+                    <SelectItem value="17.01">17.01 - Assessoria e Consultoria</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Valor Bruto dos Serviços (R$) <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={nfseServiceValue}
+                  onChange={(e) => setNfseServiceValue(e.target.value)}
+                  className="h-9 text-xs font-mono font-semibold"
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-stone-700">
+                  Alíquota ISS (%) <span className="text-rose-500">*</span>
+                </Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={nfseIssRate}
+                  onChange={(e) => setNfseIssRate(e.target.value)}
+                  className="h-9 text-xs font-mono"
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-stone-700">
+                Discriminação dos Serviços Prestados <span className="text-rose-500">*</span>
+              </Label>
+              <Textarea
+                rows={3}
+                placeholder="Descreva detalhadamente as atividades executadas para constar no corpo da NFS-e..."
+                value={nfseDescription}
+                onChange={(e) => setNfseDescription(e.target.value)}
+                className="text-xs"
+                required
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenNfseModal(false)}
+                className="text-xs"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmittingNfse}
+                className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold gap-1.5"
+              >
+                {isSubmittingNfse ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Transmitindo à Prefeitura...
+                  </>
+                ) : (
+                  <>
+                    <Send className="h-3.5 w-3.5" /> Transmitir e Emitir NFS-e
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── MODAL: Cancelar NFS-e ──────────────────────────────────────────── */}
+      <Dialog open={openCancelModal} onOpenChange={setOpenCancelModal}>
+        <DialogContent className="sm:max-w-md bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-base font-bold text-rose-600 flex items-center gap-2">
+              <XOctagon className="h-5 w-5" /> Cancelar Nota Fiscal de Serviço
+            </DialogTitle>
+            <DialogDescription className="text-xs text-stone-500">
+              Informe a justificativa legal do cancelamento da NFS-e nº {cancelingInvoice?.number}.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleConfirmCancelNfse} className="space-y-4 py-2 text-xs">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold text-stone-700">
+                Motivo do Cancelamento <span className="text-rose-500">*</span>
+              </Label>
+              <Textarea
+                rows={3}
+                placeholder="Ex: Erro de digitação no valor / emissão em duplicidade..."
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                required
+              />
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpenCancelModal(false)}
+                className="text-xs"
+              >
+                Voltar
+              </Button>
+              <Button
+                type="submit"
+                variant="destructive"
+                disabled={cancelNfse.isPending}
+                className="text-xs font-semibold"
+              >
+                {cancelNfse.isPending ? "Cancelando..." : "Confirmar Cancelamento"}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </div>

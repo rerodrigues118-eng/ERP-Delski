@@ -24,6 +24,8 @@ create table if not exists public.profiles (
   role text check (role in ('gestor', 'freelancer', 'cliente', 'admin')) not null default 'freelancer',
   avatar_url text,
   phone text,
+  onboarding_completed boolean not null default false,
+  approval_status text check (approval_status in ('pending', 'approved', 'rejected')) default 'pending',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
@@ -35,18 +37,111 @@ create table if not exists public.clients (
   full_name text not null,
   email text unique not null,
   company_name text,
+  corporate_name text,
+  cnpj text,
+  segment text,
+  address text,
+  city text,
+  state text,
+  cep text,
+  contact_name text,
+  role_position text,
   phone text,
+  instagram text,
+  linkedin text,
+  website text,
+  contract_model text default 'Mensal',
+  contract_value numeric(10,2) default 0.00,
+  setup_value numeric(10,2) default 0.00,
+  contract_duration text,
+  payment_date date,
+  due_date date,
+  financial_status text default 'Pendente' check (financial_status in ('Pendente', 'Pago', 'Atrasado')),
+  invoices jsonb default '[]'::jsonb,
+  payment_receipts jsonb default '[]'::jsonb,
+  onboarding_completed boolean not null default false,
   status text check (status in ('convidado', 'ativo', 'bloqueado')) default 'ativo',
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
--- 1c. Tabela de Detalhes de Freelancers
+-- 1c. Tabela de Detalhes de Freelancers / Prestadores de Serviço
 create table if not exists public.freelancers (
   id uuid primary key references public.profiles(id) on delete cascade,
   organization_id uuid references public.organizations(id) default '00000000-0000-0000-0000-000000000001',
+  company_name text,
+  corporate_name text,
+  cnpj text,
+  segment text,
+  email text,
+  address text,
+  city text,
+  state text,
+  cep text,
+  role_position text,
+  phone text,
+  instagram text,
+  linkedin text,
+  website text,
+  bank_name text,
+  bank_agency text,
+  bank_account text,
+  pix_key text,
+  pix_type text default 'CNPJ',
+  contract_model text default 'Mensal',
+  contract_value numeric(10,2) default 0.00,
+  payment_date date,
+  due_date date,
+  financial_status text default 'Pendente' check (financial_status in ('Pendente', 'Pago', 'Atrasado')),
+  payment_receipts jsonb default '[]'::jsonb,
+  onboarding_completed boolean not null default false,
   skills text[],
   hourly_rate numeric(10,2) default 0.00,
-  status text check (status in ('ativo', 'inativo', 'pendente')) default 'ativo',
+  status text check (status in ('ativo', 'inativo', 'pendente', 'bloqueado')) default 'ativo',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 1d. Tabela de Notas Fiscais de Prestadores de Serviço
+create table if not exists public.freelancer_invoices (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid references public.organizations(id) default '00000000-0000-0000-0000-000000000001',
+  freelancer_id uuid references public.profiles(id) on delete cascade not null,
+  invoice_number text not null,
+  issue_date date not null,
+  competence text not null,
+  amount numeric(10,2) not null default 0.00,
+  provider_name text not null,
+  file_path text not null,
+  file_url text not null,
+  xml_file_path text,
+  xml_file_url text,
+  status text not null default 'Em análise' check (status in ('Em análise', 'Aprovada', 'Reprovada')),
+  review_notes text,
+  reviewed_by uuid references public.profiles(id) on delete set null,
+  reviewed_at timestamp with time zone,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 1e. Tabela de Notas Fiscais de Serviço Emitidas pela Delski (NFS-e)
+create table if not exists public.emitted_service_invoices (
+  id uuid primary key default gen_random_uuid(),
+  organization_id uuid references public.organizations(id) default '00000000-0000-0000-0000-000000000001',
+  client_id uuid references public.clients(id) on delete cascade not null,
+  project_id uuid references public.projects(id) on delete set null,
+  number text,
+  verification_code text,
+  status text not null default 'rascunho' check (status in ('rascunho', 'processando', 'autorizada', 'cancelada', 'erro')),
+  service_description text not null,
+  service_value numeric(10,2) not null default 0.00,
+  iss_rate numeric(5,2) not null default 2.00,
+  iss_value numeric(10,2) generated always as (round((service_value * iss_rate / 100.0), 2)) stored,
+  cnae_code text default '6201-5/01',
+  item_lista_servico text default '01.07',
+  pdf_url text,
+  xml_url text,
+  error_message text,
+  issued_at timestamp with time zone,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
@@ -135,6 +230,51 @@ create table if not exists public.contract_models (
   is_active boolean not null default true,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 8. Tabela de Documentos do Cliente
+create table if not exists public.client_documents (
+  id uuid default gen_random_uuid() primary key,
+  client_id uuid references public.clients(id) on delete cascade,
+  project_id uuid references public.projects(id) on delete set null,
+  document_type text not null,
+  file_path text not null,
+  file_url text,
+  status text check (status in ('pendente', 'em_analise', 'aprovado', 'rejeitado')) default 'pendente',
+  review_notes text,
+  uploaded_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 9. Tabela de Ocorrências e SAC
+create table if not exists public.support_tickets (
+  id uuid default gen_random_uuid() primary key,
+  client_id uuid references public.clients(id) on delete cascade,
+  project_id uuid references public.projects(id) on delete set null,
+  created_by uuid references public.profiles(id) on delete set null,
+  client_name text not null,
+  client_email text,
+  category text default 'Projeto',
+  subject text not null,
+  message text not null,
+  evidence_url text,
+  priority text default 'Media' check (priority in ('Baixa', 'Media', 'Alta', 'Critica')),
+  responsible_name text default 'Equipe Delski',
+  deadline_date date,
+  resolution_date date,
+  resolution_notes text,
+  status text default 'Aberto' check (status in ('Aberto', 'Em atendimento', 'Em Andamento', 'Resolvido', 'Expirado')),
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  updated_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- 10. Tabela de Respostas de Chamados
+create table if not exists public.ticket_replies (
+  id uuid default gen_random_uuid() primary key,
+  ticket_id uuid references public.support_tickets(id) on delete cascade not null,
+  sender_name text not null,
+  sender_role text check (sender_role in ('gestor', 'cliente', 'admin')) not null default 'gestor',
+  message text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
 
 -- ==========================================================

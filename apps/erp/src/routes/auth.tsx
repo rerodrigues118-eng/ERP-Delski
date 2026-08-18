@@ -39,14 +39,48 @@ export const Route = createFileRoute("/auth")({
 
 /** Auth guard: watches session state; renders form only when unauthenticated */
 function AuthGuard() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const {
+    isAuthenticated,
+    isLoading: authLoading,
+    isGestor,
+    isCliente,
+    isFreelancer,
+    onboardingCompleted,
+    isPendingApproval,
+    isRejected,
+  } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
-      navigate({ to: "/app", replace: true });
+      if (!isGestor && isPendingApproval) {
+        navigate({ to: "/aguardando-aprovacao" as any, replace: true });
+        return;
+      }
+      if (!isGestor && isRejected) {
+        navigate({ to: "/acesso-negado" as any, replace: true });
+        return;
+      }
+
+      let target = "/app";
+      if (isCliente) {
+        target = onboardingCompleted ? "/cliente" : "/onboarding";
+      } else if (isFreelancer) {
+        target = onboardingCompleted ? "/freelancer" : "/onboarding";
+      }
+      navigate({ to: target as any, replace: true });
     }
-  }, [isAuthenticated, authLoading, navigate]);
+  }, [
+    isAuthenticated,
+    authLoading,
+    isGestor,
+    isCliente,
+    isFreelancer,
+    onboardingCompleted,
+    isPendingApproval,
+    isRejected,
+    navigate,
+  ]);
 
   if (authLoading) {
     return (
@@ -122,24 +156,76 @@ function AuthPage() {
         const userEmail = (authData.user.email || "").toLowerCase().trim();
         const { data: pCheck } = await supabase
           .from("profiles")
-          .select("status")
+          .select("role, status, onboarding_completed, approval_status")
           .eq("id", authData.user.id)
           .maybeSingle();
 
         const { data: cCheck } = await (supabase.from("clients") as any)
-          .select("status")
-          .ilike("email", userEmail)
+          .select("status, onboarding_completed")
+          .or(`auth_user_id.eq.${authData.user.id},email.ilike.${userEmail}`)
+          .limit(1)
           .maybeSingle();
 
-        if (pCheck?.status === "bloqueado" || cCheck?.status === "bloqueado") {
+        const { data: fCheck } = await (supabase.from("freelancers") as any)
+          .select("status, onboarding_completed")
+          .eq("id", authData.user.id)
+          .maybeSingle();
+
+        if (
+          pCheck?.status === "bloqueado" ||
+          cCheck?.status === "bloqueado" ||
+          fCheck?.status === "bloqueado"
+        ) {
           await supabase.auth.signOut();
           toast.error("Sua conta está bloqueada pelo gestor. Acesso negado.");
           setLoading(false);
           return;
         }
 
+        const userRole = (
+          pCheck?.role ||
+          (cCheck ? "cliente" : "freelancer")
+        ).toLowerCase();
+        const isGestorUser = userRole === "gestor" || userRole === "admin";
+        const approvalStatus = pCheck?.approval_status || (isGestorUser ? "approved" : "approved");
+
+        if (!isGestorUser && approvalStatus === "rejected") {
+          toast.error("Sua solicitação de acesso não foi aprovada pelo gestor.");
+          navigate({ to: "/acesso-negado" as any, replace: true });
+          return;
+        }
+
+        if (!isGestorUser && approvalStatus === "pending") {
+          toast.info("Sua conta está em análise aguardando aprovação do gestor.");
+          navigate({ to: "/aguardando-aprovacao" as any, replace: true });
+          return;
+        }
+
+        const isClient = userRole === "cliente" || userRole === "client";
+        const isFree = userRole === "freelancer";
+        const isOnboardingDone = Boolean(
+          pCheck?.onboarding_completed ||
+          cCheck?.onboarding_completed ||
+          fCheck?.onboarding_completed
+        );
+
         toast.success("Login realizado com sucesso!");
-        navigate({ to: "/app", replace: true });
+
+        if (isClient) {
+          if (isOnboardingDone) {
+            navigate({ to: "/cliente" as any, replace: true });
+          } else {
+            navigate({ to: "/onboarding" as any, replace: true });
+          }
+        } else if (isFree) {
+          if (isOnboardingDone) {
+            navigate({ to: "/freelancer" as any, replace: true });
+          } else {
+            navigate({ to: "/onboarding" as any, replace: true });
+          }
+        } else {
+          navigate({ to: "/app" as any, replace: true });
+        }
       }
     } catch (err: unknown) {
       console.error("Erro inesperado no login:", err);
@@ -155,26 +241,22 @@ function AuthPage() {
     const fd = new FormData(e.currentTarget);
     const email = String(fd.get("forgot-email") || "").trim();
     if (!email) {
-      toast.error("Informe o seu e-mail para redefinir a senha.");
+      toast.error("Informe seu e-mail para recuperação.");
       return;
     }
+
     setLoading(true);
     try {
-      // Dynamic origin calculation to prevent localhost fallback
-      const currentOrigin =
-        typeof window !== "undefined" && window.location.origin
-          ? window.location.origin
-          : "https://erp-delski.vercel.app";
-
-      const redirectTo = `${currentOrigin}/auth`;
-
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo,
+        redirectTo: `${window.location.origin}/auth?type=recovery`,
       });
+
       if (error) throw error;
+
       setResetSent(true);
+      toast.success("Instruções de recuperação enviadas para o seu e-mail.");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erro ao enviar o e-mail de redefinição.";
+      const msg = err instanceof Error ? err.message : "Erro ao enviar e-mail de recuperação.";
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -235,7 +317,7 @@ function AuthPage() {
       const { data: authData, error: signUpError } = await supabase.auth.signUp({
         email: result.data.email.trim(),
         password: result.data.password,
-        options: { data: { full_name: result.data.fullName.trim(), role: "freelancer" } },
+        options: { data: { full_name: result.data.fullName.trim(), role: "freelancer", approval_status: "pending" } },
       });
 
       if (signUpError) throw signUpError;
@@ -247,13 +329,35 @@ function AuthPage() {
             full_name: result.data.fullName.trim(),
             email: result.data.email.trim(),
             role: "freelancer",
+            approval_status: "pending",
           });
         } catch (profileErr) {
           console.warn("Upsert de perfil falhou (possível RLS):", profileErr);
         }
 
-        toast.success("Conta criada com sucesso! Faça login para continuar.");
-        setTab("login");
+        // Criar notificação para os gestores
+        try {
+          const { data: gestorProfiles } = await supabase
+            .from("profiles")
+            .select("id")
+            .in("role", ["gestor", "admin"]);
+
+          if (gestorProfiles && gestorProfiles.length > 0) {
+            const notificationsToInsert = gestorProfiles.map((g) => ({
+              user_id: g.id,
+              title: "Novo usuário aguardando aprovação",
+              message: `Novo usuário ${result.data.fullName.trim()} (${result.data.email.trim()}) aguarda aprovação de acesso.`,
+              type: "sistema",
+              read: false,
+            }));
+            await (supabase.from("notifications") as any).insert(notificationsToInsert);
+          }
+        } catch (notifErr) {
+          console.warn("Falha ao criar notificação de aprovação:", notifErr);
+        }
+
+        toast.success("Conta criada com sucesso! O gestor foi notificado.");
+        navigate({ to: "/aguardando-aprovacao" as any, replace: true });
       }
     } catch (err: unknown) {
       console.error("Erro ao criar conta:", err);

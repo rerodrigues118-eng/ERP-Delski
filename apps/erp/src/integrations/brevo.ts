@@ -309,3 +309,124 @@ export async function sendClientAccessInviteEmail(args: {
     }
   }
 }
+
+export async function sendServiceInvoiceIssuedEmail(args: {
+  to: { email: string; name?: string };
+  invoiceNumber: string;
+  verificationCode?: string;
+  amount: number;
+  serviceDescription: string;
+  pdfUrl?: string;
+}): Promise<void> {
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <span style="font-size: 20px; font-weight: 800; color: #2563eb; letter-spacing: -0.5px;">DELSKI CLOUD</span>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">Faturamento & Emissão Fiscal</p>
+      </div>
+      <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">
+        Nota Fiscal de Serviço Eletrônica (NFS-e)
+      </h2>
+      <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+        Olá, <strong>${args.to.name || "Cliente"}</strong>. A Nota Fiscal de Serviços referente aos projetos executados pela DELSKI foi emitida e autorizada.
+      </p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin: 20px 0;">
+        <p style="margin: 0 0 6px 0; font-size: 13px; color: #64748b;"><strong>Número da Nota:</strong> ${args.invoiceNumber}</p>
+        ${args.verificationCode ? `<p style="margin: 0 0 6px 0; font-size: 13px; color: #64748b;"><strong>Código de Verificação:</strong> <span style="font-family: monospace;">${args.verificationCode}</span></p>` : ""}
+        <p style="margin: 0 0 6px 0; font-size: 13px; color: #64748b;"><strong>Valor Bruto:</strong> <span style="color: #2563eb; font-weight: bold;">R$ ${args.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}</span></p>
+        <p style="margin: 0; font-size: 13px; color: #64748b;"><strong>Descrição:</strong> ${args.serviceDescription}</p>
+      </div>
+      ${args.pdfUrl ? `
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${args.pdfUrl}" target="_blank" style="display: inline-block; background-color: #2563eb; color: #ffffff; font-weight: bold; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 8px;">
+          Visualizar & Baixar PDF da NFS-e
+        </a>
+      </div>
+      ` : ""}
+      <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 20px 0 0 0; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+        DELSKI &copy; ${new Date().getFullYear()} — Faturamento Automatizado.
+      </p>
+    </div>
+  `;
+
+  await sendBrevoEmail({
+    to: [{ email: args.to.email, name: args.to.name }],
+    subject: `NFS-e nº ${args.invoiceNumber} — DELSKI CLOUD`,
+    htmlContent: html,
+  });
+}
+
+export async function sendApprovalStatusEmail(args: {
+  type: "approved" | "rejected";
+  to: { email: string; name: string };
+  role?: string;
+  reason?: string;
+}): Promise<void> {
+  const isApproved = args.type === "approved";
+  const roleLabel =
+    args.role === "gestor"
+      ? "Gestor"
+      : args.role === "cliente"
+      ? "Cliente"
+      : "Prestador de Serviço / Freelancer";
+
+  const appUrl = typeof window !== "undefined" ? window.location.origin : "https://erp.delski.co";
+  const loginUrl = `${appUrl}/auth`;
+
+  const html = isApproved
+    ? `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <span style="font-size: 22px; font-weight: 800; color: #2563eb;">DELSKI CLOUD</span>
+        <p style="margin: 4px 0 0; font-size: 13px; color: #6b7280;">Gestão de Projetos & Demandas</p>
+      </div>
+      <div style="background-color: #dcfce7; color: #166534; font-weight: bold; font-size: 12px; padding: 4px 12px; border-radius: 9999px; display: inline-block; margin-bottom: 16px;">
+        ✓ Acesso Aprovado
+      </div>
+      <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">
+        Olá, ${args.to.name}!
+      </h2>
+      <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+        Temos ótimas notícias! Sua solicitação de acesso para o perfil de <strong>${roleLabel}</strong> foi aprovada pelo gestor.
+      </p>
+      <div style="text-align: center; margin: 28px 0;">
+        <a href="${loginUrl}" target="_blank" style="display: inline-block; background-color: #2563eb; color: #ffffff; font-weight: bold; font-size: 14px; text-decoration: none; padding: 12px 28px; border-radius: 8px;">
+          Entrar no DELSKI CLOUD
+        </a>
+      </div>
+      <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 20px 0 0 0; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+        DELSKI &copy; ${new Date().getFullYear()} — Todos os direitos reservados.
+      </p>
+    </div>
+  `
+    : `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 32px 24px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <span style="font-size: 22px; font-weight: 800; color: #475569;">DELSKI CLOUD</span>
+      </div>
+      <div style="background-color: #fee2e2; color: #991b1b; font-weight: bold; font-size: 12px; padding: 4px 12px; border-radius: 9999px; display: inline-block; margin-bottom: 16px;">
+        Solicitação Não Aprovada
+      </div>
+      <h2 style="font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 12px 0;">
+        Olá, ${args.to.name}.
+      </h2>
+      <p style="font-size: 14px; color: #4b5563; line-height: 1.6;">
+        Informamos que sua solicitação de acesso para o perfil de <strong>${roleLabel}</strong> não foi aprovada pelo gestor.
+      </p>
+      ${args.reason ? `<p style="font-size: 13px; color: #475569; background: #f8fafc; padding: 12px; border-radius: 8px;"><strong>Motivo:</strong> ${args.reason}</p>` : ""}
+      <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 20px 0 0 0; border-top: 1px solid #f1f5f9; padding-top: 16px;">
+        DELSKI &copy; ${new Date().getFullYear()} — Suporte Corporativo.
+      </p>
+    </div>
+  `;
+
+  await sendBrevoEmail({
+    to: [{ email: args.to.email, name: args.to.name }],
+    subject: isApproved
+      ? "🎉 Seu acesso ao DELSKI CLOUD foi aprovado!"
+      : "Atualização sobre sua solicitação de acesso — DELSKI CLOUD",
+    htmlContent: html,
+  });
+}
+
+

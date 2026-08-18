@@ -106,6 +106,7 @@ export function useUploadClientDocument() {
       queryClient.invalidateQueries({
         queryKey: ["client_documents", variables.clientId],
       });
+      queryClient.invalidateQueries({ queryKey: ["client_documents"] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       queryClient.invalidateQueries({ queryKey: ["generated_contracts"] });
       toast.success("Documento enviado com sucesso!");
@@ -116,3 +117,33 @@ export function useUploadClientDocument() {
     },
   });
 }
+
+export function useDeleteClientDocument() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ documentId, filePath }: { documentId: string; filePath?: string }) => {
+      if (filePath) {
+        try {
+          await supabase.storage.from("client-documents").remove([filePath]);
+        } catch (e) {
+          console.warn("Storage file delete warn:", e);
+        }
+      }
+
+      const { error } = await (supabase.from("client_documents") as any)
+        .delete()
+        .eq("id", documentId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["client_documents"] });
+      toast.success("Documento excluído.");
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao excluir documento: ${err.message}`);
+    },
+  });
+}
+

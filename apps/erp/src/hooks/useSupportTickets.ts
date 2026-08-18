@@ -16,12 +16,20 @@ export interface TicketReply {
 export interface SupportTicket {
   id: string;
   client_id?: string;
+  project_id?: string | null;
+  project_name?: string | null;
   client_name: string;
   client_email?: string;
   category?: string;
   subject: string;
   message: string;
-  status: TicketStatus;
+  evidence_url?: string | null;
+  priority?: "Baixa" | "Media" | "Alta" | "Critica" | string;
+  responsible_name?: string;
+  deadline_date?: string | null;
+  resolution_date?: string | null;
+  resolution_notes?: string | null;
+  status: TicketStatus | string;
   created_at: string;
   updated_at?: string;
   replies?: TicketReply[];
@@ -239,18 +247,24 @@ export function useCreateTicket() {
   return useMutation({
     mutationFn: async ({
       clientId,
+      projectId,
       clientName,
       clientEmail,
-      category,
+      category = "Projeto",
       subject,
       message,
+      evidenceUrl,
+      priority = "Media",
     }: {
       clientId?: string;
+      projectId?: string;
       clientName: string;
       clientEmail?: string;
-      category: string;
+      category?: string;
       subject: string;
       message: string;
+      evidenceUrl?: string | null;
+      priority?: "Baixa" | "Media" | "Alta" | "Critica";
     }) => {
       // Ensure we record the authenticated user's id for user_id/created_by
       let authUserId: string | null = null;
@@ -277,6 +291,7 @@ export function useCreateTicket() {
 
       const ticketData: any = {
         client_id: clientId || null,
+        project_id: projectId || null,
         user_id: profileExists ? authUserId : null,
         created_by: profileExists ? authUserId : null,
         client_name: clientName,
@@ -284,19 +299,21 @@ export function useCreateTicket() {
         category,
         subject,
         message,
+        evidence_url: evidenceUrl || null,
+        priority,
+        responsible_name: "Equipe Delski",
         status: "Aberto",
         created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       };
 
       try {
-        const { data: insertRes, error } = await (supabase.from("support_tickets") as any)
+        const { error } = await (supabase.from("support_tickets") as any)
           .insert([ticketData])
           .select("id");
         if (error) {
           console.error("[useCreateTicket] Error inserting ticket into Supabase:", error);
-          toast.error(`Erro ao gravar no banco de dados: ${error.message}`);
         } else {
-          // Invalidate common ticket queries (global, per-user and legacy keys)
           queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
           if (clientId) {
             queryClient.invalidateQueries({ queryKey: ["support_tickets", "client", clientId] });
@@ -322,6 +339,34 @@ export function useCreateTicket() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
+      toast.success("Ocorrência registrada com sucesso!");
+    },
+    onError: (e: Error) => {
+      toast.error(`Erro ao registrar ocorrência: ${e.message}`);
     },
   });
 }
+
+// ── Mutation: Upload ticket evidence ─────────────────────────────────────────
+export function useUploadTicketEvidence() {
+  return useMutation({
+    mutationFn: async ({ file, clientId }: { file: File; clientId?: string }) => {
+      const fileExt = file.name.split(".").pop();
+      const folder = clientId || "public";
+      const filePath = `tickets/${folder}/evidence_${Date.now()}.${fileExt}`;
+
+      const { error: uploadErr } = await supabase.storage
+        .from("client-documents")
+        .upload(filePath, file, { upsert: true });
+
+      if (uploadErr) throw uploadErr;
+
+      const { data: pubData } = supabase.storage
+        .from("client-documents")
+        .getPublicUrl(filePath);
+
+      return pubData?.publicUrl || null;
+    },
+  });
+}
+

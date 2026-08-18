@@ -48,8 +48,14 @@ import {
   useUnlinkProjectClient,
   useResendClientInvite,
 } from "@/hooks/useClients";
+import {
+  useClientDocuments,
+  useUploadClientDocument,
+  useDeleteClientDocument,
+} from "@/hooks/useClientDocuments";
 import { useProjects } from "@/hooks/useProjects";
 import { useAuth } from "@/hooks/useAuth";
+import { formatDate } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/clients/$id")({
   head: () => ({
@@ -78,6 +84,15 @@ function ClientDetailPage() {
   const [companyName, setCompanyName] = useState("");
   const [phone, setPhone] = useState("");
 
+  // Financial Form state (Gestor definition)
+  const [contractModel, setContractModel] = useState("Mensal");
+  const [contractValue, setContractValue] = useState("0");
+  const [setupValue, setSetupValue] = useState("0");
+  const [contractDuration, setContractDuration] = useState("12 meses");
+  const [paymentDate, setPaymentDate] = useState("");
+  const [dueDate, setDueDate] = useState("");
+  const [financialStatus, setFinancialStatus] = useState("Pendente");
+
   // Modal link project state
   const [openLinkModal, setOpenLinkModal] = useState(false);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
@@ -91,8 +106,20 @@ function ClientDetailPage() {
       setEmail(client.email || "");
       setCompanyName(client.company_name || "");
       setPhone(client.phone || "");
+      setContractModel((client as any).contract_model || "Mensal");
+      setContractValue(String((client as any).contract_value || "0"));
+      setSetupValue(String((client as any).setup_value || "0"));
+      setContractDuration((client as any).contract_duration || "12 meses");
+      setPaymentDate((client as any).payment_date || "");
+      setDueDate((client as any).due_date || "");
+      setFinancialStatus((client as any).financial_status || "Pendente");
     }
   }, [client]);
+
+  const resolvedClientId = client?.resolved_id || client?.auth_user_id || client?.id;
+  const { data: clientDocs = [] } = useClientDocuments(resolvedClientId);
+  const uploadDoc = useUploadClientDocument();
+  const deleteDoc = useDeleteClientDocument();
 
   useEffect(() => {
     if (!authLoading && !isGestor) {
@@ -111,8 +138,6 @@ function ClientDetailPage() {
 
   if (!isGestor || !client) return null;
 
-  const resolvedClientId = client?.resolved_id || client?.auth_user_id || client?.id;
-
   // Unlinked projects available to be linked
   const unlinkedProjects = allProjects.filter((p) => p.client_id !== resolvedClientId);
 
@@ -129,6 +154,29 @@ function ClientDetailPage() {
         email: email.trim(),
         company_name: companyName.trim() || undefined,
         phone: phone.trim() || undefined,
+        contract_model: contractModel,
+        contract_value: Number(contractValue) || 0,
+        setup_value: Number(setupValue) || 0,
+        contract_duration: contractDuration,
+        payment_date: paymentDate || null,
+        due_date: dueDate || null,
+        financial_status: financialStatus,
+      },
+    });
+  };
+
+  const handleSaveFinancial = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateClient.mutate({
+      id: client.id,
+      patch: {
+        contract_model: contractModel,
+        contract_value: Number(contractValue) || 0,
+        setup_value: Number(setupValue) || 0,
+        contract_duration: contractDuration,
+        payment_date: paymentDate || null,
+        due_date: dueDate || null,
+        financial_status: financialStatus,
       },
     });
   };
@@ -204,7 +252,7 @@ function ClientDetailPage() {
             <p className="text-xs text-muted-foreground flex items-center gap-3">
               <span>E-mail: {client.email}</span>
               {client.phone && <span>• WhatsApp: {client.phone}</span>}
-              <span>• Cadastrado em {new Date(client.created_at).toLocaleDateString("pt-BR")}</span>
+              <span>• Cadastrado em {formatDate(client.created_at)}</span>
             </p>
           </div>
 
@@ -348,6 +396,213 @@ function ClientDetailPage() {
                   </Button>
                 </div>
               </form>
+            </CardContent>
+          </Card>
+
+          {/* Card 1b: Gestão Financeira do Cliente (Definido pelo Gestor) */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+                Parâmetros Financeiros & Contrato (Gestor)
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Defina o modelo de contratação, valores e datas que aparecerão na área restrita deste cliente.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSaveFinancial} className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Modelo de Contrato</Label>
+                    <Select value={contractModel} onValueChange={setContractModel}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Mensal">Mensal (Recorrência)</SelectItem>
+                        <SelectItem value="Único">Único (Pontual)</SelectItem>
+                        <SelectItem value="Trimestral">Trimestral</SelectItem>
+                        <SelectItem value="Semestral">Semestral</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Valor Contratado (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={contractValue}
+                      onChange={(e) => setContractValue(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Valor do Setup (R$)</Label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      value={setupValue}
+                      onChange={(e) => setSetupValue(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Duração do Contrato</Label>
+                    <Input
+                      value={contractDuration}
+                      onChange={(e) => setContractDuration(e.target.value)}
+                      placeholder="Ex: 12 meses"
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Data de Pagamento</Label>
+                    <Input
+                      type="date"
+                      value={paymentDate}
+                      onChange={(e) => setPaymentDate(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold">Data de Vencimento</Label>
+                    <Input
+                      type="date"
+                      value={dueDate}
+                      onChange={(e) => setDueDate(e.target.value)}
+                      className="h-9"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 sm:col-span-2">
+                    <Label className="text-xs font-semibold">Status Financeiro</Label>
+                    <Select value={financialStatus} onValueChange={setFinancialStatus}>
+                      <SelectTrigger className="h-9">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Pendente">Pendente</SelectItem>
+                        <SelectItem value="Pago">Pago</SelectItem>
+                        <SelectItem value="Atrasado">Atrasado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <Button
+                    type="submit"
+                    disabled={updateClient.isPending}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium gap-1.5"
+                  >
+                    {updateClient.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    Salvar Parâmetros Financeiros
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Card 1c: Anexar Documentos / Notas Fiscais pelo Gestor */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-bold flex items-center gap-2">
+                <FileText className="h-4 w-4 text-blue-600" />
+                Documentos & Notas Fiscais do Cliente
+              </CardTitle>
+              <CardDescription className="text-xs">
+                Anexe o Contrato Oficial de Prestação ou Notas Fiscais emitidas para que o cliente visualize no portal.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-4 border rounded-xl bg-slate-50/50 space-y-2">
+                  <p className="text-xs font-bold text-gray-800">Anexar Contrato Oficial</p>
+                  <p className="text-[11px] text-gray-500">Substitui ou disponibiliza o contrato oficial assinado no portal do cliente.</p>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && resolvedClientId) {
+                          uploadDoc.mutate({
+                            clientId: resolvedClientId,
+                            documentType: "contrato_prestacao",
+                            file,
+                          });
+                        }
+                      }}
+                    />
+                    <UploadCloud className="h-3.5 w-3.5" /> Upload de Contrato
+                  </label>
+                </div>
+
+                <div className="p-4 border rounded-xl bg-slate-50/50 space-y-2">
+                  <p className="text-xs font-bold text-gray-800">Anexar Nota Fiscal</p>
+                  <p className="text-[11px] text-gray-500">Disponibiliza a NF emitida para download pelo cliente na aba financeira.</p>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.xml,.png,.jpg"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file && resolvedClientId) {
+                          uploadDoc.mutate({
+                            clientId: resolvedClientId,
+                            documentType: "nota_fiscal",
+                            file,
+                          });
+                        }
+                      }}
+                    />
+                    <UploadCloud className="h-3.5 w-3.5" /> Upload de Nota Fiscal
+                  </label>
+                </div>
+              </div>
+
+              {clientDocs.length > 0 && (
+                <div className="pt-2 border-t space-y-2">
+                  <p className="text-xs font-semibold text-gray-700">Documentos no Repositório ({clientDocs.length}):</p>
+                  <div className="divide-y divide-gray-100 border rounded-lg">
+                    {clientDocs.map((doc) => (
+                      <div key={doc.id} className="p-2.5 flex items-center justify-between text-xs hover:bg-slate-50">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-3.5 w-3.5 text-gray-400" />
+                          <span className="font-medium text-gray-800 uppercase text-[11px]">{doc.document_type}</span>
+                          <span className="text-[11px] text-gray-400">{formatDate(doc.uploaded_at || (doc as any).created_at)}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={doc.file_url || doc.public_url || "#"}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline flex items-center gap-1 text-[11px]"
+                          >
+                            <ExternalLink className="h-3 w-3" /> Ver
+                          </a>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteDoc.mutate({ documentId: doc.id, filePath: doc.file_path })}
+                            className="h-6 px-1.5 text-[11px] text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 

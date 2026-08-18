@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Target,
+  UserCheck,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { DEFAULT_COMPANY_SETTINGS } from "@/hooks/useContractFieldResolver";
@@ -55,6 +56,7 @@ const NAV_OPERACAO = [
 const NAV_EQUIPE = [
   { title: "Freelancers", url: "/app/freelancers", icon: Users, gestor: true, freelancer: false, cliente: false },
   { title: "Clientes", url: "/app/clients", icon: Building2, gestor: true, freelancer: false, cliente: false },
+  { title: "Aprovações", url: "/app/approvals", icon: UserCheck, gestor: true, freelancer: false, cliente: false },
 ];
 
 const NAV_NEGOCIO = [

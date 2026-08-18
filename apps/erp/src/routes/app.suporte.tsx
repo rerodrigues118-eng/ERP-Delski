@@ -41,6 +41,7 @@ import {
   type SupportTicket,
   type TicketStatus,
 } from "@/hooks/useSupportTickets";
+import { formatDate } from "@/lib/utils";
 
 export const Route = createFileRoute("/app/suporte")({
   head: () => ({
@@ -271,7 +272,7 @@ function SupportPage() {
                       {ticket.subject}
                     </td>
                     <td className="px-4 py-3.5 text-xs text-stone-500 font-medium">
-                      {new Date(ticket.created_at).toLocaleDateString("pt-BR", {
+                      {formatDate(ticket.created_at, {
                         day: "2-digit",
                         month: "2-digit",
                         year: "numeric",
@@ -369,7 +370,7 @@ function SupportPage() {
                       {currentActiveTicket.client_name} (Cliente)
                     </span>
                     <span>
-                      {new Date(currentActiveTicket.created_at).toLocaleTimeString("pt-BR", {
+                      {formatDate(currentActiveTicket.created_at, {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
@@ -398,7 +399,7 @@ function SupportPage() {
                         <div className="flex items-center justify-between text-xs text-stone-500 border-b border-blue-100/50 pb-1.5">
                           <span className="font-bold text-blue-900">{reply.sender_name}</span>
                           <span>
-                            {new Date(reply.created_at).toLocaleTimeString("pt-BR", {
+                            {formatDate(reply.created_at, {
                               hour: "2-digit",
                               minute: "2-digit",
                             })}

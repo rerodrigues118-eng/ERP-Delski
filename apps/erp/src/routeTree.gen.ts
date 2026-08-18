@@ -10,10 +10,17 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AcessoNegadoRouteImport } from './routes/acesso-negado'
+import { Route as AguardandoAprovacaoRouteImport } from './routes/aguardando-aprovacao'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ClienteRouteImport } from './routes/cliente'
+import { Route as FreelancerRouteImport } from './routes/freelancer'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as AppIndexRouteImport } from './routes/app.index'
+import { Route as AppApprovalsRouteImport } from './routes/app.approvals'
 import { Route as AppContractGeneratorRouteImport } from './routes/app.contract-generator'
+import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppDocumentsRouteImport } from './routes/app.documents'
 import { Route as AppFinanceRouteImport } from './routes/app.finance'
 import { Route as AppNotificationsRouteImport } from './routes/app.notifications'
@@ -22,6 +29,10 @@ import { Route as AppRisksRouteImport } from './routes/app.risks'
 import { Route as AppSuporteRouteImport } from './routes/app.suporte'
 import { Route as AppWikiRouteImport } from './routes/app.wiki'
 import { Route as CandidaturaIdRouteImport } from './routes/candidatura.$id'
+import { Route as ClienteIndexRouteImport } from './routes/cliente.index'
+import { Route as ClienteDashboardRouteImport } from './routes/cliente.dashboard'
+import { Route as FreelancerIndexRouteImport } from './routes/freelancer.index'
+import { Route as FreelancerDashboardRouteImport } from './routes/freelancer.dashboard'
 import { Route as PTokenRouteImport } from './routes/p.$token'
 import { Route as TriagemTokenRouteImport } from './routes/triagem.$token'
 import { Route as AppClientsIndexRouteImport } from './routes/app.clients.index'
@@ -39,6 +50,16 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AcessoNegadoRoute = AcessoNegadoRouteImport.update({
+  id: '/acesso-negado',
+  path: '/acesso-negado',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AguardandoAprovacaoRoute = AguardandoAprovacaoRouteImport.update({
+  id: '/aguardando-aprovacao',
+  path: '/aguardando-aprovacao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRoute = AppRouteImport.update({
   id: '/app',
   path: '/app',
@@ -49,14 +70,39 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ClienteRoute = ClienteRouteImport.update({
+  id: '/cliente',
+  path: '/cliente',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FreelancerRoute = FreelancerRouteImport.update({
+  id: '/freelancer',
+  path: '/freelancer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppApprovalsRoute = AppApprovalsRouteImport.update({
+  id: '/approvals',
+  path: '/approvals',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppContractGeneratorRoute = AppContractGeneratorRouteImport.update({
   id: '/contract-generator',
   path: '/contract-generator',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
 const AppDocumentsRoute = AppDocumentsRouteImport.update({
@@ -98,6 +144,26 @@ const CandidaturaIdRoute = CandidaturaIdRouteImport.update({
   id: '/candidatura/$id',
   path: '/candidatura/$id',
   getParentRoute: () => rootRouteImport,
+} as any)
+const ClienteIndexRoute = ClienteIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => ClienteRoute,
+} as any)
+const ClienteDashboardRoute = ClienteDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => ClienteRoute,
+} as any)
+const FreelancerIndexRoute = FreelancerIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => FreelancerRoute,
+} as any)
+const FreelancerDashboardRoute = FreelancerDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => FreelancerRoute,
 } as any)
 const PTokenRoute = PTokenRouteImport.update({
   id: '/p/$token',
@@ -157,9 +223,16 @@ const AppProjectsNewRoute = AppProjectsNewRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/acesso-negado': typeof AcessoNegadoRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/cliente': typeof ClienteRouteWithChildren
+  '/freelancer': typeof FreelancerRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/app/approvals': typeof AppApprovalsRoute
   '/app/contract-generator': typeof AppContractGeneratorRoute
+  '/app/dashboard': typeof AppDashboardRoute
   '/app/documents': typeof AppDocumentsRoute
   '/app/finance': typeof AppFinanceRoute
   '/app/notifications': typeof AppNotificationsRoute
@@ -168,9 +241,13 @@ export interface FileRoutesByFullPath {
   '/app/suporte': typeof AppSuporteRoute
   '/app/wiki': typeof AppWikiRoute
   '/candidatura/$id': typeof CandidaturaIdRoute
+  '/cliente/dashboard': typeof ClienteDashboardRoute
+  '/freelancer/dashboard': typeof FreelancerDashboardRoute
   '/p/$token': typeof PTokenRoute
   '/triagem/$token': typeof TriagemTokenRoute
   '/app/': typeof AppIndexRoute
+  '/cliente/': typeof ClienteIndexRoute
+  '/freelancer/': typeof FreelancerIndexRoute
   '/app/clients/$id': typeof AppClientsIdRoute
   '/app/contract-models/$id': typeof AppContractModelsIdRoute
   '/app/freelancers/$id': typeof AppFreelancersIdRoute
@@ -183,8 +260,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/acesso-negado': typeof AcessoNegadoRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/auth': typeof AuthRoute
+  '/onboarding': typeof OnboardingRoute
+  '/app/approvals': typeof AppApprovalsRoute
   '/app/contract-generator': typeof AppContractGeneratorRoute
+  '/app/dashboard': typeof AppDashboardRoute
   '/app/documents': typeof AppDocumentsRoute
   '/app/finance': typeof AppFinanceRoute
   '/app/notifications': typeof AppNotificationsRoute
@@ -193,9 +275,13 @@ export interface FileRoutesByTo {
   '/app/suporte': typeof AppSuporteRoute
   '/app/wiki': typeof AppWikiRoute
   '/candidatura/$id': typeof CandidaturaIdRoute
+  '/cliente/dashboard': typeof ClienteDashboardRoute
+  '/freelancer/dashboard': typeof FreelancerDashboardRoute
   '/p/$token': typeof PTokenRoute
   '/triagem/$token': typeof TriagemTokenRoute
   '/app': typeof AppIndexRoute
+  '/cliente': typeof ClienteIndexRoute
+  '/freelancer': typeof FreelancerIndexRoute
   '/app/clients/$id': typeof AppClientsIdRoute
   '/app/contract-models/$id': typeof AppContractModelsIdRoute
   '/app/freelancers/$id': typeof AppFreelancersIdRoute
@@ -209,9 +295,16 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/acesso-negado': typeof AcessoNegadoRoute
+  '/aguardando-aprovacao': typeof AguardandoAprovacaoRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRoute
+  '/cliente': typeof ClienteRouteWithChildren
+  '/freelancer': typeof FreelancerRouteWithChildren
+  '/onboarding': typeof OnboardingRoute
+  '/app/approvals': typeof AppApprovalsRoute
   '/app/contract-generator': typeof AppContractGeneratorRoute
+  '/app/dashboard': typeof AppDashboardRoute
   '/app/documents': typeof AppDocumentsRoute
   '/app/finance': typeof AppFinanceRoute
   '/app/notifications': typeof AppNotificationsRoute
@@ -220,9 +313,13 @@ export interface FileRoutesById {
   '/app/suporte': typeof AppSuporteRoute
   '/app/wiki': typeof AppWikiRoute
   '/candidatura/$id': typeof CandidaturaIdRoute
+  '/cliente/dashboard': typeof ClienteDashboardRoute
+  '/freelancer/dashboard': typeof FreelancerDashboardRoute
   '/p/$token': typeof PTokenRoute
   '/triagem/$token': typeof TriagemTokenRoute
   '/app/': typeof AppIndexRoute
+  '/cliente/': typeof ClienteIndexRoute
+  '/freelancer/': typeof FreelancerIndexRoute
   '/app/clients/$id': typeof AppClientsIdRoute
   '/app/contract-models/$id': typeof AppContractModelsIdRoute
   '/app/freelancers/$id': typeof AppFreelancersIdRoute
@@ -237,9 +334,16 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/acesso-negado'
+    | '/aguardando-aprovacao'
     | '/app'
     | '/auth'
+    | '/cliente'
+    | '/freelancer'
+    | '/onboarding'
+    | '/app/approvals'
     | '/app/contract-generator'
+    | '/app/dashboard'
     | '/app/documents'
     | '/app/finance'
     | '/app/notifications'
@@ -248,9 +352,13 @@ export interface FileRouteTypes {
     | '/app/suporte'
     | '/app/wiki'
     | '/candidatura/$id'
+    | '/cliente/dashboard'
+    | '/freelancer/dashboard'
     | '/p/$token'
     | '/triagem/$token'
     | '/app/'
+    | '/cliente/'
+    | '/freelancer/'
     | '/app/clients/$id'
     | '/app/contract-models/$id'
     | '/app/freelancers/$id'
@@ -263,8 +371,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/acesso-negado'
+    | '/aguardando-aprovacao'
     | '/auth'
+    | '/onboarding'
+    | '/app/approvals'
     | '/app/contract-generator'
+    | '/app/dashboard'
     | '/app/documents'
     | '/app/finance'
     | '/app/notifications'
@@ -273,9 +386,13 @@ export interface FileRouteTypes {
     | '/app/suporte'
     | '/app/wiki'
     | '/candidatura/$id'
+    | '/cliente/dashboard'
+    | '/freelancer/dashboard'
     | '/p/$token'
     | '/triagem/$token'
     | '/app'
+    | '/cliente'
+    | '/freelancer'
     | '/app/clients/$id'
     | '/app/contract-models/$id'
     | '/app/freelancers/$id'
@@ -288,9 +405,16 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/acesso-negado'
+    | '/aguardando-aprovacao'
     | '/app'
     | '/auth'
+    | '/cliente'
+    | '/freelancer'
+    | '/onboarding'
+    | '/app/approvals'
     | '/app/contract-generator'
+    | '/app/dashboard'
     | '/app/documents'
     | '/app/finance'
     | '/app/notifications'
@@ -299,9 +423,13 @@ export interface FileRouteTypes {
     | '/app/suporte'
     | '/app/wiki'
     | '/candidatura/$id'
+    | '/cliente/dashboard'
+    | '/freelancer/dashboard'
     | '/p/$token'
     | '/triagem/$token'
     | '/app/'
+    | '/cliente/'
+    | '/freelancer/'
     | '/app/clients/$id'
     | '/app/contract-models/$id'
     | '/app/freelancers/$id'
@@ -315,8 +443,13 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AcessoNegadoRoute: typeof AcessoNegadoRoute
+  AguardandoAprovacaoRoute: typeof AguardandoAprovacaoRoute
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRoute
+  ClienteRoute: typeof ClienteRouteWithChildren
+  FreelancerRoute: typeof FreelancerRouteWithChildren
+  OnboardingRoute: typeof OnboardingRoute
   CandidaturaIdRoute: typeof CandidaturaIdRoute
   PTokenRoute: typeof PTokenRoute
   TriagemTokenRoute: typeof TriagemTokenRoute
@@ -329,6 +462,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/acesso-negado': {
+      id: '/acesso-negado'
+      path: '/acesso-negado'
+      fullPath: '/acesso-negado'
+      preLoaderRoute: typeof AcessoNegadoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/aguardando-aprovacao': {
+      id: '/aguardando-aprovacao'
+      path: '/aguardando-aprovacao'
+      fullPath: '/aguardando-aprovacao'
+      preLoaderRoute: typeof AguardandoAprovacaoRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -345,6 +492,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/cliente': {
+      id: '/cliente'
+      path: '/cliente'
+      fullPath: '/cliente'
+      preLoaderRoute: typeof ClienteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/freelancer': {
+      id: '/freelancer'
+      path: '/freelancer'
+      fullPath: '/freelancer'
+      preLoaderRoute: typeof FreelancerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/': {
       id: '/app/'
       path: '/'
@@ -352,11 +520,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/approvals': {
+      id: '/app/approvals'
+      path: '/approvals'
+      fullPath: '/app/approvals'
+      preLoaderRoute: typeof AppApprovalsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/contract-generator': {
       id: '/app/contract-generator'
       path: '/contract-generator'
       fullPath: '/app/contract-generator'
       preLoaderRoute: typeof AppContractGeneratorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/dashboard': {
+      id: '/app/dashboard'
+      path: '/dashboard'
+      fullPath: '/app/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/documents': {
@@ -414,6 +596,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/candidatura/$id'
       preLoaderRoute: typeof CandidaturaIdRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/cliente/': {
+      id: '/cliente/'
+      path: '/'
+      fullPath: '/cliente/'
+      preLoaderRoute: typeof ClienteIndexRouteImport
+      parentRoute: typeof ClienteRoute
+    }
+    '/cliente/dashboard': {
+      id: '/cliente/dashboard'
+      path: '/dashboard'
+      fullPath: '/cliente/dashboard'
+      preLoaderRoute: typeof ClienteDashboardRouteImport
+      parentRoute: typeof ClienteRoute
+    }
+    '/freelancer/': {
+      id: '/freelancer/'
+      path: '/'
+      fullPath: '/freelancer/'
+      preLoaderRoute: typeof FreelancerIndexRouteImport
+      parentRoute: typeof FreelancerRoute
+    }
+    '/freelancer/dashboard': {
+      id: '/freelancer/dashboard'
+      path: '/dashboard'
+      fullPath: '/freelancer/dashboard'
+      preLoaderRoute: typeof FreelancerDashboardRouteImport
+      parentRoute: typeof FreelancerRoute
     }
     '/p/$token': {
       id: '/p/$token'
@@ -496,7 +706,9 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppApprovalsRoute: typeof AppApprovalsRoute
   AppContractGeneratorRoute: typeof AppContractGeneratorRoute
+  AppDashboardRoute: typeof AppDashboardRoute
   AppDocumentsRoute: typeof AppDocumentsRoute
   AppFinanceRoute: typeof AppFinanceRoute
   AppNotificationsRoute: typeof AppNotificationsRoute
@@ -517,7 +729,9 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppApprovalsRoute: AppApprovalsRoute,
   AppContractGeneratorRoute: AppContractGeneratorRoute,
+  AppDashboardRoute: AppDashboardRoute,
   AppDocumentsRoute: AppDocumentsRoute,
   AppFinanceRoute: AppFinanceRoute,
   AppNotificationsRoute: AppNotificationsRoute,
@@ -539,10 +753,42 @@ const AppRouteChildren: AppRouteChildren = {
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 
+interface ClienteRouteChildren {
+  ClienteDashboardRoute: typeof ClienteDashboardRoute
+  ClienteIndexRoute: typeof ClienteIndexRoute
+}
+
+const ClienteRouteChildren: ClienteRouteChildren = {
+  ClienteDashboardRoute: ClienteDashboardRoute,
+  ClienteIndexRoute: ClienteIndexRoute,
+}
+
+const ClienteRouteWithChildren =
+  ClienteRoute._addFileChildren(ClienteRouteChildren)
+
+interface FreelancerRouteChildren {
+  FreelancerDashboardRoute: typeof FreelancerDashboardRoute
+  FreelancerIndexRoute: typeof FreelancerIndexRoute
+}
+
+const FreelancerRouteChildren: FreelancerRouteChildren = {
+  FreelancerDashboardRoute: FreelancerDashboardRoute,
+  FreelancerIndexRoute: FreelancerIndexRoute,
+}
+
+const FreelancerRouteWithChildren = FreelancerRoute._addFileChildren(
+  FreelancerRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AcessoNegadoRoute: AcessoNegadoRoute,
+  AguardandoAprovacaoRoute: AguardandoAprovacaoRoute,
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRoute,
+  ClienteRoute: ClienteRouteWithChildren,
+  FreelancerRoute: FreelancerRouteWithChildren,
+  OnboardingRoute: OnboardingRoute,
   CandidaturaIdRoute: CandidaturaIdRoute,
   PTokenRoute: PTokenRoute,
   TriagemTokenRoute: TriagemTokenRoute,

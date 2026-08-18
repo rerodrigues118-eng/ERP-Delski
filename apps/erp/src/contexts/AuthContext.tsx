@@ -3,6 +3,7 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 
 export type UserRole = "gestor" | "freelancer" | "cliente" | "admin" | string;
+export type ApprovalStatus = "pending" | "approved" | "rejected";
 
 export interface UserProfile {
   id: string;
@@ -13,6 +14,8 @@ export interface UserProfile {
   cargo?: string;
   phone?: string;
   cpf_cnpj?: string;
+  approval_status?: ApprovalStatus | string;
+  onboarding_completed?: boolean;
   contract_field_values?: Record<string, any>;
   created_at?: string;
 }
@@ -33,9 +36,15 @@ export interface AuthContextType {
   role: string | null;
   isLoading: boolean;
   loading: boolean;
+  onboardingCompleted: boolean;
+  approvalStatus: ApprovalStatus;
+  isApproved: boolean;
+  isPendingApproval: boolean;
+  isRejected: boolean;
   signOut: () => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  loginDevMode: (devRole?: string) => void;
   isGestor: boolean;
   isFreelancer: boolean;
   isCliente: boolean;
@@ -49,9 +58,15 @@ const AuthContext = createContext<AuthContextType>({
   role: null,
   isLoading: true,
   loading: true,
+  onboardingCompleted: false,
+  approvalStatus: "approved",
+  isApproved: true,
+  isPendingApproval: false,
+  isRejected: false,
   signOut: async () => {},
   logout: async () => {},
   refreshProfile: async () => {},
+  loginDevMode: () => {},
   isGestor: false,
   isFreelancer: false,
   isCliente: false,
@@ -63,6 +78,7 @@ const MOCK_PROFILE: UserProfile = {
   full_name: "Gestor Delski (Dev)",
   email: "gestor@delski.co",
   role: "gestor",
+  approval_status: "approved",
   created_at: new Date().toISOString(),
 };
 
@@ -117,7 +133,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       try {
         const normalizedEmail = u.email?.trim().toLowerCase() || "";
         const metadataFullName = fetchFullNameFromMetadata(u);
-
         const localAvatar = getLocalAvatar(u.id);
 
         // 1. Check profile by ID (user.id)
@@ -127,24 +142,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           .eq("id", u.id)
           .maybeSingle();
 
-        if (byId) {
-          if (byId.status === "bloqueado") {
-            await supabase.auth.signOut();
-            if (isMounted) {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setRole(null);
-            }
-            return;
-          }
+        // Check clients table for client data & status
+        const { data: clientRow } = normalizedEmail
+          ? await (supabase.from("clients") as any)
+              .select("*")
+              .or(`auth_user_id.eq.${u.id},email.ilike.${normalizedEmail}`)
+              .limit(1)
+              .maybeSingle()
+          : { data: null };
 
+        // Check freelancers table for freelancer data & status
+        const { data: freelancerRow } = await (supabase.from("freelancers") as any)
+          .select("*")
+          .eq("id", u.id)
+          .maybeSingle();
+
+        if (
+          byId?.status === "bloqueado" ||
+          clientRow?.status === "bloqueado" ||
+          freelancerRow?.status === "bloqueado"
+        ) {
+          await supabase.auth.signOut();
+          if (isMounted) {
+            setSession(null);
+            setUser(null);
+            setProfile(null);
+            setRole(null);
+          }
+          return;
+        }
+
+        const isOnboardingDone = Boolean(
+          byId?.onboarding_completed ||
+          clientRow?.onboarding_completed ||
+          freelancerRow?.onboarding_completed
+        );
+
+        if (byId) {
           if (isMounted) {
             const avatar =
               byId.avatar_url ||
               (u.user_metadata as any)?.avatar_url ||
               undefined;
-            setProfile({ ...byId, avatar_url: avatar } as UserProfile);
+            setProfile({
+              ...byId,
+              avatar_url: avatar,
+              onboarding_completed: isOnboardingDone,
+            } as UserProfile);
             setRole(byId.role);
           }
           return;
@@ -161,50 +205,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             .maybeSingle();
 
           if (byEmail) {
-            if (byEmail.status === "bloqueado") {
-              await supabase.auth.signOut();
-              if (isMounted) {
-                setSession(null);
-                setUser(null);
-                setProfile(null);
-                setRole(null);
-              }
-              return;
-            }
-
             if (isMounted) {
               const avatar =
                 byEmail.avatar_url ||
                 (u.user_metadata as any)?.avatar_url ||
                 undefined;
-              const profileWithId = { ...byEmail, avatar_url: avatar, id: u.id, auth_user_id: u.id };
+              const profileWithId = {
+                ...byEmail,
+                avatar_url: avatar,
+                id: u.id,
+                auth_user_id: u.id,
+                onboarding_completed: isOnboardingDone || Boolean(byEmail.onboarding_completed),
+              };
               setProfile(profileWithId as UserProfile);
               setRole(byEmail.role);
-            }
-            return;
-          }
-
-          // Check clients table for client status
-          const { data: clientRow } = await (supabase.from("clients") as any)
-            .select("*")
-            .ilike("email", normalizedEmail)
-            .limit(1)
-            .maybeSingle();
-
-          if (clientRow?.status === "bloqueado") {
-            await supabase.auth.signOut();
-            if (isMounted) {
-              setSession(null);
-              setUser(null);
-              setProfile(null);
-              setRole(null);
             }
             return;
           }
         }
 
         // 3. Fallback: Default profile object
-        const metaRole = (u.user_metadata?.role as string) || "gestor";
+        const metaRole = (u.user_metadata?.role as string) || (clientRow ? "cliente" : "gestor");
         const avatar = (u.user_metadata as any)?.avatar_url || localAvatar || undefined;
         const fallbackProfile: UserProfile = {
           id: u.id,
@@ -212,6 +233,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           email: u.email || "",
           role: metaRole,
           avatar_url: avatar,
+          onboarding_completed: isOnboardingDone,
           created_at: new Date().toISOString(),
         };
         if (isMounted) {
@@ -227,6 +249,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             full_name: fetchFullNameFromMetadata(u),
             email: u.email || "",
             role: metaRole,
+            onboarding_completed: false,
             created_at: new Date().toISOString(),
           });
           setRole(metaRole);
@@ -268,6 +291,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setProfile({
       ...MOCK_PROFILE,
       role: devRole,
+      onboarding_completed: true,
     });
     setRole(devRole);
     setIsLoading(false);
@@ -278,16 +302,42 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { data: { user: currentUser } } = await supabase.auth.getUser();
       if (currentUser) {
         setUser(currentUser);
+        const normalizedEmail = (currentUser.email || "").trim().toLowerCase();
+
         const { data: dbProfile } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", currentUser.id)
           .maybeSingle();
 
+        const { data: clientRow } = normalizedEmail
+          ? await (supabase.from("clients") as any)
+              .select("*")
+              .or(`auth_user_id.eq.${currentUser.id},email.ilike.${normalizedEmail}`)
+              .limit(1)
+              .maybeSingle()
+          : { data: null };
+
+        const isOnboardingDone = Boolean(dbProfile?.onboarding_completed || clientRow?.onboarding_completed);
+
         if (dbProfile) {
           const avatar = dbProfile.avatar_url || (currentUser.user_metadata as any)?.avatar_url || undefined;
-          setProfile({ ...dbProfile, avatar_url: avatar } as UserProfile);
+          setProfile({
+            ...dbProfile,
+            avatar_url: avatar,
+            onboarding_completed: isOnboardingDone,
+          } as UserProfile);
           setRole(dbProfile.role);
+        } else if (clientRow) {
+          setProfile({
+            id: currentUser.id,
+            full_name: clientRow.full_name || clientRow.contact_name || "Cliente",
+            email: clientRow.email || currentUser.email || "",
+            role: "cliente",
+            onboarding_completed: isOnboardingDone,
+            created_at: clientRow.created_at,
+          } as UserProfile);
+          setRole("cliente");
         }
       }
     } catch (err) {
@@ -324,6 +374,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isFreelancer = roleLower === "freelancer";
   const isCliente = roleLower === "cliente" || roleLower === "client";
   const isAuthenticated = !isLoading && (isDevMode || (!!session && !!user));
+  const onboardingCompleted = isCliente
+    ? Boolean(effectiveProfile?.onboarding_completed)
+    : true;
+
+  const rawApprovalStatus = effectiveProfile?.approval_status;
+  const approvalStatus: ApprovalStatus =
+    isGestor || isDevMode
+      ? "approved"
+      : rawApprovalStatus === "rejected"
+      ? "rejected"
+      : rawApprovalStatus === "pending"
+      ? "pending"
+      : "approved";
+
+  const isApproved = approvalStatus === "approved";
+  const isPendingApproval = approvalStatus === "pending";
+  const isRejected = approvalStatus === "rejected";
 
   const value = React.useMemo(
     () => ({
@@ -333,6 +400,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       role: effectiveRole,
       isLoading,
       loading: isLoading,
+      onboardingCompleted,
+      approvalStatus,
+      isApproved,
+      isPendingApproval,
+      isRejected,
       signOut,
       logout: signOut,
       refreshProfile,
@@ -342,7 +414,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       isCliente,
       isAuthenticated,
     }),
-    [session, effectiveUser, effectiveProfile, effectiveRole, isLoading, loginDevMode, isGestor, isFreelancer, isCliente, isAuthenticated, signOut, refreshProfile]
+    [
+      session,
+      effectiveUser,
+      effectiveProfile,
+      effectiveRole,
+      isLoading,
+      onboardingCompleted,
+      approvalStatus,
+      isApproved,
+      isPendingApproval,
+      isRejected,
+      loginDevMode,
+      isGestor,
+      isFreelancer,
+      isCliente,
+      isAuthenticated,
+      signOut,
+      refreshProfile,
+    ]
   );
 
   return (
