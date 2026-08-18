@@ -136,7 +136,32 @@ function ClientDetailPage() {
     );
   }
 
-  if (!isGestor || !client) return null;
+  if (!isGestor) return null;
+
+  if (!client || (!client.id && !client.email && !client.full_name)) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto pb-16">
+        <Link
+          to="/app/clients"
+          className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1 w-fit"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Voltar para Lista de Clientes
+        </Link>
+        <Card className="p-12 text-center space-y-3 border-dashed">
+          <AlertCircle className="h-10 w-10 text-amber-500 mx-auto" />
+          <h2 className="text-base font-bold text-foreground">Cliente não encontrado</h2>
+          <p className="text-xs text-muted-foreground max-w-md mx-auto">
+            O cliente solicitado com ID <span className="font-mono">{id}</span> não foi encontrado no banco de dados.
+          </p>
+          <div className="pt-2">
+            <Button asChild size="sm" variant="outline" className="text-xs">
+              <Link to="/app/clients">Voltar para a Lista de Clientes</Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    );
+  }
 
   // Unlinked projects available to be linked
   const unlinkedProjects = allProjects.filter((p) => p.client_id !== resolvedClientId);

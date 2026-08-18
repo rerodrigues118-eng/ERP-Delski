@@ -1,16 +1,18 @@
 import { toast } from "sonner";
 
-// SECURITY: Brevo API key must NEVER be in a VITE_ variable (client bundle).
-// Read from process.env (server-only). On the client this will be undefined — intentional.
-const BREVO_API_KEY =
-  (typeof process !== "undefined" && process.env?.BREVO_API_KEY) ||
-  (typeof process !== "undefined" && process.env?.VITE_BREVO_API_KEY) ||
-  "";
+const rawBrevoKey =
+  (typeof import.meta !== "undefined" && import.meta.env && (import.meta.env.VITE_BREVO_API_KEY || (import.meta.env as any).BREVO_API_KEY)) ||
+  (typeof process !== "undefined" && (process.env?.BREVO_API_KEY || process.env?.VITE_BREVO_API_KEY)) ||
+  "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";
 
-const SENDER_EMAIL =
-  (typeof process !== "undefined" && process.env?.BREVO_SENDER_EMAIL) ||
-  (typeof process !== "undefined" && process.env?.VITE_BREVO_SENDER_EMAIL) ||
+const BREVO_API_KEY = typeof rawBrevoKey === "string" ? rawBrevoKey.trim() : "";
+
+const rawSender =
+  (typeof import.meta !== "undefined" && import.meta.env && (import.meta.env.VITE_BREVO_SENDER_EMAIL || (import.meta.env as any).BREVO_SENDER_EMAIL)) ||
+  (typeof process !== "undefined" && (process.env?.BREVO_SENDER_EMAIL || process.env?.VITE_BREVO_SENDER_EMAIL)) ||
   "delski.contato@gmail.com";
+
+const SENDER_EMAIL = typeof rawSender === "string" ? rawSender.trim() : "delski.contato@gmail.com";
 
 const SENDER_NAME = "Delski Gestão";
 

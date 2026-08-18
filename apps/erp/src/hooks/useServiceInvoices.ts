@@ -27,49 +27,58 @@ export function useEmittedServiceInvoices(clientId?: string) {
   return useQuery<EmittedServiceInvoiceItem[]>({
     queryKey: ["emitted_service_invoices", clientId ?? "all"],
     queryFn: async () => {
-      let query = supabase
-        .from("emitted_service_invoices")
-        .select(
-          `
-          *,
-          client:clients(id, full_name, company_name, corporate_name, cnpj, email),
-          project:projects(id, title)
-        `
-        )
-        .order("created_at", { ascending: false });
-
-      if (clientId) {
-        query = query.eq("client_id", clientId);
-      }
-
-      const { data, error } = await query;
-      if (error) {
-        // Fallback to supabaseAdmin if RLS restricts
-        try {
-          let adminQuery = supabaseAdmin
-            .from("emitted_service_invoices")
-            .select(
-              `
-              *,
-              client:clients(id, full_name, company_name, corporate_name, cnpj, email),
-              project:projects(id, title)
+      try {
+        let query = supabase
+          .from("emitted_service_invoices")
+          .select(
             `
-            )
-            .order("created_at", { ascending: false });
+            *,
+            client:clients(id, full_name, company_name, corporate_name, cnpj, email),
+            project:projects(id, title)
+          `
+          )
+          .order("created_at", { ascending: false });
 
-          if (clientId) {
-            adminQuery = adminQuery.eq("client_id", clientId);
-          }
-
-          const { data: adminData } = await adminQuery;
-          return (adminData as any) || [];
-        } catch {
-          console.warn("[useEmittedServiceInvoices] Fallback warn:", error);
-          return [];
+        if (clientId) {
+          query = query.eq("client_id", clientId);
         }
-      }
 
-      return (data as any) || [];
+        const { data, error } = await query;
+        if (!error && data) {
+          return (data as any) || [];
+        }
+
+        // If join failed (e.g. relation not found in PostgREST cache), try flat select
+        let flatQuery = supabase
+          .from("emitted_service_invoices")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (clientId) {
+          flatQuery = flatQuery.eq("client_id", clientId);
+        }
+
+        const { data: flatData, error: flatError } = await flatQuery;
+        if (!flatError && flatData) {
+          return (flatData as any) || [];
+        }
+
+        // Fallback to supabaseAdmin
+        let adminQuery = supabaseAdmin
+          .from("emitted_service_invoices")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (clientId) {
+          adminQuery = adminQuery.eq("client_id", clientId);
+        }
+
+        const { data: adminData } = await adminQuery;
+        return (adminData as any) || [];
+      } catch (err) {
+        console.warn("[useEmittedServiceInvoices] Safe return on error:", err);
+        return [];
+      }
     },
   });
 }

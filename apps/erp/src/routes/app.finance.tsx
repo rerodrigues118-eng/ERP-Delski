@@ -59,6 +59,7 @@ import {
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
+import { formatDate } from "@/lib/utils";
 import { useDeletePayout } from "@/hooks/useExpenses";
 import {
   useFreelancerFinanceProjects,
@@ -345,7 +346,7 @@ function FreelancerFinanceView({ user }: { user: any }) {
                         const payout = payoutByProject.get(p.id);
                         const isPago = payout?.status === "pago";
                         const paymentDate = payout?.payment_date
-                          ? new Date(payout.payment_date).toLocaleDateString("pt-BR")
+                          ? formatDate(payout.payment_date)
                           : null;
                         return (
                           <Badge
@@ -553,7 +554,7 @@ function ClienteFinanceView({ user }: { user: any }) {
                         {nf.verification_code || "—"}
                       </td>
                       <td className="px-4 py-3.5 font-mono text-muted-foreground whitespace-nowrap">
-                        {nf.issued_at ? new Date(nf.issued_at).toLocaleDateString("pt-BR") : "—"}
+                        {formatDate(nf.issued_at)}
                       </td>
                       <td className="px-4 py-3.5 text-foreground max-w-xs truncate">
                         {nf.service_description}
@@ -1624,9 +1625,7 @@ function GestorFinanceView() {
                   <tbody className="divide-y divide-stone-200">
                     {combinedExpenses.map((e) => {
                       const isFixo = e.nature === "fixo";
-                      const formattedDueDate = e.dueDate
-                        ? new Date(e.dueDate).toLocaleDateString("pt-BR")
-                        : "—";
+                      const formattedDueDate = formatDate(e.dueDate);
 
                       return (
                         <tr key={e.id} className="hover:bg-stone-50/50 transition-colors">
@@ -1822,9 +1821,7 @@ function GestorFinanceView() {
                             {money(Number(p.amount || 0))}
                           </td>
                           <td className="px-4 py-3.5 text-stone-600 text-xs">
-                            {p.due_date
-                              ? new Date(p.due_date).toLocaleDateString("pt-BR")
-                              : "Na Conclusão"}
+                            {p.due_date ? formatDate(p.due_date) : "Na Conclusão"}
                           </td>
                           <td className="px-4 py-3.5">
                             <Badge
@@ -2369,11 +2366,7 @@ function GestorFinanceView() {
                               {inv.project?.title || "Avulso"}
                             </td>
                             <td className="py-3.5 px-4 font-mono text-muted-foreground whitespace-nowrap">
-                              {inv.issued_at
-                                ? new Date(inv.issued_at).toLocaleDateString("pt-BR")
-                                : inv.created_at
-                                ? new Date(inv.created_at).toLocaleDateString("pt-BR")
-                                : "—"}
+                              {formatDate(inv.issued_at || inv.created_at)}
                             </td>
                             <td className="py-3.5 px-4 font-bold text-blue-600 whitespace-nowrap">
                               {money(Number(inv.service_value))}
@@ -2663,10 +2656,10 @@ function GestorFinanceView() {
 
 // ── Componente Principal / Guard Estrito de RBAC ─────────────────────────────
 function FinancePage() {
-  const { user, loading, isGestor, isFreelancer, isCliente } = useAuth();
+  const { user, isLoading, isGestor, isFreelancer, isCliente } = useAuth();
 
   // Guard Neutro: Enquanto o estado do usuário/sessão carrega, NUNCA renderizar dados
-  if (loading || !user) {
+  if (isLoading || !user) {
     return <FinanceSkeleton />;
   }
 

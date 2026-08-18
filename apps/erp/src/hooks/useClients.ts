@@ -117,77 +117,143 @@ export function useClientDetail(id: string) {
   return useQuery({
     queryKey: ["client-detail", id],
     enabled: !!id,
-    queryFn: async () => {
-      // Try clients table
-      let client: ClientItem | null = null;
-      const { data: clientRow } = await (supabase.from("clients") as any)
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
+    queryFn: async (): Promise<ClientItem | null> => {
+      try {
+        let client: ClientItem | null = null;
 
-      if (clientRow) {
-        const normalizedEmail = (clientRow.email || "").toLowerCase().trim();
-        const { data: profileByEmail } = normalizedEmail
-          ? await supabase
-              .from("profiles")
-              .select("*")
-              .ilike("email", normalizedEmail)
-              .limit(1)
-              .maybeSingle()
-          : { data: null };
-
-        const resolvedId = clientRow.auth_user_id || profileByEmail?.id || clientRow.id;
-
-        client = {
-          id: clientRow.id,
-          auth_user_id: clientRow.auth_user_id,
-          resolved_id: resolvedId,
-          full_name: clientRow.full_name,
-          email: clientRow.email,
-          company_name: clientRow.company_name || "",
-          phone: clientRow.phone || "",
-          status: clientRow.status || "convidado",
-          created_at: clientRow.created_at,
-        };
-      } else {
-        // Fallback to profiles
-        const { data: profileRow } = await supabase
-          .from("profiles")
+        // 1. Try clients table by id or auth_user_id
+        const { data: clientRow } = await (supabase.from("clients") as any)
           .select("*")
-          .eq("id", id)
+          .or(`id.eq.${id},auth_user_id.eq.${id}`)
+          .limit(1)
           .maybeSingle();
 
-        if (profileRow) {
-          client = {
-            id: profileRow.id,
-            auth_user_id: profileRow.id,
-            resolved_id: profileRow.id,
-            full_name: profileRow.full_name,
-            email: profileRow.email,
-            company_name: "",
-            phone: "",
-            status: "ativo",
-            created_at: profileRow.created_at,
-          };
+        let clientData = clientRow;
+        if (!clientData) {
+          const { data: adminClient } = await (supabaseAdmin.from("clients") as any)
+            .select("*")
+            .or(`id.eq.${id},auth_user_id.eq.${id}`)
+            .limit(1)
+            .maybeSingle();
+          clientData = adminClient;
         }
+
+        if (clientData) {
+          const normalizedEmail = (clientData.email || "").toLowerCase().trim();
+          const { data: profileByEmail } = normalizedEmail
+            ? await supabase
+                .from("profiles")
+                .select("*")
+                .ilike("email", normalizedEmail)
+                .limit(1)
+                .maybeSingle()
+            : { data: null };
+
+          const resolvedId = clientData.auth_user_id || profileByEmail?.id || clientData.id;
+
+          client = {
+            id: clientData.id,
+            auth_user_id: clientData.auth_user_id,
+            resolved_id: resolvedId,
+            full_name: clientData.full_name || clientData.company_name || "Cliente",
+            email: clientData.email || "",
+            company_name: clientData.company_name || "",
+            corporate_name: clientData.corporate_name || "",
+            cnpj: clientData.cnpj || "",
+            phone: clientData.phone || "",
+            status: clientData.status || "ativo",
+            created_at: clientData.created_at || new Date().toISOString(),
+            contract_model: clientData.contract_model || "Mensal",
+            contract_value: clientData.contract_value || 0,
+            setup_value: clientData.setup_value || 0,
+            contract_duration: clientData.contract_duration || "12 meses",
+            payment_date: clientData.payment_date || null,
+            due_date: clientData.due_date || null,
+            financial_status: clientData.financial_status || "Pendente",
+          } as any;
+        } else {
+          // 2. Fallback to profiles table by id
+          const { data: profileRow } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", id)
+            .maybeSingle();
+
+          let pData = profileRow;
+          if (!pData) {
+            const { data: adminProfile } = await supabaseAdmin
+              .from("profiles")
+              .select("*")
+              .eq("id", id)
+              .maybeSingle();
+            pData = adminProfile;
+          }
+
+          if (pData) {
+            // Also check if there's a client record by email
+            const normEmail = (pData.email || "").toLowerCase().trim();
+            const { data: matchedClient } = normEmail
+              ? await (supabaseAdmin.from("clients") as any)
+                  .select("*")
+                  .ilike("email", normEmail)
+                  .limit(1)
+                  .maybeSingle()
+              : { data: null };
+
+            client = {
+              id: matchedClient?.id || pData.id,
+              auth_user_id: pData.id,
+              resolved_id: pData.id,
+              full_name: matchedClient?.full_name || pData.full_name || "Cliente",
+              email: matchedClient?.email || pData.email || "",
+              company_name: matchedClient?.company_name || "",
+              corporate_name: matchedClient?.corporate_name || "",
+              cnpj: matchedClient?.cnpj || "",
+              phone: matchedClient?.phone || pData.phone || "",
+              status: matchedClient?.status || "ativo",
+              created_at: matchedClient?.created_at || pData.created_at || new Date().toISOString(),
+              contract_model: matchedClient?.contract_model || "Mensal",
+              contract_value: matchedClient?.contract_value || 0,
+              setup_value: matchedClient?.setup_value || 0,
+              contract_duration: matchedClient?.contract_duration || "12 meses",
+              payment_date: matchedClient?.payment_date || null,
+              due_date: matchedClient?.due_date || null,
+              financial_status: matchedClient?.financial_status || "Pendente",
+            } as any;
+          }
+        }
+
+        if (!client) {
+          return null;
+        }
+
+        // Fetch projects safely
+        try {
+          const queryIds = [client.id];
+          if (client.auth_user_id) queryIds.push(client.auth_user_id);
+          if (client.resolved_id) queryIds.push(client.resolved_id);
+          const uniqueQueryIds = Array.from(new Set(queryIds)).filter(Boolean);
+
+          if (uniqueQueryIds.length > 0) {
+            const { data: projData } = await supabase
+              .from("projects")
+              .select("id, title, service_type, status, budget, deadline, created_at")
+              .or(uniqueQueryIds.map((qid) => `client_id.eq.${qid}`).join(","))
+              .order("created_at", { ascending: false });
+
+            client.projects = (projData ?? []) as any[];
+          } else {
+            client.projects = [];
+          }
+        } catch {
+          client.projects = [];
+        }
+
+        return client;
+      } catch (err) {
+        console.warn("[useClientDetail] error:", err);
+        return null;
       }
-
-      if (!client) throw new Error("Cliente não encontrado");
-
-      const queryIds = [client.id];
-      if (client.auth_user_id) queryIds.push(client.auth_user_id);
-      if (client.resolved_id) queryIds.push(client.resolved_id);
-      const uniqueQueryIds = Array.from(new Set(queryIds));
-
-      // Fetch projects
-      const { data: projData } = await supabase
-        .from("projects")
-        .select("id, title, service_type, status, budget, deadline, created_at")
-        .or(uniqueQueryIds.map((id) => `client_id.eq.${id}`).join(","))
-        .order("created_at", { ascending: false });
-
-      client.projects = (projData ?? []) as any[];
-      return client;
     },
   });
 }
