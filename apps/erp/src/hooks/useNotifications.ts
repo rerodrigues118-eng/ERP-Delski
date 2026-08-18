@@ -143,3 +143,44 @@ export function useCreateSystemAlert() {
     },
   });
 }
+
+export function useDeleteNotification() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("notifications").delete().eq("id", id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Notificação removida.");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erro ao remover notificação.");
+    },
+  });
+}
+
+export function useClearAllNotifications() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (userId?: string) => {
+      if (!userId) {
+        throw new Error("Usuário não identificado.");
+      }
+      const { error } = await supabase.from("notifications").delete().eq("user_id", userId);
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+      toast.success("Todas as notificações foram apagadas.");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Erro ao limpar notificações.");
+    },
+  });
+}

@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 
-import { Bell, Clock, CheckCircle2, AlertTriangle, Users, FileWarning, Send } from "lucide-react";
+import { Bell, Clock, CheckCircle2, AlertTriangle, Users, FileWarning, Send, Trash2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useFreelancers, useProfiles } from "@/hooks/useProfiles";
 import { useProjects } from "@/hooks/useProjects";
@@ -16,6 +16,8 @@ import {
   useManualNotifications,
   useNotifications,
   useSendManualNotification,
+  useDeleteNotification,
+  useClearAllNotifications,
   type NotificationRow,
 } from "@/hooks/useNotifications";
 
@@ -42,6 +44,8 @@ function NotificationsPage() {
   const { data: inbox = [] } = useNotifications(user?.id);
   const { data: sent = [] } = useManualNotifications(user?.id);
   const sendManualNotification = useSendManualNotification();
+  const deleteNotification = useDeleteNotification();
+  const clearAllNotifications = useClearAllNotifications();
 
   const [recipientMode, setRecipientMode] = useState<"all" | "specific">("all");
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
@@ -218,9 +222,23 @@ function NotificationsPage() {
             Central de alertas automáticos e envio manual do gestor.
           </p>
         </div>
-        <Badge variant="outline" className="gap-1.5 py-1 px-3 self-start">
-          <Bell className="h-3.5 w-3.5 text-indigo-400" /> {inboxItems.length} recebida(s)
-        </Badge>
+        <div className="flex items-center gap-2 self-start md:self-auto">
+          <Badge variant="outline" className="gap-1.5 py-1 px-3">
+            <Bell className="h-3.5 w-3.5 text-indigo-400" /> {inboxItems.length} recebida(s)
+          </Badge>
+          {inboxItems.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => user?.id && clearAllNotifications.mutate(user.id)}
+              disabled={clearAllNotifications.isPending}
+              className="gap-1.5 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 dark:border-rose-900/40 rounded-xl cursor-pointer"
+              title="Apagar todas as notificações"
+            >
+              <Trash2 className="h-3.5 w-3.5" /> Limpar Notificações
+            </Button>
+          )}
+        </div>
       </div>
 
       {isGestor && (
@@ -338,9 +356,21 @@ function NotificationsPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-xs">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                    {item.read ? "Lida" : "Não lida"}
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                      {item.read ? "Lida" : "Não lida"}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => deleteNotification.mutate(item.id)}
+                      disabled={deleteNotification.isPending}
+                      className="h-8 w-8 text-muted-foreground hover:text-rose-600 hover:bg-rose-500/10 rounded-lg cursor-pointer transition-colors"
+                      title="Apagar notificação"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </div>
               </CardContent>

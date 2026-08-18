@@ -158,7 +158,7 @@ function KpiCard({
       variants={itemVariants}
       className="kpi-card group relative overflow-hidden transition-all duration-300 hover:border-blue-500/30 hover:shadow-lg hover:-translate-y-0.5"
     >
-      <div className="flex items-start justify-between mb-1.5">
+      <div className="flex items-start justify-between mb-2">
         <span className="section-label text-muted-foreground">{label}</span>
         <div
           className={`flex-shrink-0 flex items-center justify-center w-8 h-8 rounded-lg transition-transform duration-300 group-hover:scale-110 ${iconBg}`}
@@ -166,23 +166,25 @@ function KpiCard({
           <Icon className={`h-4 w-4 ${iconColor}`} strokeWidth={1.75} />
         </div>
       </div>
-      <div className="kpi-value text-foreground">
-        {numericValue !== undefined ? (
-          <AnimatedNumber
-            value={numericValue}
-            prefix={prefix}
-            suffix={suffix}
-            decimals={decimals}
-          />
-        ) : (
-          value
+      <div>
+        <div className="kpi-value text-foreground">
+          {numericValue !== undefined ? (
+            <AnimatedNumber
+              value={numericValue}
+              prefix={prefix}
+              suffix={suffix}
+              decimals={decimals}
+            />
+          ) : (
+            value
+          )}
+        </div>
+        {sub && (
+          <p className="mt-1 text-xs text-muted-foreground font-medium flex items-center gap-1">
+            {sub}
+          </p>
         )}
       </div>
-      {sub && (
-        <p className="mt-0.5 text-xs text-muted-foreground font-medium flex items-center gap-1">
-          {sub}
-        </p>
-      )}
     </motion.div>
   );
 }
@@ -772,15 +774,7 @@ function Dashboard() {
         className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
       >
         <div>
-          <div className="flex items-center gap-2">
-            <span className="section-label">
-              {isCliente ? "Portal do Cliente" : "Painel do Gestor"}
-            </span>
-            <Badge variant="outline" className="text-[10px] border-blue-500/30 text-blue-600 dark:text-blue-400 bg-blue-500/5">
-              Analytics 2.0
-            </Badge>
-          </div>
-          <h1 className="page-title mt-1">Olá, {userName}!</h1>
+          <h1 className="page-title">Olá, {userName}!</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {isCliente
               ? "Acompanhe o status e as métricas das suas demandas ativas."
@@ -811,7 +805,6 @@ function Dashboard() {
                 icon={DollarSign}
                 iconBg="bg-blue-500/10"
                 iconColor="text-blue-600 dark:text-blue-400"
-                sub="Volume em contratos"
               />
               <KpiCard
                 label="Custo Freelancers"
@@ -828,11 +821,6 @@ function Dashboard() {
                 icon={Percent}
                 iconBg="bg-emerald-500/10"
                 iconColor="text-emerald-600 dark:text-emerald-400"
-                sub={
-                  grossRevenue > 0
-                    ? `R$ ${(grossRevenue - grossCost).toLocaleString("pt-BR")} líq.`
-                    : undefined
-                }
               />
               <KpiCard
                 label="Projetos Ativos"

@@ -132,20 +132,21 @@ export function useEmitServiceInvoice() {
               const { data: clientByEmail } = await supabase
                 .from("clients")
                 .select("id")
-                .eq("email", profile.email)
+                .ilike("email", (profile.email || "").trim())
                 .maybeSingle();
 
               if (clientByEmail?.id) {
                 targetClientId = clientByEmail.id;
               } else {
                 // Insere automaticamente na tabela clients
+                const fallbackEmail = profile.email || `cliente_${profile.id.slice(0, 8)}@delski.co`;
                 const { data: newClient, error: createClientErr } = await supabase
                   .from("clients")
                   .insert({
                     auth_user_id: profile.id,
                     full_name: profile.full_name || "Cliente",
-                    email: profile.email || "",
-                    company_name: profile.company_name || "",
+                    email: fallbackEmail,
+                    company_name: profile.company_name || profile.full_name || "Cliente",
                     phone: profile.phone || "",
                     status: "ativo",
                   } as any)
@@ -156,6 +157,40 @@ export function useEmitServiceInvoice() {
                   targetClientId = newClient.id;
                 }
               }
+            }
+          }
+        }
+
+        // Failsafe final: Se targetClientId ainda não for um cliente válido existente
+        const { data: verifyClient } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("id", targetClientId)
+          .maybeSingle();
+
+        if (!verifyClient?.id) {
+          const { data: anyClient } = await supabase
+            .from("clients")
+            .select("id")
+            .limit(1)
+            .maybeSingle();
+
+          if (anyClient?.id) {
+            targetClientId = anyClient.id;
+          } else {
+            const { data: fallbackClient } = await supabase
+              .from("clients")
+              .insert({
+                full_name: "Cliente Geral",
+                email: `cliente_${Date.now()}@delski.co`,
+                company_name: "Cliente Geral",
+                status: "ativo",
+              } as any)
+              .select("id")
+              .single();
+
+            if (fallbackClient?.id) {
+              targetClientId = fallbackClient.id;
             }
           }
         }

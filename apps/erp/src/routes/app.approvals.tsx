@@ -211,7 +211,6 @@ function ApprovalsPage() {
                   Pendentes de Análise
                 </span>
                 <div className="mt-1.5 text-2xl font-bold text-amber-600">{stats.pending}</div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Aguardando decisão do gestor</p>
               </div>
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-amber-500/10 text-amber-600">
                 <Clock className="h-5 w-5" />
@@ -228,7 +227,6 @@ function ApprovalsPage() {
                   Acessos Aprovados
                 </span>
                 <div className="mt-1.5 text-2xl font-bold text-emerald-600">{stats.approved}</div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Usuários ativos no sistema</p>
               </div>
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600">
                 <CheckCircle2 className="h-5 w-5" />
@@ -245,7 +243,6 @@ function ApprovalsPage() {
                   Acessos Recusados
                 </span>
                 <div className="mt-1.5 text-2xl font-bold text-rose-600">{stats.rejected}</div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Solicitações indeferidas</p>
               </div>
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-rose-500/10 text-rose-600">
                 <XCircle className="h-5 w-5" />
@@ -262,7 +259,6 @@ function ApprovalsPage() {
                   Total de Cadastros
                 </span>
                 <div className="mt-1.5 text-2xl font-bold text-foreground">{stats.total}</div>
-                <p className="text-[11px] text-muted-foreground mt-0.5">Base completa de perfis</p>
               </div>
               <div className="grid h-11 w-11 place-items-center rounded-xl bg-blue-500/10 text-blue-600">
                 <Users className="h-5 w-5" />

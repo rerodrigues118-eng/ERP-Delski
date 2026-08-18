@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Search, Folder, Loader2, LayoutGrid, List } from "lucide-react";
+import { PlusCircle, Search, Folder, Loader2, LayoutGrid, List, ChevronLeft, ChevronRight } from "lucide-react";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
@@ -202,11 +202,127 @@ function FreelancerProjectCard({ project }: { project: Project }) {
 }
 
 // ── GESTOR FULL MANAGEMENT VIEW (KANBAN & LIST) ──────────────────────────────
+/* ── Barra de Rolagem Horizontal Fixa e Sincronizada ─────── */
+function StickyKanbanScrollbar({
+  containerRef,
+}: {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const [scrollInfo, setScrollInfo] = useState({ scrollLeft: 0, scrollWidth: 0, clientWidth: 0 });
+  const [isOverflowing, setIsOverflowing] = useState(false);
+  const bottomBarRef = useRef<HTMLDivElement>(null);
+  const isSyncing = useRef(false);
+
+  const updateMetrics = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setScrollInfo({ scrollLeft, scrollWidth, clientWidth });
+    setIsOverflowing(scrollWidth > clientWidth + 10);
+  }, [containerRef]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    updateMetrics();
+
+    const handleScroll = () => {
+      if (isSyncing.current) return;
+      isSyncing.current = true;
+      if (bottomBarRef.current) {
+        bottomBarRef.current.scrollLeft = el.scrollLeft;
+      }
+      setScrollInfo({
+        scrollLeft: el.scrollLeft,
+        scrollWidth: el.scrollWidth,
+        clientWidth: el.clientWidth,
+      });
+      requestAnimationFrame(() => {
+        isSyncing.current = false;
+      });
+    };
+
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("resize", updateMetrics);
+
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(updateMetrics);
+      ro.observe(el);
+    }
+
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", updateMetrics);
+      if (ro) ro.disconnect();
+    };
+  }, [containerRef, updateMetrics]);
+
+  const handleBottomScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (isSyncing.current) return;
+    isSyncing.current = true;
+    if (containerRef.current) {
+      containerRef.current.scrollLeft = e.currentTarget.scrollLeft;
+    }
+    requestAnimationFrame(() => {
+      isSyncing.current = false;
+    });
+  };
+
+  const scrollByAmount = (delta: number) => {
+    if (containerRef.current) {
+      containerRef.current.scrollBy({ left: delta, behavior: "smooth" });
+    }
+  };
+
+  if (!isOverflowing) return null;
+
+  return (
+    <div className="sticky bottom-3 z-30 pt-3 pb-1 transition-all">
+      <div className="bg-card/95 dark:bg-zinc-900/95 backdrop-blur-md border border-border/80 dark:border-zinc-800 rounded-2xl p-2 shadow-lg flex items-center gap-2 max-w-full">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => scrollByAmount(-340)}
+          className="h-8 w-8 rounded-xl shrink-0 cursor-pointer hover:bg-primary/10 hover:text-primary transition-all shadow-2xs"
+          title="Rolar colunas para a esquerda"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
+
+        {/* Barra de rolagem sincronizada com a largura total do Kanban */}
+        <div
+          ref={bottomBarRef}
+          onScroll={handleBottomScroll}
+          className="overflow-x-auto flex-1 scrollbar-thin py-1 cursor-ew-resize rounded-lg"
+          style={{ scrollbarWidth: "thin" }}
+        >
+          <div style={{ width: `${scrollInfo.scrollWidth}px`, height: "6px" }} />
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          onClick={() => scrollByAmount(340)}
+          className="h-8 w-8 rounded-xl shrink-0 cursor-pointer hover:bg-primary/10 hover:text-primary transition-all shadow-2xs"
+          title="Rolar colunas para a direita"
+        >
+          <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function GestorProjectsView() {
   const { isGestor } = useAuth();
   const { data: projects = [], isLoading } = useProjects();
   const updateProject = useUpdateProject();
 
+  const kanbanScrollRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState("");
   const [selectedService, setSelectedService] = useState<string>("all");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -471,7 +587,7 @@ function GestorProjectsView() {
         </div>
       ) : viewMode === "kanban" ? (
         <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-          <div className="overflow-x-auto pb-6 scrollbar-thin">
+          <div ref={kanbanScrollRef} className="overflow-x-auto pb-6 scrollbar-thin rounded-2xl scroll-smooth">
             <div className="flex gap-4 min-w-max pb-2">
               {statuses.map((status) => (
                 <Column
@@ -483,6 +599,7 @@ function GestorProjectsView() {
               ))}
             </div>
           </div>
+          <StickyKanbanScrollbar containerRef={kanbanScrollRef} />
           {activeId && projectMap.has(activeId) && (
             <DragOverlay>
               <div className="w-80 rounded-2xl border border-primary bg-card p-4 shadow-xl">
