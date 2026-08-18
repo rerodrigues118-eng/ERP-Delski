@@ -85,16 +85,16 @@ interface UploadedDoc {
 
 const slideVariants: any = {
   enter: (direction: number) => ({
-    x: direction > 0 ? 50 : -50,
+    x: direction > 0 ? 40 : -40,
     opacity: 0,
   }),
   center: {
     x: 0,
     opacity: 1,
-    transition: { duration: 0.3 },
+    transition: { duration: 0.25 },
   },
   exit: (direction: number) => ({
-    x: direction < 0 ? 50 : -50,
+    x: direction < 0 ? 40 : -40,
     opacity: 0,
     transition: { duration: 0.2 },
   }),
@@ -111,11 +111,10 @@ function OnboardingPage() {
     onboardingCompleted,
     isGestor,
     isFreelancer,
-    isCliente,
   } = useAuth();
 
   const isFree = isFreelancer || profile?.role === "freelancer";
-  const totalSteps = isFree ? 4 : 3;
+  const totalSteps = isFree ? 4 : 2;
 
   const [step, setStep] = useState<number>(1);
   const [direction, setDirection] = useState<number>(1);
@@ -123,7 +122,7 @@ function OnboardingPage() {
   const [fetchingCep, setFetchingCep] = useState<boolean>(false);
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState<boolean>(false);
 
-  // Form State - Etapa 1 (Dados Cadastrais)
+  // Form State - Dados Cadastrais
   const [companyName, setCompanyName] = useState<string>("");
   const [corporateName, setCorporateName] = useState<string>("");
   const [cnpj, setCnpj] = useState<string>("");
@@ -140,24 +139,53 @@ function OnboardingPage() {
   const [linkedin, setLinkedin] = useState<string>("");
   const [website, setWebsite] = useState<string>("");
 
-  // Form State - Etapa 2 (Documentação)
+  // Form State - Documentação
   const [documents, setDocuments] = useState<Record<string, UploadedDoc>>({});
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
 
-  // Form State - Etapa 3 para Freelancer (Dados Bancários & PIX)
+  // Form State - Dados Bancários & PIX (Freelancer)
   const [bankName, setBankName] = useState<string>("");
   const [bankAgency, setBankAgency] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
   const [pixType, setPixType] = useState<string>("CNPJ");
   const [pixKey, setPixKey] = useState<string>("");
 
-  // Pre-populate data from auth or existing profile
+  // Fetch client registration pre-filled by gestor
   useEffect(() => {
-    if (user) {
-      if (user.email && !corporateEmail) setCorporateEmail(user.email);
-      if (profile?.full_name && !contactName) setContactName(profile.full_name);
-      if (profile?.phone && !phone) setPhone(formatPhone(profile.phone));
+    async function loadClientData() {
+      if (!user) return;
+      try {
+        const normalizedEmail = (user.email || "").toLowerCase().trim();
+        const { data: cData } = await (supabase.from("clients") as any)
+          .select("*")
+          .or(`auth_user_id.eq.${user.id},email.ilike.${normalizedEmail}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (cData) {
+          if (cData.company_name) setCompanyName(cData.company_name);
+          if (cData.corporate_name) setCorporateName(cData.corporate_name);
+          if (cData.cnpj) setCnpj(cData.cnpj);
+          if (cData.segment) setSegment(cData.segment);
+          if (cData.email) setCorporateEmail(cData.email);
+          if (cData.address) setAddress(cData.address);
+          if (cData.city) setCity(cData.city);
+          if (cData.state) setState(cData.state);
+          if (cData.cep) setCep(cData.cep);
+          if (cData.full_name || cData.contact_name) setContactName(cData.full_name || cData.contact_name);
+          if (cData.role_position) setRolePosition(cData.role_position);
+          if (cData.phone) setPhone(cData.phone);
+        } else {
+          if (user.email && !corporateEmail) setCorporateEmail(user.email);
+          if (profile?.full_name && !contactName) setContactName(profile.full_name);
+          if (profile?.phone && !phone) setPhone(formatPhone(profile.phone));
+        }
+      } catch (err) {
+        console.warn("Aviso ao carregar dados do cliente no onboarding:", err);
+      }
     }
+
+    loadClientData();
   }, [user, profile]);
 
   // Load draft from sessionStorage on mount
@@ -167,7 +195,7 @@ function OnboardingPage() {
       const savedDraft = sessionStorage.getItem(`delski_onboarding_draft_${user.id}`);
       if (savedDraft) {
         const draft = JSON.parse(savedDraft);
-        if (draft.step && draft.step > 1) setStep(draft.step);
+        if (draft.step && draft.step > 1 && draft.step <= totalSteps) setStep(draft.step);
         if (draft.companyName) setCompanyName(draft.companyName);
         if (draft.corporateName) setCorporateName(draft.corporateName);
         if (draft.cnpj) setCnpj(draft.cnpj);
@@ -193,7 +221,7 @@ function OnboardingPage() {
     } catch (e) {
       console.warn("Erro ao restaurar rascunho de onboarding:", e);
     }
-  }, [user?.id]);
+  }, [user?.id, totalSteps]);
 
   // Auto-save draft to sessionStorage on state change
   useEffect(() => {
@@ -224,9 +252,7 @@ function OnboardingPage() {
     };
     try {
       sessionStorage.setItem(`delski_onboarding_draft_${user.id}`, JSON.stringify(draftData));
-    } catch (e) {
-      // ignore
-    }
+    } catch (e) {}
   }, [
     user?.id,
     onboardingCompleted,
@@ -269,7 +295,7 @@ function OnboardingPage() {
     }
   }, [isAuthenticated, authLoading, onboardingCompleted, isGestor, isFree, navigate]);
 
-  // Auto fetch address by CEP via ViaCEP
+  // Auto fetch address by CEP via ViaCEP (for Freelancers)
   const handleCepBlur = async () => {
     const rawCep = cep.replace(/\D/g, "");
     if (rawCep.length === 8) {
@@ -347,25 +373,55 @@ function OnboardingPage() {
     toast.info("Documento removido.");
   };
 
+  // Documents list per role
+  const requiredDocs = isFree
+    ? [
+        { id: "cartao_cnpj", title: "Comprovante de CNPJ Ativo", desc: "Cartão CNPJ atualizado da Receita Federal", required: true },
+        { id: "doc_constitutivo", title: "Documento Constitutivo ou CCMEI", desc: "Certificado MEI ou Contrato Social", required: true },
+        { id: "rg_cnh", title: "RG ou CNH do Responsável", desc: "Documento oficial de identificação com foto", required: true },
+        { id: "certidao_trabalhista", title: "Certidão de Débitos Trabalhistas", desc: "CNDT emitida pela Justiça do Trabalho", required: true },
+        { id: "consulta_projudi", title: "Consulta ProJudi", desc: "Certidão/Comprovante de distribuição judicial", required: false },
+      ]
+    : [
+        { id: "cartao_cnpj", title: "Comprovante de CNPJ Ativo", desc: "Cartão CNPJ emitido pela Receita Federal", required: true },
+        { id: "doc_constitutivo", title: "Documento Constitutivo", desc: "Contrato Social ou CCMEI registrado", required: true },
+        { id: "rg_cnh", title: "RG / CNH do Responsável Legal", desc: "Documento oficial com foto do representante", required: true },
+        { id: "procuracao", title: "Procuração (se aplicável)", desc: "Instrumento público/particular de representação", required: false },
+      ];
+
+  const pendingRequiredDocs = requiredDocs.filter((d) => d.required && !documents[d.id]);
+  const isDocComplete = pendingRequiredDocs.length === 0;
+
   const nextStep = () => {
-    if (step === 1) {
-      if (!companyName.trim() || !corporateEmail.trim() || !contactName.trim()) {
-        return toast.error("Preencha todos os campos obrigatórios (Nome, E-mail, Responsável).");
+    if (isFree) {
+      if (step === 1) {
+        if (!companyName.trim() || !corporateEmail.trim() || !contactName.trim()) {
+          return toast.error("Preencha todos os campos obrigatórios (Nome, E-mail, Responsável).");
+        }
+      }
+      if (step === 2) {
+        if (!isDocComplete) {
+          return toast.error(
+            `Anexo obrigatório pendente: ${pendingRequiredDocs.map((d) => d.title).join(", ")}. Por favor, anexe os documentos para avançar.`
+          );
+        }
+      }
+      if (step === 3) {
+        if (!bankName.trim() || !pixKey.trim()) {
+          return toast.error("Informe o Banco e a Chave PIX para recebimento de pagamentos.");
+        }
+      }
+    } else {
+      // Cliente: Etapa 1 é Documentação
+      if (step === 1) {
+        if (!isDocComplete) {
+          return toast.error(
+            `Anexo obrigatório pendente: ${pendingRequiredDocs.map((d) => d.title).join(", ")}. Por favor, anexe os documentos para avançar.`
+          );
+        }
       }
     }
-    if (step === 2) {
-      const pendingRequired = requiredDocs.filter((d) => d.required && !documents[d.id]);
-      if (pendingRequired.length > 0) {
-        return toast.error(
-          `Anexo obrigatório pendente: ${pendingRequired.map((d) => d.title).join(", ")}. Por favor, anexe os documentos para avançar.`
-        );
-      }
-    }
-    if (step === 3 && isFree) {
-      if (!bankName.trim() || !pixKey.trim()) {
-        return toast.error("Informe o Banco e a Chave PIX para recebimento de pagamentos.");
-      }
-    }
+
     setDirection(1);
     setStep((s) => Math.min(s + 1, totalSteps));
   };
@@ -460,7 +516,7 @@ function OnboardingPage() {
       } else {
         // ── FLUXO CLIENTE ─────────────────────────────────────────────────
         let resolvedClientId: string | null = null;
-        const normalizedEmail = corporateEmail.trim().toLowerCase();
+        const normalizedEmail = (corporateEmail || user.email || "").trim().toLowerCase();
 
         const { data: existingClient } = await (supabase.from("clients") as any)
           .select("id")
@@ -474,9 +530,9 @@ function OnboardingPage() {
 
         const clientPayload: any = {
           auth_user_id: user.id,
-          full_name: contactName.trim(),
-          company_name: companyName.trim(),
-          corporate_name: corporateName.trim() || companyName.trim(),
+          full_name: contactName.trim() || profile?.full_name || "Cliente",
+          company_name: companyName.trim() || "Empresa Cliente",
+          corporate_name: corporateName.trim() || companyName.trim() || "Empresa Cliente",
           cnpj: cleanCnpj || null,
           segment: segment.trim() || null,
           email: normalizedEmail,
@@ -484,12 +540,9 @@ function OnboardingPage() {
           city: city.trim() || null,
           state: state.trim() || null,
           cep: cleanCep || null,
-          contact_name: contactName.trim(),
+          contact_name: contactName.trim() || profile?.full_name || null,
           role_position: rolePosition.trim() || null,
           phone: cleanPhone || null,
-          instagram: instagram.trim() || null,
-          linkedin: linkedin.trim() || null,
-          website: website.trim() || null,
           onboarding_completed: true,
           status: "ativo",
         };
@@ -509,8 +562,8 @@ function OnboardingPage() {
         // Update profile
         await (supabase.from("profiles") as any)
           .update({
-            full_name: contactName.trim(),
-            phone: cleanPhone,
+            full_name: contactName.trim() || profile?.full_name || "Cliente",
+            phone: cleanPhone || profile?.phone,
             role: "cliente",
             onboarding_completed: true,
           })
@@ -556,24 +609,139 @@ function OnboardingPage() {
     }
   };
 
-  // Documents list per role with explicit requirement flags
-  const requiredDocs = isFree
-    ? [
-        { id: "cartao_cnpj", title: "Comprovante de CNPJ Ativo", desc: "Cartão CNPJ atualizado da Receita Federal", required: true },
-        { id: "doc_constitutivo", title: "Documento Constitutivo ou CCMEI", desc: "Certificado MEI ou Contrato Social", required: true },
-        { id: "rg_cnh", title: "RG ou CNH do Responsável", desc: "Documento oficial de identificação com foto", required: true },
-        { id: "certidao_trabalhista", title: "Certidão de Débitos Trabalhistas", desc: "CNDT emitida pela Justiça do Trabalho", required: true },
-        { id: "consulta_projudi", title: "Consulta ProJudi", desc: "Certidão/Comprovante de distribuição judicial", required: false },
-      ]
-    : [
-        { id: "cartao_cnpj", title: "Comprovante de CNPJ Ativo", desc: "Cartão CNPJ emitido pela Receita Federal", required: true },
-        { id: "doc_constitutivo", title: "Documento Constitutivo", desc: "Contrato Social ou CCMEI registrado", required: true },
-        { id: "rg_cnh", title: "RG / CNH do Responsável Legal", desc: "Documento oficial com foto do representante", required: true },
-        { id: "procuracao", title: "Procuração (se aplicável)", desc: "Instrumento público/particular de representação", required: false },
-      ];
+  // Helper renderer for document upload card
+  const renderDocumentUploadCard = () => (
+    <div className="space-y-6">
+      <div className="space-y-1">
+        <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+          <FileCheck className="h-5 w-5 text-blue-600" /> Documentação Obrigatória
+        </h2>
+        <p className="text-xs sm:text-sm text-gray-500">
+          Anexe os arquivos para validação cadastral e conformidade jurídica (PDF, PNG ou JPG até 10MB).
+        </p>
+      </div>
 
-  const pendingRequiredDocs = requiredDocs.filter((d) => d.required && !documents[d.id]);
-  const isStep2Complete = pendingRequiredDocs.length === 0;
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {requiredDocs.map((doc) => {
+          const uploaded = documents[doc.id];
+          const isUploading = uploadingDoc === doc.id;
+
+          return (
+            <div
+              key={doc.id}
+              className={`p-5 rounded-2xl border transition-all ${
+                uploaded
+                  ? "bg-emerald-50/40 border-emerald-200"
+                  : "bg-white border-gray-200 hover:border-blue-300"
+              }`}
+            >
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="font-bold text-sm text-gray-900">{doc.title}</h3>
+                    {doc.required ? (
+                      <Badge
+                        variant="outline"
+                        className={`text-[10px] font-bold py-0.5 px-2 rounded-md ${
+                          uploaded
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                            : "bg-rose-50 text-rose-700 border-rose-200"
+                        }`}
+                      >
+                        {uploaded ? "Obrigatório ✓" : "Obrigatório *"}
+                      </Badge>
+                    ) : (
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-semibold py-0.5 px-2 rounded-md bg-slate-100 text-slate-600 border-slate-200"
+                      >
+                        Opcional
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed">{doc.desc}</p>
+                </div>
+                {uploaded && (
+                  <Badge className="bg-emerald-600 text-white text-[10px] font-semibold py-0.5 px-2 shrink-0">
+                    Anexado
+                  </Badge>
+                )}
+              </div>
+
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                {uploaded ? (
+                  <div className="flex items-center justify-between gap-2.5 w-full bg-emerald-50/70 border border-emerald-200/90 rounded-xl p-2.5">
+                    <div className="flex items-center gap-2 text-xs font-semibold text-emerald-950 min-w-0">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                      <span className="truncate max-w-[140px] sm:max-w-[180px]" title={uploaded.name}>
+                        {uploaded.name}
+                      </span>
+                      <Badge className="bg-emerald-600 text-white text-[9px] font-bold py-0.5 px-1.5 shrink-0">
+                        Anexado ✓
+                      </Badge>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100/70 transition-colors shadow-xs">
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.png,.jpg,.jpeg"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) handleFileUpload(doc.id, file);
+                          }}
+                          disabled={isUploading}
+                        />
+                        {isUploading ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                        ) : (
+                          <Pencil className="h-3.5 w-3.5 text-emerald-700" />
+                        )}
+                        <span>{isUploading ? "Enviando..." : "Alterar"}</span>
+                      </label>
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRemoveDoc(doc.id)}
+                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-100/50 h-7 w-7 p-0 rounded-lg cursor-pointer"
+                        title="Remover anexo"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors w-full justify-center shadow-xs">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.png,.jpg,.jpeg"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload(doc.id, file);
+                      }}
+                      disabled={isUploading}
+                    />
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Enviando arquivo...
+                      </>
+                    ) : (
+                      <>
+                        <UploadCloud className="h-4 w-4 text-blue-600" /> Selecionar Arquivo
+                      </>
+                    )}
+                  </label>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between p-4 sm:p-6 lg:p-10">
@@ -593,7 +761,7 @@ function OnboardingPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs bg-white text-gray-600 border-gray-200">
+            <Badge variant="outline" className="text-xs bg-white text-gray-700 border-gray-200 shadow-xs font-bold">
               Etapa {step} de {totalSteps}
             </Badge>
           </div>
@@ -609,23 +777,155 @@ function OnboardingPage() {
               transition={{ duration: 0.3 }}
             />
           </div>
-          <div className="flex justify-between text-xs font-semibold text-gray-500">
-            <span className={step >= 1 ? "text-blue-600 font-bold" : ""}>1. Dados Cadastrais</span>
-            <span className={step >= 2 ? "text-blue-600 font-bold" : ""}>2. Documentação</span>
-            {isFree && <span className={step >= 3 ? "text-blue-600 font-bold" : ""}>3. Dados Financeiros</span>}
-            <span className={step === totalSteps ? "text-blue-600 font-bold" : ""}>
-              {totalSteps}. Revisão & Ativação
-            </span>
-          </div>
+
+          {isFree ? (
+            <div className="flex justify-between text-xs font-semibold text-gray-500">
+              <span className={step >= 1 ? "text-blue-600 font-bold" : ""}>1. Dados Cadastrais</span>
+              <span className={step >= 2 ? "text-blue-600 font-bold" : ""}>2. Documentação</span>
+              <span className={step >= 3 ? "text-blue-600 font-bold" : ""}>3. Dados Financeiros</span>
+              <span className={step === 4 ? "text-blue-600 font-bold" : ""}>4. Revisão & Conclusão</span>
+            </div>
+          ) : (
+            <div className="flex justify-between text-xs font-semibold text-gray-500">
+              <span className={step >= 1 ? "text-blue-600 font-bold" : ""}>1. Documentação</span>
+              <span className={step === 2 ? "text-blue-600 font-bold" : ""}>2. Revisão & Ativação</span>
+            </div>
+          )}
         </div>
 
         {/* Dynamic Multi-step Form Content */}
         <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-6 sm:p-10">
           <AnimatePresence mode="wait" custom={direction}>
-            {/* ── ETAPA 1: DADOS CADASTRAIS ─────────────────────────────────── */}
-            {step === 1 && (
+            {/* ── CLIENTE: ETAPA 1 = DOCUMENTAÇÃO ──────────────────────────── */}
+            {!isFree && step === 1 && (
               <motion.div
-                key="step1"
+                key="client-step1"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+              >
+                {renderDocumentUploadCard()}
+              </motion.div>
+            )}
+
+            {/* ── CLIENTE: ETAPA 2 = REVISÃO & ATIVAÇÃO ─────────────────────── */}
+            {!isFree && step === 2 && (
+              <motion.div
+                key="client-step2"
+                custom={direction}
+                variants={slideVariants}
+                initial="enter"
+                animate="center"
+                exit="exit"
+                className="space-y-6"
+              >
+                <div className="space-y-1">
+                  <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Revisão & Ativação de Acesso
+                  </h2>
+                  <p className="text-xs sm:text-sm text-gray-500">
+                    Confira os dados corporativos cadastrados e confirme a conclusão do onboarding para liberar seu painel.
+                  </p>
+                </div>
+
+                <div className="space-y-5">
+                  {/* Resumo Cadastral Cadastrado pelo Gestor */}
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-gray-200/80 space-y-4 shadow-xs">
+                    <div className="flex items-center justify-between border-b border-gray-200/60 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <Building2 className="h-4 w-4 text-blue-600" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-700">Dados Corporativos da Empresa</span>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 font-semibold">
+                        Cadastrado pelo Gestor
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
+                      <div>
+                        <span className="text-gray-400 text-[11px]">Nome Fantasia:</span>
+                        <p className="font-bold text-gray-900 text-sm mt-0.5">{companyName || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-[11px]">Razão Social:</span>
+                        <p className="font-semibold text-gray-800 mt-0.5">{corporateName || companyName || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-[11px]">CNPJ:</span>
+                        <p className="font-semibold text-gray-800 font-mono mt-0.5">{cnpj || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-[11px]">Segmento de Atuação:</span>
+                        <p className="font-semibold text-gray-800 mt-0.5">{segment || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-[11px]">E-mail Corporativo:</span>
+                        <p className="font-semibold text-gray-800 mt-0.5">{corporateEmail || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400 text-[11px]">Responsável Legal:</span>
+                        <p className="font-semibold text-gray-900 mt-0.5">{contactName || "—"}</p>
+                      </div>
+                      {rolePosition && (
+                        <div>
+                          <span className="text-gray-400 text-[11px]">Cargo / Função:</span>
+                          <p className="font-semibold text-gray-800 mt-0.5">{rolePosition}</p>
+                        </div>
+                      )}
+                      {phone && (
+                        <div>
+                          <span className="text-gray-400 text-[11px]">WhatsApp / Contato:</span>
+                          <p className="font-semibold text-gray-800 mt-0.5">{phone}</p>
+                        </div>
+                      )}
+                      {address && (
+                        <div className="sm:col-span-2">
+                          <span className="text-gray-400 text-[11px]">Endereço:</span>
+                          <p className="font-semibold text-gray-800 mt-0.5">
+                            {address} {city && `· ${city}`} {state && `/${state}`} {cep && `(CEP: ${cep})`}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Resumo Documental */}
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-gray-200/80 space-y-3 shadow-xs">
+                    <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
+                      <div className="flex items-center gap-2">
+                        <FileCheck className="h-4 w-4 text-emerald-600" />
+                        <span className="text-xs font-bold uppercase tracking-wider text-gray-700">
+                          Documentos Anexados ({Object.keys(documents).length})
+                        </span>
+                      </div>
+                      <Button variant="link" size="sm" onClick={() => setStep(1)} className="text-xs h-auto p-0 text-blue-600 font-semibold cursor-pointer">
+                        Alterar Documentos
+                      </Button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2.5">
+                      {Object.keys(documents).length === 0 ? (
+                        <p className="text-xs text-amber-600 font-medium">Nenhum documento anexado ainda.</p>
+                      ) : (
+                        Object.entries(documents).map(([type, doc]) => (
+                          <Badge key={type} className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs py-1.5 px-3 flex items-center gap-1.5 font-semibold">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                            <span>{doc.name}</span>
+                          </Badge>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── FREELANCER: ETAPA 1 = DADOS CADASTRAIS ─────────────────────── */}
+            {isFree && step === 1 && (
+              <motion.div
+                key="free-step1"
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
@@ -866,152 +1166,24 @@ function OnboardingPage() {
               </motion.div>
             )}
 
-            {/* ── ETAPA 2: DOCUMENTAÇÃO ─────────────────────────────────────── */}
-            {step === 2 && (
+            {/* ── FREELANCER: ETAPA 2 = DOCUMENTAÇÃO ────────────────────────── */}
+            {isFree && step === 2 && (
               <motion.div
-                key="step2"
+                key="free-step2"
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
                 animate="center"
                 exit="exit"
-                className="space-y-6"
               >
-                <div className="space-y-1">
-                  <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                    <FileCheck className="h-5 w-5 text-blue-600" /> Documentação Obrigatória
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    Anexe os arquivos para validação cadastral e conformidade jurídica (PDF, PNG ou JPG até 10MB).
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {requiredDocs.map((doc) => {
-                    const uploaded = documents[doc.id];
-                    const isUploading = uploadingDoc === doc.id;
-
-                    return (
-                      <div
-                        key={doc.id}
-                        className={`p-5 rounded-2xl border transition-all ${
-                          uploaded
-                            ? "bg-emerald-50/40 border-emerald-200"
-                            : "bg-white border-gray-200 hover:border-blue-300"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3 mb-3">
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="font-bold text-sm text-gray-900">{doc.title}</h3>
-                              {doc.required ? (
-                                <Badge
-                                  variant="outline"
-                                  className={`text-[10px] font-bold py-0.5 px-2 rounded-md ${
-                                    uploaded
-                                      ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                                      : "bg-rose-50 text-rose-700 border-rose-200"
-                                  }`}
-                                >
-                                  {uploaded ? "Obrigatório ✓" : "Obrigatório *"}
-                                </Badge>
-                              ) : (
-                                <Badge
-                                  variant="outline"
-                                  className="text-[10px] font-semibold py-0.5 px-2 rounded-md bg-slate-100 text-slate-600 border-slate-200"
-                                >
-                                  Opcional
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-xs text-gray-500 leading-relaxed">{doc.desc}</p>
-                          </div>
-                          {uploaded && (
-                            <Badge className="bg-emerald-600 text-white text-[10px] font-semibold py-0.5 px-2 shrink-0">
-                              Anexado
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                          {uploaded ? (
-                            <div className="flex items-center justify-between gap-2.5 w-full bg-emerald-50/70 border border-emerald-200/90 rounded-xl p-2.5">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-950 min-w-0">
-                                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                                <span className="truncate max-w-[140px] sm:max-w-[180px]" title={uploaded.name}>
-                                  {uploaded.name}
-                                </span>
-                                <Badge className="bg-emerald-600 text-white text-[9px] font-bold py-0.5 px-1.5 shrink-0">
-                                  Anexado ✓
-                                </Badge>
-                              </div>
-
-                              <div className="flex items-center gap-1.5 shrink-0">
-                                <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100/70 transition-colors shadow-xs">
-                                  <input
-                                    type="file"
-                                    className="hidden"
-                                    accept=".pdf,.png,.jpg,.jpeg"
-                                    onChange={(e) => {
-                                      const file = e.target.files?.[0];
-                                      if (file) handleFileUpload(doc.id, file);
-                                    }}
-                                    disabled={isUploading}
-                                  />
-                                  {isUploading ? (
-                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
-                                  ) : (
-                                    <Pencil className="h-3.5 w-3.5 text-emerald-700" />
-                                  )}
-                                  <span>{isUploading ? "Enviando..." : "Alterar"}</span>
-                                </label>
-
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoveDoc(doc.id)}
-                                  className="text-rose-500 hover:text-rose-700 hover:bg-rose-100/50 h-7 w-7 p-0 rounded-lg cursor-pointer"
-                                  title="Remover anexo"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors w-full justify-center shadow-xs">
-                              <input
-                                type="file"
-                                className="hidden"
-                                accept=".pdf,.png,.jpg,.jpeg"
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) handleFileUpload(doc.id, file);
-                                }}
-                                disabled={isUploading}
-                              />
-                              {isUploading ? (
-                                <>
-                                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Enviando arquivo...
-                                </>
-                              ) : (
-                                <>
-                                  <UploadCloud className="h-4 w-4 text-blue-600" /> Selecionar Arquivo
-                                </>
-                              )}
-                            </label>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                {renderDocumentUploadCard()}
               </motion.div>
             )}
 
-            {/* ── ETAPA 3 (FREELANCER): DADOS FINANCEIROS & PIX ────────────── */}
-            {step === 3 && isFree && (
+            {/* ── FREELANCER: ETAPA 3 = DADOS FINANCEIROS & PIX ─────────────── */}
+            {isFree && step === 3 && (
               <motion.div
-                key="step3-free"
+                key="free-step3"
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
@@ -1111,10 +1283,10 @@ function OnboardingPage() {
               </motion.div>
             )}
 
-            {/* ── ETAPA FINAL: REVISÃO & ATIVAÇÃO ──────────────────────────── */}
-            {step === totalSteps && (
+            {/* ── FREELANCER: ETAPA 4 = REVISÃO & CONCLUSÃO ──────────────────── */}
+            {isFree && step === 4 && (
               <motion.div
-                key="step-final"
+                key="free-step4"
                 custom={direction}
                 variants={slideVariants}
                 initial="enter"
@@ -1169,30 +1341,28 @@ function OnboardingPage() {
                   </div>
 
                   {/* Resumo Bancário (Freelancer) */}
-                  {isFree && (
-                    <div className="p-5 rounded-2xl bg-slate-50 border border-gray-200/80 space-y-3">
-                      <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-600">Dados Bancários / PIX</span>
-                        <Button variant="link" size="sm" onClick={() => setStep(3)} className="text-xs h-auto p-0 text-blue-600">
-                          Editar
-                        </Button>
+                  <div className="p-5 rounded-2xl bg-slate-50 border border-gray-200/80 space-y-3">
+                    <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-gray-600">Dados Bancários / PIX</span>
+                      <Button variant="link" size="sm" onClick={() => setStep(3)} className="text-xs h-auto p-0 text-blue-600">
+                        Editar
+                      </Button>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <span className="text-gray-400">Banco:</span>
+                        <p className="font-semibold text-gray-800">{bankName || "—"}</p>
                       </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                        <div>
-                          <span className="text-gray-400">Banco:</span>
-                          <p className="font-semibold text-gray-800">{bankName || "—"}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-400">Tipo de PIX:</span>
-                          <p className="font-semibold text-gray-800">{pixType || "—"}</p>
-                        </div>
-                        <div>
-                          <span className="text-gray-400">Chave PIX:</span>
-                          <p className="font-semibold text-gray-800 font-mono">{pixKey || "—"}</p>
-                        </div>
+                      <div>
+                        <span className="text-gray-400">Tipo de PIX:</span>
+                        <p className="font-semibold text-gray-800">{pixType || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Chave PIX:</span>
+                        <p className="font-semibold text-gray-800 font-mono">{pixKey || "—"}</p>
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {/* Resumo Documental */}
                   <div className="p-5 rounded-2xl bg-slate-50 border border-gray-200/80 space-y-3">
@@ -1222,9 +1392,9 @@ function OnboardingPage() {
             )}
           </AnimatePresence>
 
-          {/* Alerta de Documentos Pendentes na Etapa 2 */}
-          {step === 2 && !isStep2Complete && (
-            <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 flex items-start gap-3 text-xs text-amber-900 font-medium">
+          {/* Alerta de Documentos Pendentes */}
+          {((!isFree && step === 1) || (isFree && step === 2)) && !isDocComplete && (
+            <div className="p-4 mt-6 rounded-2xl bg-amber-50/90 border border-amber-200 flex items-start gap-3 text-xs text-amber-900 font-medium">
               <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <p className="font-bold text-amber-950">Documentos obrigatórios pendentes:</p>
@@ -1256,9 +1426,9 @@ function OnboardingPage() {
               <Button
                 type="button"
                 onClick={nextStep}
-                disabled={step === 2 && !isStep2Complete}
+                disabled={(!isFree && step === 1 && !isDocComplete) || (isFree && step === 2 && !isDocComplete)}
                 className={`h-10 px-6 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  step === 2 && !isStep2Complete
+                  ((!isFree && step === 1 && !isDocComplete) || (isFree && step === 2 && !isDocComplete))
                     ? "bg-slate-300 text-slate-500 hover:bg-slate-300 cursor-not-allowed shadow-none"
                     : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                 }`}
@@ -1270,7 +1440,7 @@ function OnboardingPage() {
                 type="button"
                 onClick={handleFinalize}
                 disabled={submitting}
-                className="h-10 px-8 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-2"
+                className="h-10 px-8 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-2 cursor-pointer"
               >
                 {submitting ? (
                   <>

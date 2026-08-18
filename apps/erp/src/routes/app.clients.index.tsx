@@ -25,6 +25,8 @@ import {
   ArrowRight,
   Trash2,
   Rocket,
+  MapPin,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
@@ -143,24 +145,74 @@ function ClientsPage() {
   const invitedClients = clients.filter((c) => c.status === "convidado").length;
   const blockedClients = clients.filter((c) => c.status === "bloqueado").length;
 
+  const [fetchingModalCep, setFetchingModalCep] = useState(false);
+  const [modalAddress, setModalAddress] = useState("");
+  const [modalCity, setModalCity] = useState("");
+  const [modalState, setModalState] = useState("");
+
+  const handleModalCepBlur = async (e: React.FocusEvent<HTMLInputElement>) => {
+    const rawCep = e.target.value.replace(/\D/g, "");
+    if (rawCep.length === 8) {
+      setFetchingModalCep(true);
+      try {
+        const res = await fetch(`https://viacep.com.br/ws/${rawCep}/json/`);
+        const data = await res.json();
+        if (!data.erro) {
+          setModalAddress(`${data.logradouro || ""} - ${data.bairro || ""}`.trim().replace(/^-\s*/, ""));
+          setModalCity(data.localidade || "");
+          setModalState(data.uf || "");
+          toast.success("Endereço preenchido automaticamente pelo CEP!");
+        }
+      } catch (err) {
+        console.warn("Erro ao buscar CEP:", err);
+      } finally {
+        setFetchingModalCep(false);
+      }
+    }
+  };
+
   const handleCreateSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const fullNameVal = (fd.get("fullName") as string || "").trim();
-    const emailVal = (fd.get("email") as string || "").trim();
     const companyNameVal = (fd.get("companyName") as string || "").trim();
+    const corporateNameVal = (fd.get("corporateName") as string || "").trim();
+    const cnpjVal = (fd.get("cnpj") as string || "").trim();
+    const segmentVal = (fd.get("segment") as string || "").trim();
+    const emailVal = (fd.get("email") as string || "").trim();
+    const cepVal = (fd.get("cep") as string || "").trim();
+    const addressVal = (fd.get("address") as string || modalAddress || "").trim();
+    const cityVal = (fd.get("city") as string || modalCity || "").trim();
+    const stateVal = (fd.get("state") as string || modalState || "").trim();
+    const fullNameVal = (fd.get("fullName") as string || "").trim();
+    const rolePositionVal = (fd.get("rolePosition") as string || "").trim();
     const phoneVal = (fd.get("phone") as string || "").trim();
-    if (!fullNameVal || !emailVal) {
-      return toast.error("Preencha nome e e-mail do cliente.");
+
+    if (!companyNameVal) {
+      return toast.error("Preencha o Nome Fantasia da empresa.");
     }
+    if (!emailVal) {
+      return toast.error("Preencha o E-mail Corporativo.");
+    }
+    if (!fullNameVal) {
+      return toast.error("Preencha o Nome do Responsável Legal.");
+    }
+
     createClient.mutate(
       {
-        full_name: fullNameVal,
+        company_name: companyNameVal,
+        corporate_name: corporateNameVal || companyNameVal,
+        cnpj: cnpjVal || undefined,
+        segment: segmentVal || undefined,
         email: emailVal,
-        company_name: companyNameVal || undefined,
+        cep: cepVal || undefined,
+        address: addressVal || undefined,
+        city: cityVal || undefined,
+        state: stateVal || undefined,
+        full_name: fullNameVal,
+        role_position: rolePositionVal || undefined,
         phone: phoneVal || undefined,
         lead_id: selectedLead?.id,
-      } as any,
+      },
       {
         onSuccess: () => {
           if (selectedLead?.id) {
@@ -168,6 +220,9 @@ function ClientsPage() {
           }
           setOpenModal(false);
           setSelectedLead(null);
+          setModalAddress("");
+          setModalCity("");
+          setModalState("");
         },
       },
     );
@@ -231,30 +286,29 @@ function ClientsPage() {
         </div>
 
         {activeTab === "diretorio" ? (
-          <Dialog open={openModal} onOpenChange={(v) => { setOpenModal(v); if (!v) setSelectedLead(null); }}>
+          <Dialog open={openModal} onOpenChange={(v) => { setOpenModal(v); if (!v) { setSelectedLead(null); setModalAddress(""); setModalCity(""); setModalState(""); } }}>
             <DialogTrigger asChild>
               <Button className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white rounded-xl shadow-xs gap-1.5 border-0">
                 <Plus className="h-4 w-4" /> Novo Cliente
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-2 font-serif text-xl font-bold">
                   <Building2 className="h-5 w-5 text-blue-700" /> Cadastrar Novo Cliente
                 </DialogTitle>
                 <DialogDescription>
-                  O cliente receberá um e-mail de convite para acessar a plataforma e definir sua
-                  senha de acesso.
+                  Preencha os dados corporativos para formalização fiscal e contratual. O cliente receberá o convite de acesso por e-mail.
                 </DialogDescription>
               </DialogHeader>
 
               <form onSubmit={handleCreateSubmit} className="space-y-4 py-2">
-                {/* Lead Import (simple native select — Command removed due to CPU lockup) */}
+                {/* Lead Import (simple native select) */}
                 {leads.length > 0 && (
-                  <div className="space-y-1.5">
-                    <Label>Importar dados de um Lead do CRM (Opcional)</Label>
+                  <div className="space-y-1.5 p-3 rounded-xl bg-muted/40 border border-border">
+                    <Label className="text-xs font-semibold text-foreground">Importar dados de um Lead do CRM (Opcional)</Label>
                     <select
-                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                      className="w-full rounded-lg border border-input bg-background px-3 py-2 text-xs"
                       value={selectedLead?.id ?? ""}
                       onChange={(e) => {
                         const lead = leads.find((l) => l.id === e.target.value) ?? null;
@@ -276,63 +330,196 @@ function ClientsPage() {
                   </div>
                 )}
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="fullName">Nome Completo / Contato Principal *</Label>
-                  <Input
-                    id="fullName"
-                    name="fullName"
-                    placeholder="Ex: Carlos Eduardo Silva"
-                    defaultValue={selectedLead ? (selectedLead.contact || selectedLead.name || "") : ""}
-                    key={selectedLead?.id ?? "none"}
-                    required
-                  />
+                {/* Seção 1: Dados da Empresa */}
+                <div className="space-y-3 pt-1">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <Building2 className="h-3.5 w-3.5 text-blue-600" /> Dados Corporativos da Empresa
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="companyName" className="text-xs font-semibold">Nome Fantasia *</Label>
+                      <Input
+                        id="companyName"
+                        name="companyName"
+                        placeholder="Ex: Studio Lumina Mídia"
+                        defaultValue={selectedLead?.name ?? ""}
+                        key={(selectedLead?.id ?? "none") + "-company"}
+                        required
+                        className="rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="corporateName" className="text-xs font-semibold">Razão Social</Label>
+                      <Input
+                        id="corporateName"
+                        name="corporateName"
+                        placeholder="Ex: Lumina Mídia e Serviços LTDA"
+                        className="rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cnpj" className="text-xs font-semibold">CNPJ</Label>
+                      <Input
+                        id="cnpj"
+                        name="cnpj"
+                        placeholder="00.000.000/0000-00"
+                        className="rounded-xl font-mono text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="segment" className="text-xs font-semibold">Segmento de Atuação</Label>
+                      <Input
+                        id="segment"
+                        name="segment"
+                        placeholder="Ex: Tráfego Pago, Design, IA"
+                        className="rounded-xl"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="email">E-mail Corporativo *</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    placeholder="carlos@empresa.com.br"
-                    defaultValue={selectedLead?.contact?.includes("@") ? selectedLead.contact : ""}
-                    key={(selectedLead?.id ?? "none") + "-email"}
-                    required
-                  />
+                {/* Seção 2: Localização & Endereço */}
+                <div className="space-y-3 pt-2 border-t border-border/70">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-blue-600" /> Endereço & Localização
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="cep" className="text-xs font-semibold">CEP</Label>
+                      <div className="relative">
+                        <Input
+                          id="cep"
+                          name="cep"
+                          placeholder="00000-000"
+                          onBlur={handleModalCepBlur}
+                          className="rounded-xl font-mono text-xs pr-8"
+                        />
+                        {fetchingModalCep && (
+                          <Loader2 className="absolute right-2.5 top-2.5 h-4 w-4 animate-spin text-blue-600" />
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="address" className="text-xs font-semibold">Endereço Completo</Label>
+                      <Input
+                        id="address"
+                        name="address"
+                        placeholder="Rua, Número, Bairro, Complemento"
+                        value={modalAddress}
+                        onChange={(e) => setModalAddress(e.target.value)}
+                        className="rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label htmlFor="city" className="text-xs font-semibold">Cidade</Label>
+                      <Input
+                        id="city"
+                        name="city"
+                        placeholder="Cidade"
+                        value={modalCity}
+                        onChange={(e) => setModalCity(e.target.value)}
+                        className="rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="state" className="text-xs font-semibold">UF</Label>
+                      <Input
+                        id="state"
+                        name="state"
+                        placeholder="UF"
+                        maxLength={2}
+                        value={modalState}
+                        onChange={(e) => setModalState(e.target.value.toUpperCase())}
+                        className="rounded-xl font-mono uppercase text-center"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="companyName">Nome da Empresa / Organização (Opcional)</Label>
-                  <Input
-                    id="companyName"
-                    name="companyName"
-                    placeholder="Ex: Studio Lumina Mídia"
-                    defaultValue={selectedLead?.name ?? ""}
-                    key={(selectedLead?.id ?? "none") + "-company"}
-                  />
+                {/* Seção 3: Responsável Legal & Contato */}
+                <div className="space-y-3 pt-2 border-t border-border/70">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-blue-600" /> Responsável Legal & Contato
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="fullName" className="text-xs font-semibold">Responsável Legal *</Label>
+                      <Input
+                        id="fullName"
+                        name="fullName"
+                        placeholder="Ex: Carlos Eduardo Silva"
+                        defaultValue={selectedLead ? (selectedLead.contact || selectedLead.name || "") : ""}
+                        key={selectedLead?.id ?? "none"}
+                        required
+                        className="rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="rolePosition" className="text-xs font-semibold">Cargo / Função</Label>
+                      <Input
+                        id="rolePosition"
+                        name="rolePosition"
+                        placeholder="Ex: Sócio-Administrador"
+                        className="rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="email" className="text-xs font-semibold">E-mail Corporativo (Login) *</Label>
+                      <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="carlos@empresa.com.br"
+                        defaultValue={selectedLead?.contact?.includes("@") ? selectedLead.contact : ""}
+                        key={(selectedLead?.id ?? "none") + "-email"}
+                        required
+                        className="rounded-xl"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="phone" className="text-xs font-semibold">Telefone / WhatsApp</Label>
+                      <Input
+                        id="phone"
+                        name="phone"
+                        placeholder="(11) 98888-7777"
+                        defaultValue={selectedLead?.contact && /\d{8,}/.test(selectedLead.contact) ? selectedLead.contact : ""}
+                        key={(selectedLead?.id ?? "none") + "-phone"}
+                        className="rounded-xl"
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-1.5">
-                  <Label htmlFor="phone">Telefone / WhatsApp (Opcional)</Label>
-                  <Input
-                    id="phone"
-                    name="phone"
-                    placeholder="(11) 98888-7777"
-                    defaultValue={selectedLead?.contact && /\d{8,}/.test(selectedLead.contact) ? selectedLead.contact : ""}
-                    key={(selectedLead?.id ?? "none") + "-phone"}
-                  />
-                </div>
-
-                <DialogFooter className="pt-3">
-                  <Button type="button" variant="outline" onClick={() => { setOpenModal(false); setSelectedLead(null); }}>
+                <DialogFooter className="pt-4 border-t border-border">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setOpenModal(false);
+                      setSelectedLead(null);
+                      setModalAddress("");
+                      setModalCity("");
+                      setModalState("");
+                    }}
+                    className="rounded-xl cursor-pointer"
+                  >
                     Cancelar
                   </Button>
                   <Button
                     type="submit"
                     disabled={createClient.isPending}
-                    className="bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 text-white gap-2 border-none shadow-sm cursor-pointer"
+                    className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl gap-2 font-semibold cursor-pointer shadow-xs"
                   >
-                    {createClient.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {createClient.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Cadastrar & Enviar Convite
                   </Button>
                 </DialogFooter>

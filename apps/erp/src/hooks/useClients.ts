@@ -19,8 +19,17 @@ export interface ClientItem {
 export interface CreateClientInput {
   full_name: string;
   email: string;
-  company_name?: string;
+  company_name: string;
+  corporate_name?: string;
+  cnpj?: string;
+  segment?: string;
+  cep?: string;
+  address?: string;
+  city?: string;
+  state?: string;
+  role_position?: string;
   phone?: string;
+  lead_id?: string;
 }
 
 // ── Query: list all clients ──────────────────────────────────────────────────
@@ -100,19 +109,20 @@ export function useClientsList() {
       // Merge profiles with role='cliente' if not already processed by email or id
       (profilesData ?? []).forEach((p: any) => {
         const normEmail = (p.email || "").toLowerCase().trim();
-        if (!clientMap.has(p.id) && (!normEmail || !processedEmails.has(normEmail))) {
-          if (normEmail) processedEmails.add(normEmail);
+        if (normEmail && !processedEmails.has(normEmail)) {
+          processedEmails.add(normEmail);
+          const projects = projectsMap.get(p.id) ?? [];
           clientMap.set(p.id, {
             id: p.id,
             auth_user_id: p.id,
             resolved_id: p.id,
             full_name: p.full_name || "Cliente",
             email: p.email || "",
-            company_name: "",
+            company_name: p.company_name || "",
             phone: p.phone || "",
-            status: "ativo",
+            status: p.approval_status === "rejected" ? "bloqueado" : "ativo",
             created_at: p.created_at || new Date().toISOString(),
-            projects: projectsMap.get(p.id) || [],
+            projects,
           });
         }
       });
@@ -126,7 +136,6 @@ export function useClientsList() {
 export function useClientDetail(id: string) {
   return useQuery({
     queryKey: ["client-detail", id],
-    enabled: !!id,
     queryFn: async (): Promise<ClientItem | null> => {
       try {
         let client: ClientItem | null = null;
@@ -284,19 +293,29 @@ export function useCreateClient() {
         id: clientId,
         full_name: input.full_name,
         email: input.email,
+        phone: input.phone || null,
+        cpf_cnpj: input.cnpj || null,
         role: "cliente",
         invited_by_gestor: true,   // convite direto — bypass da fila de aprovação
         approval_status: "approved", // pré-aprovado pelo gestor
       });
 
-      // 2. Insert into clients table
+      // 2. Insert into clients table com todos os dados cadastrais e fiscais
       const { data, error } = await (supabase.from("clients") as any)
         .insert({
           id: clientId,
           auth_user_id: clientId,
           full_name: input.full_name,
           email: input.email,
-          company_name: input.company_name || null,
+          company_name: input.company_name,
+          corporate_name: input.corporate_name || input.company_name,
+          cnpj: input.cnpj || null,
+          segment: input.segment || null,
+          cep: input.cep || null,
+          address: input.address || null,
+          city: input.city || null,
+          state: input.state || null,
+          role_position: input.role_position || null,
           phone: input.phone || null,
           status: "convidado",
           invited_by_gestor: true,
