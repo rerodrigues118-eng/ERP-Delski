@@ -7,17 +7,24 @@ export interface ClientDocumentItem extends ClientDocumentsRow {
   public_url?: string | null;
 }
 
-export function useClientDocuments(clientId?: string) {
+export function useClientDocuments(clientId?: string, authUserId?: string) {
   return useQuery({
-    queryKey: ["client_documents", clientId],
-    enabled: !!clientId,
+    queryKey: ["client_documents", clientId, authUserId],
+    enabled: !!clientId || !!authUserId,
     queryFn: async (): Promise<ClientDocumentItem[]> => {
-      if (!clientId) return [];
+      let query = (supabase.from("client_documents") as any).select("*");
 
-      const { data, error } = await (supabase.from("client_documents") as any)
-        .select("*")
-        .eq("client_id", clientId)
-        .order("uploaded_at", { ascending: false });
+      if (clientId && authUserId && clientId !== authUserId) {
+        query = query.or(`client_id.eq.${clientId},client_id.eq.${authUserId}`);
+      } else if (clientId) {
+        query = query.eq("client_id", clientId);
+      } else if (authUserId) {
+        query = query.eq("client_id", authUserId);
+      } else {
+        return [];
+      }
+
+      const { data, error } = await query.order("uploaded_at", { ascending: false });
 
       if (error) {
         console.warn("Erro ao buscar client_documents:", error);

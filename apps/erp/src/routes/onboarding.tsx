@@ -351,8 +351,13 @@ function OnboardingPage() {
         return toast.error("Preencha todos os campos obrigatórios (Nome, E-mail, Responsável).");
       }
     }
-    if (step === 2 && isFree) {
-      // Document step for freelancer: allow proceed
+    if (step === 2) {
+      const pendingRequired = requiredDocs.filter((d) => d.required && !documents[d.id]);
+      if (pendingRequired.length > 0) {
+        return toast.error(
+          `Anexo obrigatório pendente: ${pendingRequired.map((d) => d.title).join(", ")}. Por favor, anexe os documentos para avançar.`
+        );
+      }
     }
     if (step === 3 && isFree) {
       if (!bankName.trim() || !pixKey.trim()) {
@@ -549,21 +554,24 @@ function OnboardingPage() {
     }
   };
 
-  // Documents list per role
+  // Documents list per role with explicit requirement flags
   const requiredDocs = isFree
     ? [
-        { id: "cartao_cnpj", title: "Comprovante de CNPJ Ativo", desc: "Cartão CNPJ atualizado da Receita Federal" },
-        { id: "doc_constitutivo", title: "Documento Constitutivo ou CCMEI", desc: "Certificado MEI ou Contrato Social" },
-        { id: "consulta_projudi", title: "Consulta ProJudi", desc: "Certidão/Comprovante de distribuição judicial" },
-        { id: "rg_cnh", title: "RG ou CNH do Responsável", desc: "Documento oficial de identificação com foto" },
-        { id: "certidao_trabalhista", title: "Certidão de Débitos Trabalhistas", desc: "CNDT emitida pela Justiça do Trabalho" },
+        { id: "cartao_cnpj", title: "Comprovante de CNPJ Ativo", desc: "Cartão CNPJ atualizado da Receita Federal", required: true },
+        { id: "doc_constitutivo", title: "Documento Constitutivo ou CCMEI", desc: "Certificado MEI ou Contrato Social", required: true },
+        { id: "rg_cnh", title: "RG ou CNH do Responsável", desc: "Documento oficial de identificação com foto", required: true },
+        { id: "certidao_trabalhista", title: "Certidão de Débitos Trabalhistas", desc: "CNDT emitida pela Justiça do Trabalho", required: true },
+        { id: "consulta_projudi", title: "Consulta ProJudi", desc: "Certidão/Comprovante de distribuição judicial", required: false },
       ]
     : [
-        { id: "cartao_cnpj", title: "Comprovante de CNPJ Ativo", desc: "Cartão CNPJ emitido pela Receita Federal" },
-        { id: "doc_constitutivo", title: "Documento Constitutivo", desc: "Contrato Social ou CCMEI registrado" },
-        { id: "rg_cnh", title: "RG / CNH do Responsável Legal", desc: "Documento oficial com foto do representante" },
-        { id: "procuracao", title: "Procuração (se aplicável)", desc: "Instrumento público/particular de representação" },
+        { id: "cartao_cnpj", title: "Comprovante de CNPJ Ativo", desc: "Cartão CNPJ emitido pela Receita Federal", required: true },
+        { id: "doc_constitutivo", title: "Documento Constitutivo", desc: "Contrato Social ou CCMEI registrado", required: true },
+        { id: "rg_cnh", title: "RG / CNH do Responsável Legal", desc: "Documento oficial com foto do representante", required: true },
+        { id: "procuracao", title: "Procuração (se aplicável)", desc: "Instrumento público/particular de representação", required: false },
       ];
+
+  const pendingRequiredDocs = requiredDocs.filter((d) => d.required && !documents[d.id]);
+  const isStep2Complete = pendingRequiredDocs.length === 0;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between p-4 sm:p-6 lg:p-10">
@@ -892,11 +900,32 @@ function OnboardingPage() {
                       >
                         <div className="flex items-start justify-between gap-3 mb-3">
                           <div className="space-y-1">
-                            <h3 className="font-bold text-sm text-gray-900">{doc.title}</h3>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h3 className="font-bold text-sm text-gray-900">{doc.title}</h3>
+                              {doc.required ? (
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] font-bold py-0.5 px-2 rounded-md ${
+                                    uploaded
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                                      : "bg-rose-50 text-rose-700 border-rose-200"
+                                  }`}
+                                >
+                                  {uploaded ? "Obrigatório ✓" : "Obrigatório *"}
+                                </Badge>
+                              ) : (
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] font-semibold py-0.5 px-2 rounded-md bg-slate-100 text-slate-600 border-slate-200"
+                                >
+                                  Opcional
+                                </Badge>
+                              )}
+                            </div>
                             <p className="text-xs text-gray-500 leading-relaxed">{doc.desc}</p>
                           </div>
                           {uploaded && (
-                            <Badge className="bg-emerald-500 text-white text-[10px] font-semibold py-0 px-2">
+                            <Badge className="bg-emerald-600 text-white text-[10px] font-semibold py-0.5 px-2 shrink-0">
                               Anexado
                             </Badge>
                           )}
@@ -1163,6 +1192,20 @@ function OnboardingPage() {
             )}
           </AnimatePresence>
 
+          {/* Alerta de Documentos Pendentes na Etapa 2 */}
+          {step === 2 && !isStep2Complete && (
+            <div className="p-4 rounded-2xl bg-amber-50/90 border border-amber-200 flex items-start gap-3 text-xs text-amber-900 font-medium">
+              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-amber-950">Documentos obrigatórios pendentes:</p>
+                <p className="text-amber-800 mt-0.5">
+                  Anexe os seguintes arquivos para habilitar o avanço:{" "}
+                  <span className="font-semibold">{pendingRequiredDocs.map((d) => d.title).join(", ")}</span>.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Navigation Controls */}
           <div className="flex items-center justify-between pt-8 mt-8 border-t border-gray-100">
             {step > 1 ? (
@@ -1171,7 +1214,7 @@ function OnboardingPage() {
                 variant="outline"
                 onClick={prevStep}
                 disabled={submitting}
-                className="h-10 px-5 text-xs font-semibold rounded-xl"
+                className="h-10 px-5 text-xs font-semibold rounded-xl cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4 mr-1.5" /> Voltar
               </Button>
@@ -1183,7 +1226,12 @@ function OnboardingPage() {
               <Button
                 type="button"
                 onClick={nextStep}
-                className="h-10 px-6 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-1.5"
+                disabled={step === 2 && !isStep2Complete}
+                className={`h-10 px-6 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                  step === 2 && !isStep2Complete
+                    ? "bg-slate-300 text-slate-500 hover:bg-slate-300 cursor-not-allowed shadow-none"
+                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                }`}
               >
                 Continuar <ArrowRight className="h-4 w-4 ml-1" />
               </Button>

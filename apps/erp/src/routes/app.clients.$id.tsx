@@ -37,11 +37,12 @@ import {
   ExternalLink,
   ShieldCheck,
   Calendar,
-  DollarSign,
-  AlertCircle,
   FileText,
   UploadCloud,
   Copy,
+  Download,
+  Eye,
+  FileCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -60,6 +61,57 @@ import {
 import { useProjects } from "@/hooks/useProjects";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/lib/utils";
+
+const DOCUMENT_TYPE_META: Record<string, { label: string; description: string; badge: string }> = {
+  cartao_cnpj: {
+    label: "Comprovante de CNPJ Ativo",
+    description: "Cartão CNPJ oficial da Receita Federal",
+    badge: "Cadastral",
+  },
+  doc_constitutivo: {
+    label: "Documento Constitutivo",
+    description: "Contrato Social ou Certificado MEI registrado",
+    badge: "Jurídico",
+  },
+  rg_cnh: {
+    label: "RG / CNH do Responsável Legal",
+    description: "Documento oficial de identificação com foto",
+    badge: "Identificação",
+  },
+  procuracao: {
+    label: "Procuração",
+    description: "Instrumento público/particular de representação",
+    badge: "Legal",
+  },
+  contrato_prestacao: {
+    label: "Contrato Oficial de Prestação",
+    description: "Contrato de serviços emitido para o cliente",
+    badge: "Contrato",
+  },
+  nota_fiscal: {
+    label: "Nota Fiscal",
+    description: "Nota fiscal de prestação de serviços",
+    badge: "Financeiro",
+  },
+  contrato_assinado: {
+    label: "Contrato Assinado",
+    description: "Via digital assinada pelo cliente",
+    badge: "Contrato",
+  },
+};
+
+const getFileName = (path?: string | null, url?: string | null, docType?: string) => {
+  if (path) {
+    const parts = path.split("/");
+    return parts[parts.length - 1];
+  }
+  if (url) {
+    const cleanUrl = url.split("?")[0];
+    const parts = cleanUrl.split("/");
+    return parts[parts.length - 1];
+  }
+  return `${docType || "documento"}.pdf`;
+};
 
 export const Route = createFileRoute("/app/clients/$id")({
   head: () => ({
@@ -120,8 +172,8 @@ function ClientDetailPage() {
     }
   }, [client]);
 
-  const resolvedClientId = client?.resolved_id || client?.auth_user_id || client?.id;
-  const { data: clientDocs = [] } = useClientDocuments(resolvedClientId);
+  const resolvedClientId = client?.resolved_id || client?.id;
+  const { data: clientDocs = [] } = useClientDocuments(client?.id, client?.auth_user_id);
   const uploadDoc = useUploadClientDocument();
   const deleteDoc = useDeleteClientDocument();
 
@@ -542,111 +594,180 @@ function ClientDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Card 1c: Anexar Documentos / Notas Fiscais pelo Gestor */}
+          {/* Card 1c: Documentação & Arquivos de Homologação */}
           <Card className="bg-card border-border shadow-subtle rounded-2xl">
             <CardHeader className="pb-3 border-b border-border/70">
-              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-                <FileText className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
-                Documentos & Notas Fiscais do Cliente
-              </CardTitle>
-              <CardDescription className="text-xs text-muted-foreground">
-                Anexe o Contrato Oficial de Prestação ou Notas Fiscais emitidas para que o cliente visualize no portal.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 border border-border rounded-2xl bg-muted/20 dark:bg-zinc-900/90 space-y-2.5 shadow-xs">
-                  <p className="text-xs font-bold text-foreground">Anexar Contrato Oficial</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Substitui ou disponibiliza o contrato oficial assinado no portal do cliente.
-                  </p>
-                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs">
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.docx"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file && resolvedClientId) {
-                          uploadDoc.mutate({
-                            clientId: resolvedClientId,
-                            documentType: "contrato_prestacao",
-                            file,
-                          });
-                        }
-                      }}
-                    />
-                    <UploadCloud className="h-3.5 w-3.5" /> Upload de Contrato
-                  </label>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                    <FileCheck className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
+                    Documentação & Arquivos de Homologação ({clientDocs.length})
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                    Arquivos submetidos pelo cliente no onboarding e documentos oficiais vinculados à conta.
+                  </CardDescription>
                 </div>
-
-                <div className="p-4 border border-border rounded-2xl bg-muted/20 dark:bg-zinc-900/90 space-y-2.5 shadow-xs">
-                  <p className="text-xs font-bold text-foreground">Anexar Nota Fiscal</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    Disponibiliza a NF emitida para download pelo cliente na aba financeira.
-                  </p>
-                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs">
-                    <input
-                      type="file"
-                      className="hidden"
-                      accept=".pdf,.xml,.png,.jpg"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file && resolvedClientId) {
-                          uploadDoc.mutate({
-                            clientId: resolvedClientId,
-                            documentType: "nota_fiscal",
-                            file,
-                          });
-                        }
-                      }}
-                    />
-                    <UploadCloud className="h-3.5 w-3.5" /> Upload de Nota Fiscal
-                  </label>
-                </div>
+                <Badge variant="outline" className="text-[11px] bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 w-fit">
+                  Homologação Cadastral
+                </Badge>
               </div>
-
-              {clientDocs.length > 0 && (
-                <div className="pt-3 border-t border-border space-y-2.5">
-                  <p className="text-xs font-semibold text-foreground">
-                    Documentos no Repositório ({clientDocs.length}):
+            </CardHeader>
+            <CardContent className="space-y-5 pt-5">
+              {/* Listagem de Documentos de Homologação */}
+              {clientDocs.length === 0 ? (
+                <div className="p-8 text-center border border-dashed border-border rounded-2xl bg-muted/20 space-y-2">
+                  <FileText className="h-8 w-8 text-muted-foreground/50 mx-auto" />
+                  <p className="text-xs font-semibold text-foreground">Nenhum documento anexado ainda</p>
+                  <p className="text-[11px] text-muted-foreground max-w-sm mx-auto">
+                    O cliente poderá enviar o Cartão CNPJ, Contrato Social e RG/CNH durante o processo de ativação/onboarding.
                   </p>
-                  <div className="divide-y divide-border border border-border rounded-xl overflow-hidden bg-card dark:bg-zinc-900/60">
-                    {clientDocs.map((doc) => (
-                      <div key={doc.id} className="p-3 flex items-center justify-between text-xs hover:bg-muted/40 transition-colors">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <FileText className="h-4 w-4 text-blue-500 shrink-0" />
-                          <span className="font-semibold text-foreground uppercase text-[11px] truncate">
-                            {doc.document_type}
-                          </span>
-                          <span className="text-[11px] text-muted-foreground shrink-0">
-                            {formatDate(doc.uploaded_at || (doc as any).created_at)}
-                          </span>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 gap-3">
+                    {clientDocs.map((doc) => {
+                      const meta = DOCUMENT_TYPE_META[doc.document_type] || {
+                        label: doc.document_type.replace(/_/g, " ").toUpperCase(),
+                        description: "Documento oficial do cliente",
+                        badge: "Arquivo",
+                      };
+                      const fileName = getFileName(doc.file_path, doc.file_url || doc.public_url, doc.document_type);
+                      const fileUrl = doc.file_url || doc.public_url || "#";
+                      const isPending = !doc.status || doc.status === "pendente" || doc.status === "em_analise";
+
+                      return (
+                        <div
+                          key={doc.id}
+                          className="p-4 border border-border/80 rounded-2xl bg-card hover:bg-muted/30 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs"
+                        >
+                          <div className="flex items-start gap-3.5 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200/80 dark:border-blue-900 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 mt-0.5">
+                              <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="space-y-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="text-xs font-bold text-foreground truncate">
+                                  {meta.label}
+                                </h4>
+                                <Badge variant="outline" className="text-[10px] font-semibold py-0 px-1.5 bg-muted text-muted-foreground border-border">
+                                  {meta.badge}
+                                </Badge>
+                                {isPending ? (
+                                  <Badge className="bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-300/40 text-[10px] font-bold py-0 px-2">
+                                    Em Análise
+                                  </Badge>
+                                ) : (
+                                  <Badge className="bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-300/40 text-[10px] font-bold py-0 px-2">
+                                    {doc.status}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground truncate font-mono">
+                                {fileName}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">
+                                Enviado em: {formatDate(doc.uploaded_at || (doc as any).created_at)}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-border hover:bg-muted cursor-pointer"
+                            >
+                              <a href={fileUrl} target="_blank" rel="noopener noreferrer">
+                                <Eye className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /> Visualizar
+                              </a>
+                            </Button>
+
+                            <Button
+                              asChild
+                              variant="outline"
+                              size="sm"
+                              className="h-8 px-3 text-xs font-semibold gap-1.5 rounded-xl border-border hover:bg-muted cursor-pointer"
+                            >
+                              <a href={fileUrl} download={fileName} target="_blank" rel="noopener noreferrer">
+                                <Download className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" /> Baixar
+                              </a>
+                            </Button>
+
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteDoc.mutate({ documentId: doc.id, filePath: doc.file_path })}
+                              className="h-8 w-8 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer rounded-xl"
+                              title="Excluir documento"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <a
-                            href={doc.file_url || doc.public_url || "#"}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline flex items-center gap-1 text-[11px] font-medium"
-                          >
-                            <ExternalLink className="h-3 w-3" /> Ver
-                          </a>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteDoc.mutate({ documentId: doc.id, filePath: doc.file_path })}
-                            className="h-7 w-7 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer rounded-lg"
-                            title="Excluir documento"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
+
+              {/* Seção para o Gestor Anexar Contrato ou NF adicional */}
+              <div className="pt-4 border-t border-border space-y-3">
+                <p className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <UploadCloud className="h-4 w-4 text-blue-600" /> Anexar Documento / Nota Fiscal pelo Gestor:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div className="p-3.5 border border-border rounded-xl bg-muted/20 space-y-2">
+                    <p className="text-xs font-bold text-foreground">Contrato Oficial de Prestação</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Disponibiliza o contrato oficial para consulta do cliente no portal.
+                    </p>
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs">
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.docx"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && resolvedClientId) {
+                            uploadDoc.mutate({
+                              clientId: resolvedClientId,
+                              documentType: "contrato_prestacao",
+                              file,
+                            });
+                          }
+                        }}
+                      />
+                      <UploadCloud className="h-3.5 w-3.5" /> Upload de Contrato
+                    </label>
+                  </div>
+
+                  <div className="p-3.5 border border-border rounded-xl bg-muted/20 space-y-2">
+                    <p className="text-xs font-bold text-foreground">Nota Fiscal Emitida</p>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Disponibiliza a NF emitida para download pelo cliente na aba financeira.
+                    </p>
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs">
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.xml,.png,.jpg"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file && resolvedClientId) {
+                            uploadDoc.mutate({
+                              clientId: resolvedClientId,
+                              documentType: "nota_fiscal",
+                              file,
+                            });
+                          }
+                        }}
+                      />
+                      <UploadCloud className="h-3.5 w-3.5" /> Upload de Nota Fiscal
+                    </label>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
