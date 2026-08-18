@@ -41,6 +41,7 @@ import {
   AlertCircle,
   FileText,
   UploadCloud,
+  Copy,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -843,6 +844,23 @@ function ClientDetailPage() {
                   className="w-full text-xs font-semibold gap-1.5 rounded-xl border-border cursor-pointer hover:bg-muted"
                 >
                   <Send className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /> Reenviar E-mail de Convite
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const portalUrl =
+                      typeof window !== "undefined"
+                        ? `${window.location.origin}/portal/auth?email=${encodeURIComponent(client.email)}`
+                        : `/portal/auth?email=${encodeURIComponent(client.email)}`;
+                    navigator.clipboard.writeText(portalUrl);
+                    toast.success("Link de acesso direto ao Portal do Cliente copiado!");
+                  }}
+                  className="w-full text-xs font-semibold gap-1.5 rounded-xl border-border cursor-pointer hover:bg-muted text-muted-foreground hover:text-foreground"
+                >
+                  <Copy className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /> Copiar Link Direto do Portal
                 </Button>
 
                 <Button

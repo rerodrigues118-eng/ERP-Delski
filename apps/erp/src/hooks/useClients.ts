@@ -621,13 +621,19 @@ export function useUploadClientPaymentReceipt() {
 export function useResendClientInvite() {
   return useMutation({
     mutationFn: async (client: { name: string; email: string; companyName?: string }) => {
-      await sendClientAccessInviteEmail({
+      const res = await sendClientAccessInviteEmail({
         to: { name: client.name, email: client.email },
         companyName: client.companyName,
       });
+      if (res && !res.success) {
+        throw new Error(res.error || "Falha no envio de e-mail");
+      }
+      return res;
     },
-    onSuccess: () => toast.success("Convite reenviado com sucesso!"),
-    onError: (e: Error) => toast.error(`Erro ao reenviar convite: ${e.message}`),
+    onSuccess: (_data, client) => toast.success(`Convite reenviado com sucesso para ${client.email}!`),
+    onError: (e: Error) => {
+      console.warn("Falha no reenvio de convite:", e.message);
+    },
   });
 }
 

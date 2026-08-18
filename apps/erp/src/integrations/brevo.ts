@@ -52,7 +52,15 @@ async function sendBrevoEmail(payload: {
       return { success: true };
     } else {
       const err = await res.json().catch(() => null);
-      const errMsg = err?.message || err?.code || `Erro HTTP ${res.status}`;
+      let errMsg = err?.message || err?.code || `Erro HTTP ${res.status}`;
+      if (
+        typeof errMsg === "string" &&
+        (errMsg.toLowerCase().includes("key is not enabled") ||
+          errMsg.toLowerCase().includes("unauthorized") ||
+          errMsg.toLowerCase().includes("unrecognised"))
+      ) {
+        errMsg = "Chave da API Brevo inativa ou desabilitada. Ative/Gere uma nova API Key em app.brevo.com/settings/keys/api e configure VITE_BREVO_API_KEY.";
+      }
       console.warn("[Brevo API Error]", err);
       return { success: false, error: errMsg };
     }
@@ -256,7 +264,7 @@ export async function sendClientAccessInviteEmail(args: {
   to: { name: string; email: string };
   companyName?: string;
   customLink?: string;
-}) {
+}): Promise<SendEmailResult> {
   const loginUrl =
     args.customLink ||
     (typeof window !== "undefined"
@@ -301,15 +309,19 @@ export async function sendClientAccessInviteEmail(args: {
   if (result.success) {
     toast.success(`E-mail de convite enviado para ${args.to.email}`);
   } else {
-    if (result.error?.includes("unrecognised IP address")) {
-      toast.error(
-        `E-mail não enviado: Seu endereço IP precisa ser autorizado no painel da Brevo (Security > Authorized IPs) ou desativar a restrição de IP.`,
-        { duration: 8000 },
-      );
-    } else {
-      toast.error(`Falha no e-mail (${args.to.email}): ${result.error}`);
-    }
+    toast.error(`Falha no e-mail (${args.to.email}): ${result.error}`, {
+      duration: 8000,
+      action: {
+        label: "Copiar Link",
+        onClick: () => {
+          navigator.clipboard.writeText(loginUrl);
+          toast.success("Link direto do portal copiado para a área de transferência!");
+        },
+      },
+    });
   }
+
+  return result;
 }
 
 export async function sendServiceInvoiceIssuedEmail(args: {
