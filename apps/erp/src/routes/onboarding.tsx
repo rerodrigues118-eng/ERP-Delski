@@ -24,6 +24,8 @@ import {
   Instagram,
   Linkedin,
   Sparkles,
+  RefreshCw,
+  Pencil,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -933,22 +935,50 @@ function OnboardingPage() {
 
                         <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
                           {uploaded ? (
-                            <div className="flex items-center justify-between w-full">
-                              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 truncate max-w-[200px]">
-                                <FileText className="h-4 w-4 text-emerald-600 flex-shrink-0" />
-                                <span className="truncate">{uploaded.name}</span>
+                            <div className="flex items-center justify-between gap-2.5 w-full bg-emerald-50/70 border border-emerald-200/90 rounded-xl p-2.5">
+                              <div className="flex items-center gap-2 text-xs font-semibold text-emerald-950 min-w-0">
+                                <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                                <span className="truncate max-w-[140px] sm:max-w-[180px]" title={uploaded.name}>
+                                  {uploaded.name}
+                                </span>
+                                <Badge className="bg-emerald-600 text-white text-[9px] font-bold py-0.5 px-1.5 shrink-0">
+                                  Anexado ✓
+                                </Badge>
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleRemoveDoc(doc.id)}
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 px-2 text-xs"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" /> Remover
-                              </Button>
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100/70 transition-colors shadow-xs">
+                                  <input
+                                    type="file"
+                                    className="hidden"
+                                    accept=".pdf,.png,.jpg,.jpeg"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) handleFileUpload(doc.id, file);
+                                    }}
+                                    disabled={isUploading}
+                                  />
+                                  {isUploading ? (
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                                  ) : (
+                                    <Pencil className="h-3.5 w-3.5 text-emerald-700" />
+                                  )}
+                                  <span>{isUploading ? "Enviando..." : "Alterar"}</span>
+                                </label>
+
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveDoc(doc.id)}
+                                  className="text-rose-500 hover:text-rose-700 hover:bg-rose-100/50 h-7 w-7 p-0 rounded-lg cursor-pointer"
+                                  title="Remover anexo"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </div>
                           ) : (
-                            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors w-full justify-center">
+                            <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors w-full justify-center shadow-xs">
                               <input
                                 type="file"
                                 className="hidden"
@@ -961,11 +991,11 @@ function OnboardingPage() {
                               />
                               {isUploading ? (
                                 <>
-                                  <Loader2 className="h-4 w-4 animate-spin" /> Enviando...
+                                  <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Enviando arquivo...
                                 </>
                               ) : (
                                 <>
-                                  <UploadCloud className="h-4 w-4" /> Selecionar Arquivo
+                                  <UploadCloud className="h-4 w-4 text-blue-600" /> Selecionar Arquivo
                                 </>
                               )}
                             </label>
