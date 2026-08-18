@@ -360,34 +360,36 @@ function ClientDetailPage() {
         {/* Left 2 Cols: Form & Projects */}
         <div className="md:col-span-2 space-y-6">
           {/* Card 1: Dados Cadastrais */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-indigo-500" />
+          <Card className="bg-card border-border shadow-subtle rounded-2xl">
+            <CardHeader className="pb-3 border-b border-border/70">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 Dados Cadastrais do Cliente
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs text-muted-foreground">
                 Atualize as informações corporativas e dados de contato principal.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <form onSubmit={handleSaveProfile} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Nome Completo *</Label>
+                    <Label className="text-xs font-semibold text-foreground">Nome Completo *</Label>
                     <Input
                       value={fullName}
                       onChange={(e) => setFullName(e.target.value)}
+                      className="bg-muted/40 border-border rounded-xl"
                       required
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">E-mail Corporativo *</Label>
+                    <Label className="text-xs font-semibold text-foreground">E-mail Corporativo *</Label>
                     <Input
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
+                      className="bg-muted/40 border-border rounded-xl"
                       required
                     />
                   </div>
@@ -395,20 +397,22 @@ function ClientDetailPage() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Nome da Empresa / Razão Social</Label>
+                    <Label className="text-xs font-semibold text-foreground">Nome da Empresa / Razão Social</Label>
                     <Input
                       value={companyName}
                       onChange={(e) => setCompanyName(e.target.value)}
                       placeholder="Ex: Studio Lumina Mídia"
+                      className="bg-muted/40 border-border rounded-xl"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-semibold">Telefone / WhatsApp</Label>
+                    <Label className="text-xs font-semibold text-foreground">Telefone / WhatsApp</Label>
                     <Input
                       value={phone}
                       onChange={(e) => setPhone(e.target.value)}
                       placeholder="(11) 98888-7777"
+                      className="bg-muted/40 border-border rounded-xl"
                     />
                   </div>
                 </div>
@@ -417,7 +421,7 @@ function ClientDetailPage() {
                   <Button
                     type="submit"
                     disabled={updateClient.isPending}
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-medium gap-1.5"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold gap-1.5 rounded-xl cursor-pointer"
                   >
                     {updateClient.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     Salvar Dados Cadastrais
@@ -428,17 +432,17 @@ function ClientDetailPage() {
           </Card>
 
           {/* Card 1b: Gestão Financeira do Cliente (Definido pelo Gestor) */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-emerald-600" />
+          <Card className="bg-card border-border shadow-subtle rounded-2xl">
+            <CardHeader className="pb-3 border-b border-border/70">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 Parâmetros Financeiros & Contrato (Gestor)
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs text-muted-foreground">
                 Defina o modelo de contratação, valores e datas que aparecerão na área restrita deste cliente.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pt-4">
               <form onSubmit={handleSaveFinancial} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   <div className="space-y-1.5">
@@ -527,7 +531,7 @@ function ClientDetailPage() {
                   <Button
                     type="submit"
                     disabled={updateClient.isPending}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-medium gap-1.5"
+                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold gap-1.5 rounded-xl cursor-pointer"
                   >
                     {updateClient.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                     Salvar Parâmetros Financeiros
@@ -538,22 +542,24 @@ function ClientDetailPage() {
           </Card>
 
           {/* Card 1c: Anexar Documentos / Notas Fiscais pelo Gestor */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <FileText className="h-4 w-4 text-blue-600" />
+          <Card className="bg-card border-border shadow-subtle rounded-2xl">
+            <CardHeader className="pb-3 border-b border-border/70">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <FileText className="h-4.5 w-4.5 text-blue-600 dark:text-blue-400" />
                 Documentos & Notas Fiscais do Cliente
               </CardTitle>
-              <CardDescription className="text-xs">
+              <CardDescription className="text-xs text-muted-foreground">
                 Anexe o Contrato Oficial de Prestação ou Notas Fiscais emitidas para que o cliente visualize no portal.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 border rounded-xl bg-slate-50/50 space-y-2">
-                  <p className="text-xs font-bold text-gray-800">Anexar Contrato Oficial</p>
-                  <p className="text-[11px] text-gray-500">Substitui ou disponibiliza o contrato oficial assinado no portal do cliente.</p>
-                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                <div className="p-4 border border-border rounded-2xl bg-muted/20 dark:bg-zinc-900/90 space-y-2.5 shadow-xs">
+                  <p className="text-xs font-bold text-foreground">Anexar Contrato Oficial</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Substitui ou disponibiliza o contrato oficial assinado no portal do cliente.
+                  </p>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs">
                     <input
                       type="file"
                       className="hidden"
@@ -573,10 +579,12 @@ function ClientDetailPage() {
                   </label>
                 </div>
 
-                <div className="p-4 border rounded-xl bg-slate-50/50 space-y-2">
-                  <p className="text-xs font-bold text-gray-800">Anexar Nota Fiscal</p>
-                  <p className="text-[11px] text-gray-500">Disponibiliza a NF emitida para download pelo cliente na aba financeira.</p>
-                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white transition-colors">
+                <div className="p-4 border border-border rounded-2xl bg-muted/20 dark:bg-zinc-900/90 space-y-2.5 shadow-xs">
+                  <p className="text-xs font-bold text-foreground">Anexar Nota Fiscal</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    Disponibiliza a NF emitida para download pelo cliente na aba financeira.
+                  </p>
+                  <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors shadow-xs">
                     <input
                       type="file"
                       className="hidden"
@@ -598,22 +606,28 @@ function ClientDetailPage() {
               </div>
 
               {clientDocs.length > 0 && (
-                <div className="pt-2 border-t space-y-2">
-                  <p className="text-xs font-semibold text-gray-700">Documentos no Repositório ({clientDocs.length}):</p>
-                  <div className="divide-y divide-gray-100 border rounded-lg">
+                <div className="pt-3 border-t border-border space-y-2.5">
+                  <p className="text-xs font-semibold text-foreground">
+                    Documentos no Repositório ({clientDocs.length}):
+                  </p>
+                  <div className="divide-y divide-border border border-border rounded-xl overflow-hidden bg-card dark:bg-zinc-900/60">
                     {clientDocs.map((doc) => (
-                      <div key={doc.id} className="p-2.5 flex items-center justify-between text-xs hover:bg-slate-50">
-                        <div className="flex items-center gap-2">
-                          <FileText className="h-3.5 w-3.5 text-gray-400" />
-                          <span className="font-medium text-gray-800 uppercase text-[11px]">{doc.document_type}</span>
-                          <span className="text-[11px] text-gray-400">{formatDate(doc.uploaded_at || (doc as any).created_at)}</span>
+                      <div key={doc.id} className="p-3 flex items-center justify-between text-xs hover:bg-muted/40 transition-colors">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <FileText className="h-4 w-4 text-blue-500 shrink-0" />
+                          <span className="font-semibold text-foreground uppercase text-[11px] truncate">
+                            {doc.document_type}
+                          </span>
+                          <span className="text-[11px] text-muted-foreground shrink-0">
+                            {formatDate(doc.uploaded_at || (doc as any).created_at)}
+                          </span>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 shrink-0">
                           <a
                             href={doc.file_url || doc.public_url || "#"}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-600 hover:underline flex items-center gap-1 text-[11px]"
+                            className="text-blue-500 hover:underline flex items-center gap-1 text-[11px] font-medium"
                           >
                             <ExternalLink className="h-3 w-3" /> Ver
                           </a>
@@ -621,9 +635,10 @@ function ClientDetailPage() {
                             variant="ghost"
                             size="sm"
                             onClick={() => deleteDoc.mutate({ documentId: doc.id, filePath: doc.file_path })}
-                            className="h-6 px-1.5 text-[11px] text-red-500 hover:text-red-700 hover:bg-red-50"
+                            className="h-7 w-7 p-0 text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 cursor-pointer rounded-lg"
+                            title="Excluir documento"
                           >
-                            <Trash2 className="h-3 w-3" />
+                            <Trash2 className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                       </div>
@@ -635,43 +650,42 @@ function ClientDetailPage() {
           </Card>
 
           {/* Card 2: Projetos Vinculados */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-3">
+          <Card className="bg-card border-border shadow-subtle rounded-2xl">
+            <CardHeader className="flex flex-row items-center justify-between pb-3 border-b border-border/70">
               <div>
-                <CardTitle className="text-base font-bold flex items-center gap-2">
-                  <FolderKanban className="h-4 w-4 text-indigo-500" />
+                <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                  <FolderKanban className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                   Projetos Vinculados ({client.projects?.length || 0})
                 </CardTitle>
-                <CardDescription className="text-xs">
+                <CardDescription className="text-xs text-muted-foreground">
                   Projetos que este cliente pode visualizar exclusivamente no Portal do Cliente.
                 </CardDescription>
               </div>
 
               <Dialog open={openLinkModal} onOpenChange={setOpenLinkModal}>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="gap-1 text-xs">
+                  <Button size="sm" variant="outline" className="gap-1.5 text-xs rounded-xl border-border cursor-pointer">
                     <Plus className="h-3.5 w-3.5" /> Vincular Projeto
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="bg-card border-border text-foreground">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <FolderKanban className="h-5 w-5 text-indigo-500" /> Vincular Projeto ao
-                      Cliente
+                    <DialogTitle className="flex items-center gap-2 text-foreground">
+                      <FolderKanban className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Vincular Projeto ao Cliente
                     </DialogTitle>
-                    <DialogDescription>
+                    <DialogDescription className="text-muted-foreground">
                       Selecione um projeto cadastrado para associar à conta deste cliente.
                     </DialogDescription>
                   </DialogHeader>
 
                   <form onSubmit={handleLinkSubmit} className="space-y-4 py-2">
                     <div className="space-y-1.5">
-                      <Label>Projeto Existente</Label>
+                      <Label className="text-foreground">Projeto Existente</Label>
                       <Select value={selectedProjectId} onValueChange={setSelectedProjectId}>
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full bg-muted/40 border-border rounded-xl">
                           <SelectValue placeholder="Selecione um projeto..." />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-popover border-border">
                           {unlinkedProjects.map((p) => (
                             <SelectItem key={p.id} value={p.id}>
                               {p.title} ({p.service_type})
@@ -691,13 +705,14 @@ function ClientDetailPage() {
                         type="button"
                         variant="outline"
                         onClick={() => setOpenLinkModal(false)}
+                        className="rounded-xl border-border cursor-pointer"
                       >
                         Cancelar
                       </Button>
                       <Button
                         type="submit"
                         disabled={linkProject.isPending || !selectedProjectId}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white gap-2"
+                        className="bg-blue-600 hover:bg-blue-700 text-white gap-2 rounded-xl cursor-pointer"
                       >
                         {linkProject.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
                         Confirmar Vinculação
@@ -708,28 +723,28 @@ function ClientDetailPage() {
               </Dialog>
             </CardHeader>
 
-            <CardContent className="space-y-3">
+            <CardContent className="space-y-3 pt-4">
               {client.projects && client.projects.length > 0 ? (
-                <div className="divide-y divide-border border border-border rounded-lg">
+                <div className="divide-y divide-border border border-border rounded-xl overflow-hidden bg-card">
                   {client.projects.map((proj: any) => (
                     <div
                       key={proj.id}
-                      className="p-3 flex items-center justify-between gap-3 text-xs hover:bg-muted/30"
+                      className="p-3.5 flex items-center justify-between gap-3 text-xs hover:bg-muted/40 transition-colors"
                     >
                       <div className="space-y-0.5">
                         <div className="font-semibold text-foreground flex items-center gap-2">
                           <Link
                             to="/app/projects/$id"
                             params={{ id: proj.id }}
-                            className="hover:underline hover:text-indigo-400"
+                            className="hover:underline hover:text-blue-600 dark:hover:text-blue-400"
                           >
                             {proj.title}
                           </Link>
-                          <Badge variant="outline" className="text-[10px]">
+                          <Badge variant="outline" className="text-[10px] bg-muted text-muted-foreground border-border">
                             {proj.service_type || "Geral"}
                           </Badge>
                         </div>
-                        <div className="text-muted-foreground flex items-center gap-3">
+                        <div className="text-muted-foreground flex items-center gap-3 text-[11px]">
                           <span>Status: {proj.status}</span>
                           {proj.budget && (
                             <span>
@@ -743,7 +758,7 @@ function ClientDetailPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs">
+                        <Button asChild variant="ghost" size="sm" className="h-7 px-2 text-xs rounded-lg">
                           <Link to="/app/projects/$id" params={{ id: proj.id }}>
                             <ExternalLink className="h-3 w-3" />
                           </Link>
@@ -756,7 +771,7 @@ function ClientDetailPage() {
                           onClick={() =>
                             unlinkProject.mutate({ projectId: proj.id, clientId: client.id })
                           }
-                          className="h-7 px-2 text-xs text-rose-400 hover:text-rose-300 hover:bg-rose-500/10"
+                          className="h-7 px-2 text-xs text-rose-500 hover:text-rose-600 hover:bg-rose-500/10 rounded-lg cursor-pointer"
                         >
                           <Trash2 className="h-3 w-3" /> Desvincular
                         </Button>
@@ -765,7 +780,7 @@ function ClientDetailPage() {
                   ))}
                 </div>
               ) : (
-                <div className="p-6 text-center text-xs text-muted-foreground border border-dashed rounded-lg">
+                <div className="p-6 text-center text-xs text-muted-foreground border border-dashed border-border rounded-xl bg-muted/20 font-medium">
                   Nenhum projeto vinculado a este cliente ainda. Clique em "Vincular Projeto" para
                   associar.
                 </div>
@@ -776,29 +791,29 @@ function ClientDetailPage() {
 
         {/* Right 1 Col: Access & Portal Info */}
         <div className="space-y-6">
-          <Card className="border-indigo-500/20 bg-card">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-bold flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-indigo-500" />
+          <Card className="border-border bg-card shadow-subtle rounded-2xl">
+            <CardHeader className="pb-3 border-b border-border/70">
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <ShieldCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                 Status do Acesso ao Portal
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-4">
               <div className="space-y-1">
                 <span className="text-xs text-muted-foreground">Estado Atual:</span>
                 <div>
                   {client.status === "ativo" && (
-                    <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 gap-1 text-xs">
+                    <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 gap-1 text-xs">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Acesso Ativo
                     </Badge>
                   )}
                   {client.status === "convidado" && (
-                    <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30 gap-1 text-xs">
+                    <Badge className="bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1 text-xs">
                       <Clock className="h-3.5 w-3.5" /> Convite Enviado (Pendente)
                     </Badge>
                   )}
                   {client.status === "bloqueado" && (
-                    <Badge className="bg-rose-500/20 text-rose-400 border-rose-500/30 gap-1 text-xs">
+                    <Badge className="bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30 gap-1 text-xs">
                       <Ban className="h-3.5 w-3.5" /> Acesso Bloqueado
                     </Badge>
                   )}
@@ -813,7 +828,7 @@ function ClientDetailPage() {
                     : "A conta está temporariamente bloqueada pelo Gestor. O cliente não conseguirá realizar login."}
               </p>
 
-              <div className="pt-2 border-t space-y-2">
+              <div className="pt-2 border-t border-border space-y-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -825,9 +840,9 @@ function ClientDetailPage() {
                       companyName: client.company_name || undefined,
                     })
                   }
-                  className="w-full text-xs font-medium gap-1.5"
+                  className="w-full text-xs font-semibold gap-1.5 rounded-xl border-border cursor-pointer hover:bg-muted"
                 >
-                  <Send className="h-3.5 w-3.5 text-indigo-400" /> Reenviar E-mail de Convite
+                  <Send className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" /> Reenviar E-mail de Convite
                 </Button>
 
                 <Button
@@ -836,8 +851,8 @@ function ClientDetailPage() {
                   onClick={handleToggleStatus}
                   className={
                     client.status === "bloqueado"
-                      ? "w-full text-xs text-emerald-400 hover:text-emerald-300"
-                      : "w-full text-xs text-rose-400 hover:text-rose-300"
+                      ? "w-full text-xs text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10 rounded-xl border-border cursor-pointer"
+                      : "w-full text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-500/10 rounded-xl border-border cursor-pointer"
                   }
                 >
                   {client.status === "bloqueado" ? "Ativar Acesso" : "Bloquear Acesso"}
