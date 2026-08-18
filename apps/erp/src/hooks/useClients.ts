@@ -265,12 +265,14 @@ export function useCreateClient() {
     mutationFn: async (input: CreateClientInput) => {
       const clientId = crypto.randomUUID();
 
-      // 1. Insert into profiles
+      // 1. Insert into profiles — pré-aprovado pois vem de convite direto do gestor
       await (supabase.from("profiles") as any).upsert({
         id: clientId,
         full_name: input.full_name,
         email: input.email,
         role: "cliente",
+        invited_by_gestor: true,   // convite direto — bypass da fila de aprovação
+        approval_status: "approved", // pré-aprovado pelo gestor
       });
 
       // 2. Insert into clients table
@@ -283,6 +285,7 @@ export function useCreateClient() {
           company_name: input.company_name || null,
           phone: input.phone || null,
           status: "convidado",
+          invited_by_gestor: true,
         })
         .select()
         .single();

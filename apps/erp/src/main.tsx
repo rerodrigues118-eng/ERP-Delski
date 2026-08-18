@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { RouterProvider } from "@tanstack/react-router";
+import { ThemeProvider } from "@/contexts/ThemeContext";
 import { getRouter } from "./router";
 import "./styles.css";
 
@@ -12,7 +13,9 @@ if (rootElement) {
   (rootElement as any)._reactRoot = root;
   root.render(
     <StrictMode>
-      <RouterProvider router={router} />
+      <ThemeProvider>
+        <RouterProvider router={router} />
+      </ThemeProvider>
     </StrictMode>
   );
 }

@@ -72,7 +72,7 @@
   .page-title {
     font-size: 1.75rem;
     font-weight: 700;
-    color: #111827;
+    color: var(--color-foreground);
     letter-spacing: -0.025em;
     line-height: 1.2;
   }
@@ -81,12 +81,12 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.07em;
-    color: #6B7280;
+    color: var(--color-muted-foreground);
   }
   .kpi-value {
     font-size: 1.625rem;
     font-weight: 700;
-    color: #111827;
+    color: var(--color-foreground);
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
   }
@@ -98,57 +98,57 @@
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.07em;
-    color: #6B7280;
-    border-bottom: 1px solid #F3F4F6;
-    background-color: #FAFAFA;
+    color: var(--color-muted-foreground);
+    border-bottom: 1px solid var(--color-border);
+    background-color: var(--color-muted);
   }
   .data-table tbody tr {
-    border-bottom: 1px solid #F9FAFB;
+    border-bottom: 1px solid var(--color-border);
   }
   .data-table tbody tr:hover {
-    background-color: rgb(239 246 255 / 0.4);
+    background-color: var(--color-accent);
   }
   .data-table tbody td {
     padding: 0.875rem 1rem;
     font-size: 0.875rem;
-    color: #374151;
+    color: var(--color-foreground);
   }
-  /* Status badge presets */
+  /* Status badge presets — light + dark adaptive */
   .badge-blue {
-    background-color: #EFF6FF;
-    color: #1D4ED8;
-    border-color: #BFDBFE;
+    background-color: rgb(59 130 246 / 0.1);
+    color: #3b82f6;
+    border-color: rgb(59 130 246 / 0.2);
   }
   .badge-green {
-    background-color: #F0FDF4;
-    color: #15803D;
-    border-color: #BBF7D0;
+    background-color: rgb(16 185 129 / 0.1);
+    color: #10b981;
+    border-color: rgb(16 185 129 / 0.2);
   }
   .badge-amber {
-    background-color: #FFFBEB;
-    color: #B45309;
-    border-color: #FDE68A;
+    background-color: rgb(245 158 11 / 0.1);
+    color: #f59e0b;
+    border-color: rgb(245 158 11 / 0.2);
   }
   .badge-red {
-    background-color: #FEF2F2;
-    color: #B91C1C;
-    border-color: #FECACA;
+    background-color: rgb(239 68 68 / 0.1);
+    color: #ef4444;
+    border-color: rgb(239 68 68 / 0.2);
   }
   .badge-purple {
-    background-color: #FAF5FF;
-    color: #7E22CE;
-    border-color: #E9D5FF;
+    background-color: rgb(139 92 246 / 0.1);
+    color: #8b5cf6;
+    border-color: rgb(139 92 246 / 0.2);
   }
   .badge-gray {
-    background-color: #F9FAFB;
-    color: #4B5563;
-    border-color: #E5E7EB;
+    background-color: var(--color-muted);
+    color: var(--color-muted-foreground);
+    border-color: var(--color-border);
   }
   /* KPI Card base */
   .kpi-card {
-    background: white;
+    background: var(--color-card);
     border-radius: 0.75rem;
-    border: 1px solid #F3F4F6;
+    border: 1px solid var(--color-border);
     padding: 1.1rem 1.25rem;
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   }
@@ -161,21 +161,21 @@
     border-radius: 0.5rem;
     font-size: 0.8125rem;
     font-weight: 500;
-    color: #4B5563;
+    color: var(--color-muted-foreground);
     cursor: pointer;
-
     text-decoration: none;
     white-space: nowrap;
+    transition: background-color 150ms ease, color 150ms ease;
   }
   .nav-item:hover {
-    background-color: #F9FAFB;
-    color: #111827;
+    background-color: var(--color-accent);
+    color: var(--color-foreground);
   }
   .nav-item.active {
-    background-color: #EFF6FF;
-    color: #1D4ED8;
+    background-color: var(--color-accent);
+    color: var(--color-accent-foreground);
     font-weight: 600;
-    border-left: 2px solid #1d4ed8;
+    border-left: 2px solid var(--color-primary);
     border-radius: 0 0.5rem 0.5rem 0;
     padding-left: calc(0.75rem - 2px);
   }
@@ -189,15 +189,13 @@
   }
 }
 
-/* ── Design Tokens ───────────────────────────────────────── */
+/* ── Design Tokens — Light Mode ─────────────────────────── */
 :root {
-  --radius: 0.625rem; /* 10px */
+  --radius: 0.625rem;
   --sidebar-width: 220px;
   --header-height: 56px;
 
-  /* Background: Clean White */
   --background: #FFFFFF;
-  /* Foreground: Rich Black */
   --foreground: #111827;
 
   --card: #FFFFFF;
@@ -205,7 +203,6 @@
   --popover: #FFFFFF;
   --popover-foreground: #111827;
 
-  /* Primary: Dark Royal Blue */
   --primary: #1d4ed8;
   --primary-foreground: #FFFFFF;
   --brand: #1d4ed8;
@@ -223,14 +220,12 @@
   --input: #E5E7EB;
   --ring: #1d4ed8;
 
-  /* Charts */
   --chart-1: #2563EB;
   --chart-2: #10B981;
   --chart-3: #F59E0B;
   --chart-4: #8B5CF6;
   --chart-5: #EF4444;
 
-  /* Sidebar */
   --sidebar: #FFFFFF;
   --sidebar-foreground: #374151;
   --sidebar-primary: #2563EB;
@@ -241,47 +236,98 @@
   --sidebar-ring: #2563EB;
 }
 
+/* ── Design Tokens — Dark Mode (Zinc / Vercel Standard) ─── */
+/*
+ * Surface hierarchy:
+ *  Background → #09090b  (zinc-950) — canvas principal
+ *  Card/Panel → #0e0e11  (zinc-950) — componentes elevados
+ *  Muted      → #27272a  (zinc-800) — elementos secundários
+ *  Border     → #27272a  (zinc-800) — divisores finos e sutis
+ *
+ * Primary strategy (Vercel High-Contrast):
+ *  Botões primários ficam brancos (hsl 0 0% 98%)
+ *  com texto escuro para máximo contraste em dark mode.
+ */
 .dark {
-  --background: #0F172A;
-  --foreground: #F8FAFC;
-  --card: #1E293B;
-  --card-foreground: #F1F5F9;
-  --popover: #1E293B;
-  --popover-foreground: #F1F5F9;
-  --primary: #3B82F6;
-  --primary-foreground: #FFFFFF;
-  --brand: #3B82F6;
-  --brand-foreground: #FFFFFF;
-  --secondary: #1E293B;
-  --secondary-foreground: #CBD5E1;
-  --muted: #1E293B;
-  --muted-foreground: #94A3B8;
-  --accent: #1E3A5F;
-  --accent-foreground: #93C5FD;
-  --destructive: #EF4444;
-  --destructive-foreground: #FFFFFF;
-  --border: rgb(255 255 255 / 0.1);
-  --input: rgb(255 255 255 / 0.12);
-  --ring: #3B82F6;
-  --chart-1: #3B82F6;
-  --chart-2: #34D399;
-  --chart-3: #FBBF24;
-  --chart-4: #A78BFA;
-  --chart-5: #F87171;
-  --sidebar: #0F172A;
-  --sidebar-foreground: #CBD5E1;
-  --sidebar-primary: #3B82F6;
-  --sidebar-primary-foreground: #FFFFFF;
-  --sidebar-accent: #1E3A5F;
-  --sidebar-accent-foreground: #93C5FD;
-  --sidebar-border: rgb(255 255 255 / 0.08);
-  --sidebar-ring: #3B82F6;
+  /* Superfícies */
+  --background: hsl(240 10% 3.9%);        /* #09090b — fundo principal */
+  --foreground: hsl(0 0% 98%);            /* #fafafa — texto principal */
+
+  --card: hsl(240 10% 5.9%);              /* #0e0e11 — cards elevados */
+  --card-foreground: hsl(0 0% 98%);
+  --popover: hsl(240 10% 5.9%);
+  --popover-foreground: hsl(0 0% 98%);
+
+  /* Primária — Vercel High-Contrast White Button */
+  --primary: hsl(0 0% 98%);              /* botão primário em branco */
+  --primary-foreground: hsl(240 5.9% 10%); /* texto escuro no botão */
+  --brand: #60a5fa;                       /* blue-400 para acentos de marca */
+  --brand-foreground: #0f172a;
+
+  /* Elementos secundários e silenciados */
+  --secondary: hsl(240 3.7% 15.9%);      /* #27272a */
+  --secondary-foreground: hsl(0 0% 98%);
+  --muted: hsl(240 3.7% 15.9%);          /* #27272a */
+  --muted-foreground: hsl(240 5% 64.9%); /* #a1a1aa */
+
+  /* Acento — hover e seleção */
+  --accent: hsl(240 3.7% 15.9%);
+  --accent-foreground: hsl(0 0% 98%);
+
+  /* Destrutivo */
+  --destructive: hsl(0 72.2% 50.6%);
+  --destructive-foreground: hsl(0 0% 98%);
+
+  /* Bordas e inputs */
+  --border: hsl(240 3.7% 15.9%);         /* #27272a — bordas sutis */
+  --input: hsl(240 3.7% 15.9%);
+  --ring: hsl(240 4.9% 83.9%);           /* foco de teclado elegante */
+
+  /* Gráficos */
+  --chart-1: #60a5fa;
+  --chart-2: #34d399;
+  --chart-3: #fbbf24;
+  --chart-4: #a78bfa;
+  --chart-5: #f87171;
+
+  /* Sidebar */
+  --sidebar: hsl(240 10% 3.9%);          /* mesmo que background */
+  --sidebar-foreground: hsl(240 5% 64.9%);
+  --sidebar-primary: hsl(0 0% 98%);
+  --sidebar-primary-foreground: hsl(240 5.9% 10%);
+  --sidebar-accent: hsl(240 3.7% 15.9%);
+  --sidebar-accent-foreground: hsl(0 0% 98%);
+  --sidebar-border: hsl(240 3.7% 15.9%);
+  --sidebar-ring: hsl(240 4.9% 83.9%);
 }
 
+/* ── Base Styles ─────────────────────────────────────────── */
 @layer base {
-  * {
+  /*
+   * Transição global suave ao alternar tema.
+   * Aplicada apenas nas propriedades visuais — não em transform
+   * ou opacity para não degradar animações de UI.
+   */
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-duration: 180ms;
+    transition-timing-function: ease;
     border-color: var(--color-border);
   }
+
+  /* Elementos interativos — feedback mais rápido */
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [role="button"] {
+    transition-property: background-color, border-color, color, opacity, transform, box-shadow;
+    transition-duration: 120ms;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -289,16 +335,18 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-  /* Remove serif headings — only editorial sections get serif */
+
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-sans);
     font-weight: 700;
-    color: #111827;
+    color: var(--color-foreground);
   }
+
   .font-serif-title {
     font-family: var(--font-serif);
   }
-  /* Smooth scrollbar */
+
+  /* Scrollbar — adapta automaticamente ao tema */
   ::-webkit-scrollbar {
     width: 5px;
     height: 5px;
@@ -307,10 +355,34 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: #D1D5DB;
+    background: var(--color-border);
     border-radius: 99px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #9CA3AF;
+    background: var(--muted-foreground);
+  }
+}
+
+/* ── Dark Mode — Efeitos de Profundidade e Glassmorphism ─── */
+@layer utilities {
+  /*
+   * .card-depth — card com borda translúcida e sombra interna (Vercel/Linear style).
+   * Uso: adicione a classe aos cards em páginas onde deseja a profundidade extra.
+   */
+  .dark .card-depth {
+    background: hsl(240 10% 5.9% / 0.6);
+    border: 1px solid hsl(240 3.7% 15.9% / 0.8);
+    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.05);
+  }
+
+  /*
+   * .glass-surface — glassmorphism sutil para header/sidebar fixos.
+   * Uso: adicione à aside ou nav fixa para efeito vidro fosco.
+   */
+  .dark .glass-surface {
+    background: hsl(240 10% 3.9% / 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-color: hsl(240 3.7% 15.9% / 0.6);
   }
 }

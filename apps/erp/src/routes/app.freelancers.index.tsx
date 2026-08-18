@@ -104,6 +104,8 @@ function FreelancersPage() {
         full_name: name,
         email,
         role: "freelancer",
+        invited_by_gestor: true,    // convite direto pelo gestor
+        approval_status: "approved", // pré-aprovado — não entra na fila /app/approvals
       });
 
       if (error) {
