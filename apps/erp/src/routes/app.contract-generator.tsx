@@ -326,11 +326,6 @@ function ContractGeneratorPage() {
         <Card className="space-y-4 shadow-sm">
           <CardHeader>
             <CardTitle>Configuração do Contrato</CardTitle>
-            <CardDescription>
-              Selecione o modelo, projeto e{" "}
-              {contractParty === "freelancer" ? "freelancer" : "cliente"} para carregar os dados
-              automáticos.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -470,9 +465,6 @@ function ContractGeneratorPage() {
                 </span>
               )}
             </CardTitle>
-            <CardDescription>
-              Preencha ou revise os valores do modelo antes de gerar o contrato final.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <ContractValuesForm

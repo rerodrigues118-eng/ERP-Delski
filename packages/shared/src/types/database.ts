@@ -228,37 +228,49 @@ export interface ProjectTriageUpdate {
 
 export interface ProjectExpensesRow {
   id: string;
-  project_id: string;
+  project_id: string | null;
   amount: number;
   description: string | null;
-  category: "freelancer" | "ads" | "ferramentas" | "outros";
+  category: string;
+  nature?: "fixo" | "variavel";
+  due_date?: string | null;
+  payment_date?: string | null;
   status: "Pendente" | "Aprovado" | "Pago";
   freelancer_id: string | null;
   proof_url: string | null;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface ProjectExpensesInsert {
   id?: string;
-  project_id: string;
+  project_id?: string | null;
   amount: number;
   description?: string | null;
-  category?: "freelancer" | "ads" | "ferramentas" | "outros";
+  category?: string;
+  nature?: "fixo" | "variavel";
+  due_date?: string | null;
+  payment_date?: string | null;
   status?: "Pendente" | "Aprovado" | "Pago";
   freelancer_id?: string | null;
   proof_url?: string | null;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface ProjectExpensesUpdate {
-  project_id?: string;
+  project_id?: string | null;
   amount?: number;
   description?: string | null;
-  category?: "freelancer" | "ads" | "ferramentas" | "outros";
+  category?: string;
+  nature?: "fixo" | "variavel";
+  due_date?: string | null;
+  payment_date?: string | null;
   status?: "Pendente" | "Aprovado" | "Pago";
   freelancer_id?: string | null;
   proof_url?: string | null;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface FreelancerPayoutsRow {

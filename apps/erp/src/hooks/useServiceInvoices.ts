@@ -98,11 +98,81 @@ export function useEmitServiceInvoice() {
 
   return useMutation({
     mutationFn: async (params: EmitNfseParams) => {
+      // 0. Resolução e garantia de integridade de client_id válido na tabela public.clients
+      let targetClientId = params.clientId;
+
+      try {
+        const { data: existingClient } = await supabase
+          .from("clients")
+          .select("id, full_name, email, company_name, phone, auth_user_id")
+          .eq("id", params.clientId)
+          .maybeSingle();
+
+        if (existingClient?.id) {
+          targetClientId = existingClient.id;
+        } else {
+          // Busca por auth_user_id
+          const { data: clientByAuth } = await supabase
+            .from("clients")
+            .select("id")
+            .eq("auth_user_id", params.clientId)
+            .maybeSingle();
+
+          if (clientByAuth?.id) {
+            targetClientId = clientByAuth.id;
+          } else {
+            // Busca dados do perfil
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("id, full_name, email, phone, company_name")
+              .eq("id", params.clientId)
+              .maybeSingle();
+
+            if (profile) {
+              const { data: clientByEmail } = await supabase
+                .from("clients")
+                .select("id")
+                .eq("email", profile.email)
+                .maybeSingle();
+
+              if (clientByEmail?.id) {
+                targetClientId = clientByEmail.id;
+              } else {
+                // Insere automaticamente na tabela clients
+                const { data: newClient, error: createClientErr } = await supabase
+                  .from("clients")
+                  .insert({
+                    auth_user_id: profile.id,
+                    full_name: profile.full_name || "Cliente",
+                    email: profile.email || "",
+                    company_name: profile.company_name || "",
+                    phone: profile.phone || "",
+                    status: "ativo",
+                  } as any)
+                  .select("id")
+                  .single();
+
+                if (!createClientErr && newClient?.id) {
+                  targetClientId = newClient.id;
+                }
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("[useEmitServiceInvoice] Client resolution warn:", err);
+      }
+
+      const effectiveParams = {
+        ...params,
+        clientId: targetClientId,
+      };
+
       // 1. Tentar invocar a Edge Function 'emit-nfse'
       try {
         const { data: edgeData, error: edgeErr } =
           await supabase.functions.invoke("emit-nfse", {
-            body: params,
+            body: effectiveParams,
           });
 
         if (!edgeErr && edgeData?.invoice) {
@@ -122,16 +192,16 @@ export function useEmitServiceInvoice() {
       const xmlUrl = `https://delski.co/fiscal/nfse/${invoiceNumber}.xml`;
 
       const insertPayload: EmittedServiceInvoicesInsert = {
-        client_id: params.clientId,
-        project_id: params.projectId || null,
+        client_id: targetClientId,
+        project_id: effectiveParams.projectId || null,
         number: invoiceNumber,
         verification_code: verificationCode,
         status: "autorizada",
-        service_description: params.serviceDescription,
-        service_value: params.serviceValue,
-        iss_rate: params.issRate || 2.0,
-        cnae_code: params.cnaeCode || "6201-5/01",
-        item_lista_servico: params.itemListaServico || "01.07",
+        service_description: effectiveParams.serviceDescription,
+        service_value: effectiveParams.serviceValue,
+        iss_rate: effectiveParams.issRate || 2.0,
+        cnae_code: effectiveParams.cnaeCode || "6201-5/01",
+        item_lista_servico: effectiveParams.itemListaServico || "01.07",
         pdf_url: pdfUrl,
         xml_url: xmlUrl,
         issued_at: new Date().toISOString(),

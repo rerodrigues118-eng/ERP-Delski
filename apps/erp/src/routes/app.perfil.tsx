@@ -23,6 +23,7 @@ import {
   Phone,
   Upload,
   Trash2,
+  Camera,
 } from "lucide-react";
 
 export const Route = createFileRoute("/app/perfil")({
@@ -237,17 +238,63 @@ function GestorProfileSettingsPage() {
       <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 shadow-subtle">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-5">
-            {displayAvatar ? (
-              <img
-                src={displayAvatar}
-                alt={gestorName}
-                className="h-24 w-24 rounded-2xl object-cover ring-4 ring-primary/10 border border-border shadow-md flex-shrink-0"
+            {/* Direct-on-Avatar Interactive Editor */}
+            <div className="relative group flex-shrink-0">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/jpg,image/webp"
+                className="hidden"
+                onChange={handleAvatarFileSelect}
+                disabled={isSaving}
               />
-            ) : (
-              <div className="grid h-24 w-24 place-items-center rounded-2xl bg-primary/10 text-primary font-bold text-3xl border border-primary/20 shadow-sm flex-shrink-0">
-                {gestorName.charAt(0).toUpperCase() || "G"}
-              </div>
-            )}
+              
+              {displayAvatar ? (
+                <img
+                  src={displayAvatar}
+                  alt={gestorName}
+                  className="h-24 w-24 rounded-2xl object-cover ring-4 ring-primary/10 border border-border shadow-md"
+                />
+              ) : (
+                <div className="grid h-24 w-24 place-items-center rounded-2xl bg-primary/10 text-primary font-bold text-3xl border border-primary/20 shadow-sm">
+                  {gestorName.charAt(0).toUpperCase() || "G"}
+                </div>
+              )}
+
+              {/* Hover Overlay para troca direta */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isSaving}
+                className="absolute inset-0 rounded-2xl bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white cursor-pointer"
+                title="Clique para alterar a foto de perfil"
+              >
+                {uploadingAvatar ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <Camera className="h-5 w-5" />
+                    <span className="text-[10px] font-semibold mt-1">Alterar Foto</span>
+                  </>
+                )}
+              </button>
+
+              {/* Botão rápido para remover foto */}
+              {displayAvatar && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveAvatar();
+                  }}
+                  disabled={isSaving}
+                  className="absolute -top-1.5 -right-1.5 p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full shadow-md border-2 border-background opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer z-10"
+                  title="Remover foto de perfil"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs uppercase font-semibold tracking-wider text-muted-foreground">
@@ -374,61 +421,6 @@ function GestorProfileSettingsPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2 sm:col-span-2">
-                    <Label className="text-xs font-semibold text-foreground">
-                      Foto de Perfil
-                    </Label>
-                    <div className="flex items-center gap-4 bg-muted/40 p-4 rounded-xl border border-border">
-                      {/* Avatar preview */}
-                      {displayAvatar ? (
-                        <img
-                          src={displayAvatar}
-                          alt="Foto de perfil"
-                          className="h-24 w-24 rounded-2xl object-cover ring-4 ring-primary/10 border border-border shadow-md flex-shrink-0"
-                        />
-                      ) : (
-                        <div className="h-24 w-24 rounded-2xl bg-primary/10 text-primary font-bold text-3xl flex items-center justify-center border border-primary/20 shadow-sm flex-shrink-0">
-                          {gestorName.charAt(0).toUpperCase() || "G"}
-                        </div>
-                      )}
-                      <div className="space-y-1.5">
-                        <div className="flex flex-wrap gap-2">
-                          <label className="cursor-pointer inline-flex items-center gap-2 px-3.5 py-2 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-semibold transition-colors shadow-sm">
-                            {uploadingAvatar ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Upload className="h-3.5 w-3.5" />
-                            )}
-                            {avatarFile ? "Foto Selecionada ✓" : "Selecionar Foto"}
-                            <input
-                              ref={fileInputRef}
-                              type="file"
-                              accept="image/png,image/jpeg,image/jpg,image/webp"
-                              className="hidden"
-                              onChange={handleAvatarFileSelect}
-                              disabled={isSaving}
-                            />
-                          </label>
-                          {displayAvatar && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              className="text-xs text-rose-600 border-border hover:bg-rose-500/10 gap-1 cursor-pointer"
-                              onClick={handleRemoveAvatar}
-                              disabled={isSaving}
-                            >
-                              <Trash2 className="h-3.5 w-3.5" />
-                              Remover
-                            </Button>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-muted-foreground">
-                          PNG, JPG ou WEBP até 5 MB. A foto é salva no banco de dados e vinculada exclusivamente à sua conta.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
 
                   <div className="space-y-2 sm:col-span-2">
                     <Label

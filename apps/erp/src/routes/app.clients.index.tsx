@@ -220,7 +220,6 @@ function ClientsPage() {
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <p className="section-label mb-1">Relacionamento</p>
           <h1 className="page-title">
             {activeTab === "diretorio" ? "Clientes" : "CRM & Funil de Vendas"}
           </h1>

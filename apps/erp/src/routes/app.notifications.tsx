@@ -229,9 +229,6 @@ function NotificationsPage() {
             <CardTitle className="flex items-center gap-2 text-base">
               <Send className="h-4 w-4 text-blue-900" /> Enviar Notificação
             </CardTitle>
-            <CardDescription>
-              Envie uma mensagem para todos os freelancers ou para uma lista específica.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">

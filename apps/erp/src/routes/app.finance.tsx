@@ -71,12 +71,26 @@ import {
   AlertCircle,
   Calendar,
   Layers,
+  BarChart3,
+  ChevronDown,
+  ChevronUp,
+  Percent,
+  Scale,
+  CalendarDays,
+  ArrowUpRight,
+  ArrowDownRight,
+  ReceiptText,
+  CircleAlert,
+  Mail,
 } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/hooks/useAuth";
 import { formatDate } from "@/lib/utils";
 import { useDeletePayout } from "@/hooks/useExpenses";
+import { exportAccountingPDF, exportAccountingCSV } from "@/lib/accountingExport";
 import {
   useFreelancerFinanceProjects,
   useClienteFinanceProjects,
@@ -856,6 +870,25 @@ function GestorFinanceView() {
   const [nfseFilterStatus, setNfseFilterStatus] = useState<string>("all");
   const [nfseSearch, setNfseSearch] = useState("");
 
+  // ── Accounting & Advanced Reports States ──────────────────────────────────
+  const [reportPeriod, setReportPeriod] = useState<
+    "mes_atual" | "mes_anterior" | "trimestre" | "ano" | "custom"
+  >("mes_atual");
+  const [customStartDate, setCustomStartDate] = useState<string>(
+    new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
+  );
+  const [customEndDate, setCustomEndDate] = useState<string>(
+    new Date().toISOString().slice(0, 10)
+  );
+  const [reportRegime, setReportRegime] = useState<"competencia" | "caixa">("competencia");
+  const [reportSubTab, setReportSubTab] = useState<
+    "dre_dfc" | "inadimplencia" | "lucratividade" | "projecao" | "balanco" | "fiscal"
+  >("dre_dfc");
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    cogs: true,
+    opex: true,
+  });
+
   const [openCancelModal, setOpenCancelModal] = useState(false);
   const [cancelingInvoice, setCancelingInvoice] = useState<EmittedServiceInvoiceItem | null>(null);
   const [cancelReason, setCancelReason] = useState("");
@@ -1154,6 +1187,414 @@ function GestorFinanceView() {
     [allPayouts],
   );
 
+  // ── Accounting & Reports Date Range Calculation ───────────────────────────
+  const dateRange = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+
+    if (reportPeriod === "mes_atual") {
+      const start = new Date(year, month, 1);
+      const end = new Date(year, month + 1, 0, 23, 59, 59);
+      return { start, end, label: format(start, "MMMM 'de' yyyy", { locale: ptBR }) };
+    }
+    if (reportPeriod === "mes_anterior") {
+      const start = new Date(year, month - 1, 1);
+      const end = new Date(year, month, 0, 23, 59, 59);
+      return { start, end, label: format(start, "MMMM 'de' yyyy", { locale: ptBR }) };
+    }
+    if (reportPeriod === "trimestre") {
+      const start = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      return { start, end: now, label: "Último Trimestre (90 dias)" };
+    }
+    if (reportPeriod === "ano") {
+      const start = new Date(year, 0, 1);
+      const end = new Date(year, 11, 31, 23, 59, 59);
+      return { start, end, label: `Ano ${year} (YTD)` };
+    }
+
+    const start = customStartDate ? new Date(customStartDate + "T00:00:00") : new Date(year, month, 1);
+    const end = customEndDate ? new Date(customEndDate + "T23:59:59") : now;
+    return {
+      start,
+      end,
+      label: `${formatDate(customStartDate || start.toISOString())} até ${formatDate(customEndDate || end.toISOString())}`,
+    };
+  }, [reportPeriod, customStartDate, customEndDate]);
+
+  // ── Full Accounting Suite Calculation (DRE, DFC, Aging, Profitability, Runway, Balance, Fiscal) ──
+  const accountingData = useMemo(() => {
+    const { start, end, label } = dateRange;
+
+    // 1. Projetos filtrados
+    const filteredProjects = projects.filter((p) => {
+      const d = new Date(p.created_at || (p as any).created_at);
+      return d >= start && d <= end;
+    });
+
+    // 2. Despesas filtradas
+    const filteredExpenses = combinedExpenses.filter((e) => {
+      const d = new Date(e.dueDate ? e.dueDate + "T12:00:00" : Date.now());
+      return d >= start && d <= end;
+    });
+
+    // 3. Payouts filtrados
+    const filteredPayouts = allPayouts.filter((po) => {
+      const targetDate = reportRegime === "caixa" ? (po.payment_date || po.due_date) : po.due_date;
+      if (!targetDate) return true;
+      const d = new Date(targetDate);
+      return d >= start && d <= end;
+    });
+
+    // ── DRE (COMPETÊNCIA) ───────────────────────────────────────────────────
+    const grossRevenue = filteredProjects.reduce((acc, p) => acc + Number(p.budget || 0), 0);
+
+    // COGS (Custos Diretos dos Projetos)
+    const projectExpensesList = filteredExpenses.filter((e) => Boolean(e.projectId));
+    const cogsFreela = filteredPayouts.reduce((acc, po) => acc + Number(po.amount || 0), 0);
+    const cogsApis = projectExpensesList.filter((e) => e.category === "apis").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const cogsAds = projectExpensesList.filter((e) => e.category === "ads").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const cogsDominios = projectExpensesList.filter((e) => e.category === "dominios_infra").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const cogsOther = projectExpensesList.filter((e) => !["apis", "ads", "dominios_infra"].includes(e.category)).reduce((a, b) => a + Number(b.amount || 0), 0);
+    const totalDirectCosts = cogsFreela + cogsApis + cogsAds + cogsDominios + cogsOther;
+
+    const grossProfit = grossRevenue - totalDirectCosts;
+    const grossMargin = grossRevenue > 0 ? (grossProfit / grossRevenue) * 100 : 0;
+
+    // OPEX (Despesas Operacionais Corporativas)
+    const corporateExpensesList = filteredExpenses.filter((e) => !e.projectId);
+    const opexSaas = corporateExpensesList.filter((e) => e.category === "ferramentas").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const opexIa = corporateExpensesList.filter((e) => e.category === "ia_automacao").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const opexMarketing = corporateExpensesList.filter((e) => e.category === "influencers" || e.category === "ads").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const opexLeads = corporateExpensesList.filter((e) => e.category === "aquisicao_leads").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const opexFixos = corporateExpensesList.filter((e) => e.category === "custos_fixos").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const opexOther = corporateExpensesList.filter((e) => !["ferramentas", "ia_automacao", "influencers", "ads", "aquisicao_leads", "custos_fixos"].includes(e.category)).reduce((a, b) => a + Number(b.amount || 0), 0);
+    const totalOpex = opexSaas + opexIa + opexMarketing + opexLeads + opexFixos + opexOther;
+
+    const netProfit = grossProfit - totalOpex;
+    const netMargin = grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0;
+
+    // ── DFC (CAIXA) ─────────────────────────────────────────────────────────
+    const cashIn = filteredProjects.filter((p) => p.status === "Concluido" || p.status === "Em Andamento").reduce((acc, p) => acc + Number(p.budget || 0), 0);
+    const cashOutDirect = filteredPayouts.filter((po) => String(po.status).toLowerCase() === "pago").reduce((acc, po) => acc + Number(po.amount || 0), 0) +
+      projectExpensesList.filter((e) => e.status === "Pago").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const cashOutOpex = corporateExpensesList.filter((e) => e.status === "Pago").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const netCashFlow = cashIn - (cashOutDirect + cashOutOpex);
+
+    // ── AGING LIST & INADIMPLÊNCIA ───────────────────────────────────────────
+    const nowTime = Date.now();
+    const agingList = projects.map((p) => {
+      const deadlineDate = p.deadline ? new Date(p.deadline).getTime() : nowTime;
+      const diffDays = Math.floor((nowTime - deadlineDate) / (1000 * 60 * 60 * 24));
+      let bracket: "no_prazo" | "1_30" | "31_60" | "61_90_plus" = "no_prazo";
+      if (diffDays > 60) bracket = "61_90_plus";
+      else if (diffDays > 30) bracket = "31_60";
+      else if (diffDays > 0) bracket = "1_30";
+
+      const isPending = p.status !== "Concluido";
+      return {
+        id: p.id,
+        title: p.title,
+        clientName: p.client?.company_name || p.client?.full_name || "Cliente",
+        clientEmail: p.client?.email || "",
+        clientPhone: p.client?.phone || "",
+        amount: Number(p.budget || 0),
+        deadline: p.deadline,
+        diffDays: Math.max(0, diffDays),
+        bracket,
+        isOverdue: isPending && diffDays > 0,
+        status: p.status,
+      };
+    });
+
+    const totalReceivables = agingList.reduce((a, b) => a + b.amount, 0);
+    const overdueReceivables = agingList.filter((x) => x.isOverdue).reduce((a, b) => a + b.amount, 0);
+    const defaultRate = totalReceivables > 0 ? (overdueReceivables / totalReceivables) * 100 : 0;
+
+    // ── RANKING DE LUCRATIVIDADE ────────────────────────────────────────────
+    const profitabilityRanking = projects
+      .map((p) => {
+        const rev = Number(p.budget || 0);
+        const flCost = Number(p.freelancer_cost || 0);
+        const directExp = combinedExpenses.filter((e) => e.projectId === p.id).reduce((a, b) => a + Number(b.amount || 0), 0);
+        const totDirect = flCost + directExp;
+        const marginNum = rev - totDirect;
+        const marginPercent = rev > 0 ? (marginNum / rev) * 100 : 0;
+        return {
+          id: p.id,
+          title: p.title,
+          clientName: p.client?.company_name || p.client?.full_name || "Cliente",
+          serviceType: p.service_type,
+          revenue: rev,
+          directCosts: totDirect,
+          freelancerCost: flCost,
+          directExpenses: directExp,
+          margin: marginNum,
+          marginPercent,
+        };
+      })
+      .sort((a, b) => b.margin - a.margin);
+
+    // ── PROJEÇÃO DE CONTAS A PAGAR (30, 60, 90 DIAS) ────────────────────────
+    const fixedMonthlyExpenses = combinedExpenses.filter((e) => e.nature === "fixo").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const scheduledPayouts30 = allPayouts.filter((p) => p.status === "agendado" || p.status === "pendente").reduce((a, b) => a + Number(b.amount || 0), 0);
+
+    const projection30 = fixedMonthlyExpenses + scheduledPayouts30;
+    const projection60 = fixedMonthlyExpenses * 2 + scheduledPayouts30;
+    const projection90 = fixedMonthlyExpenses * 3 + scheduledPayouts30;
+
+    // ── BALANÇO PATRIMONIAL SIMPLIFICADO ────────────────────────────────────
+    const assetsCash = Math.max(0, netCashFlow);
+    const assetsReceivables = totalReceivables;
+    const totalAssets = assetsCash + assetsReceivables;
+
+    const liabilitiesPayable = combinedExpenses.filter((e) => e.status === "Pendente").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const liabilitiesFreelancers = allPayouts.filter((p) => String(p.status).toLowerCase() !== "pago").reduce((a, b) => a + Number(b.amount || 0), 0);
+    const liabilitiesTaxesEstimated = grossRevenue * 0.06;
+    const totalLiabilities = liabilitiesPayable + liabilitiesFreelancers + liabilitiesTaxesEstimated;
+
+    const estimatedEquity = totalAssets - totalLiabilities;
+
+    // ── FECHAMENTO FISCAL & CONTABILIDADE ───────────────────────────────────
+    const nfseCount = emittedInvoices.length;
+    const nfseTotalBilled = emittedInvoices.filter((i) => i.status === "autorizada").reduce((a, b) => a + Number(b.service_value || 0), 0);
+    const byServiceType = {
+      IA: filteredProjects.filter((p) => p.service_type === "IA").reduce((a, b) => a + Number(b.budget || 0), 0),
+      Trafego: filteredProjects.filter((p) => p.service_type === "Trafego").reduce((a, b) => a + Number(b.budget || 0), 0),
+      Sites: filteredProjects.filter((p) => p.service_type === "Sites").reduce((a, b) => a + Number(b.budget || 0), 0),
+      SocialMedia: filteredProjects.filter((p) => p.service_type === "Social Media").reduce((a, b) => a + Number(b.budget || 0), 0),
+    };
+    const estimatedTaxes = {
+      das: grossRevenue * 0.06,
+      iss: grossRevenue * 0.02,
+      irrf: grossRevenue * 0.015,
+    };
+
+    return {
+      periodLabel: label,
+      grossRevenue,
+      cogs: {
+        freela: cogsFreela,
+        apis: cogsApis,
+        ads: cogsAds,
+        dominios: cogsDominios,
+        other: cogsOther,
+        total: totalDirectCosts,
+      },
+      grossProfit,
+      grossMargin,
+      opex: {
+        saas: opexSaas,
+        ia: opexIa,
+        marketing: opexMarketing,
+        leads: opexLeads,
+        fixos: opexFixos,
+        other: opexOther,
+        total: totalOpex,
+      },
+      netProfit,
+      netMargin,
+      cashFlow: {
+        cashIn,
+        cashOutDirect,
+        cashOutOpex,
+        netCashFlow,
+      },
+      agingList,
+      totalReceivables,
+      overdueReceivables,
+      defaultRate,
+      profitabilityRanking,
+      projections: {
+        fixedMonthlyExpenses,
+        scheduledPayouts30,
+        d30: projection30,
+        d60: projection60,
+        d90: projection90,
+      },
+      balanceSheet: {
+        assetsCash,
+        assetsReceivables,
+        totalAssets,
+        liabilitiesPayable,
+        liabilitiesFreelancers,
+        liabilitiesTaxesEstimated,
+        totalLiabilities,
+        estimatedEquity,
+      },
+      fiscal: {
+        nfseCount,
+        nfseTotalBilled,
+        byServiceType,
+        estimatedTaxes,
+      },
+      filteredProjects,
+      filteredExpenses,
+      filteredPayouts,
+    };
+  }, [dateRange, projects, combinedExpenses, allPayouts, emittedInvoices, reportRegime]);
+
+  const handleExportPDF = () => {
+    try {
+      const dreRows = [
+        { label: "(+) RECEITA BRUTA OPERACIONAL", type: "header" as const, value: accountingData.grossRevenue },
+        { label: "(-) CUSTOS DIRETOS DOS PROJETOS (COGS)", type: "header" as const, value: accountingData.cogs.total, isNegative: true },
+        { label: "Repasses a Freelancers", type: "item" as const, value: accountingData.cogs.freela, isNegative: true },
+        { label: "APIs & Webhooks (OpenAI, WhatsApp, etc.)", type: "item" as const, value: accountingData.cogs.apis, isNegative: true },
+        { label: "Tráfego Pago & Mídia de Clientes", type: "item" as const, value: accountingData.cogs.ads, isNegative: true },
+        { label: "Domínios & Infraestrutura de Projetos", type: "item" as const, value: accountingData.cogs.dominios, isNegative: true },
+        { label: "Outros Custos Diretos de Entrega", type: "item" as const, value: accountingData.cogs.other, isNegative: true },
+        { label: "(=) LUCRO BRUTO OPERACIONAL", type: "subtotal" as const, value: accountingData.grossProfit },
+        { label: "Margem Bruta %", type: "margin" as const, value: `${accountingData.grossMargin.toFixed(1)}%` },
+        { label: "(-) DESPESAS OPERACIONAIS (OPEX)", type: "header" as const, value: accountingData.opex.total, isNegative: true },
+        { label: "Ferramentas SaaS & Softwares (Empresa)", type: "item" as const, value: accountingData.opex.saas, isNegative: true },
+        { label: "Ferramentas de IA & Automação Corporativa", type: "item" as const, value: accountingData.opex.ia, isNegative: true },
+        { label: "Influencers & Marketing Próprio", type: "item" as const, value: accountingData.opex.marketing, isNegative: true },
+        { label: "Aquisição de Leads & Prospecção", type: "item" as const, value: accountingData.opex.leads, isNegative: true },
+        { label: "Custos Operacionais Fixos (Aluguel, Contabilidade)", type: "item" as const, value: accountingData.opex.fixos, isNegative: true },
+        { label: "Outras Despesas Variáveis", type: "item" as const, value: accountingData.opex.other, isNegative: true },
+        { label: "(=) RESULTADO OPERACIONAL LÍQUIDO (LUCRO LÍQUIDO)", type: "total" as const, value: accountingData.netProfit },
+        { label: "Margem Líquida Real %", type: "margin" as const, value: `${accountingData.netMargin.toFixed(1)}%` },
+      ];
+
+      exportAccountingPDF({
+        companyName: "DELSKI CLOUD",
+        periodLabel: accountingData.periodLabel,
+        regime: reportRegime,
+        generatedAt: new Date().toLocaleString("pt-BR"),
+        totals: {
+          revenue: accountingData.grossRevenue,
+          directCosts: accountingData.cogs.total,
+          grossProfit: accountingData.grossProfit,
+          grossMargin: accountingData.grossMargin,
+          opex: accountingData.opex.total,
+          netProfit: accountingData.netProfit,
+          netMargin: accountingData.netMargin,
+        },
+        dreRows,
+        revenueRecords: accountingData.filteredProjects.map((p) => ({
+          date: formatDate(p.created_at || (p as any).created_at),
+          project: p.title,
+          client: p.client?.company_name || p.client?.full_name || "Cliente",
+          serviceType: SERVICE_LABEL[p.service_type] || p.service_type,
+          amount: Number(p.budget || 0),
+          status: p.status,
+        })),
+        expenseRecords: accountingData.filteredExpenses.map((e) => ({
+          date: formatDate(e.dueDate),
+          description: e.description || "",
+          category: getCategoryInfo(e.category).label,
+          nature: e.nature === "fixo" ? "Fixo Mensal" : "Variável",
+          projectOrCompany: e.projectId ? `Projeto: ${e.projectName}` : "🏢 Empresa (Corporativo)",
+          amount: Number(e.amount || 0),
+          status: e.status,
+        })),
+        freelancerRecords: accountingData.filteredPayouts.map((po) => ({
+          date: formatDate(po.due_date),
+          freelancerName: po.freelancer?.full_name || "Freelancer",
+          projectName: po.project?.title || "Projeto",
+          amount: Number(po.amount || 0),
+          status: po.status,
+        })),
+      });
+      toast.success("Relatório executivo em PDF baixado com sucesso!");
+    } catch (err: any) {
+      toast.error("Erro ao gerar PDF: " + (err?.message || "falha desconhecida"));
+    }
+  };
+
+  const handleExportCSV = () => {
+    try {
+      const dreRows = [
+        { label: "(+) RECEITA BRUTA OPERACIONAL", type: "header" as const, value: accountingData.grossRevenue },
+        { label: "(-) CUSTOS DIRETOS DOS PROJETOS (COGS)", type: "header" as const, value: accountingData.cogs.total, isNegative: true },
+        { label: "Repasses a Freelancers", type: "item" as const, value: accountingData.cogs.freela, isNegative: true },
+        { label: "APIs & Webhooks (OpenAI, WhatsApp, etc.)", type: "item" as const, value: accountingData.cogs.apis, isNegative: true },
+        { label: "Tráfego Pago & Mídia de Clientes", type: "item" as const, value: accountingData.cogs.ads, isNegative: true },
+        { label: "Domínios & Infraestrutura de Projetos", type: "item" as const, value: accountingData.cogs.dominios, isNegative: true },
+        { label: "Outros Custos Diretos de Entrega", type: "item" as const, value: accountingData.cogs.other, isNegative: true },
+        { label: "(=) LUCRO BRUTO OPERACIONAL", type: "subtotal" as const, value: accountingData.grossProfit },
+        { label: "Margem Bruta %", type: "margin" as const, value: `${accountingData.grossMargin.toFixed(1)}%` },
+        { label: "(-) DESPESAS OPERACIONAIS (OPEX)", type: "header" as const, value: accountingData.opex.total, isNegative: true },
+        { label: "Ferramentas SaaS & Softwares (Empresa)", type: "item" as const, value: accountingData.opex.saas, isNegative: true },
+        { label: "Ferramentas de IA & Automação Corporativa", type: "item" as const, value: accountingData.opex.ia, isNegative: true },
+        { label: "Influencers & Marketing Próprio", type: "item" as const, value: accountingData.opex.marketing, isNegative: true },
+        { label: "Aquisição de Leads & Prospecção", type: "item" as const, value: accountingData.opex.leads, isNegative: true },
+        { label: "Custos Operacionais Fixos (Aluguel, Contabilidade)", type: "item" as const, value: accountingData.opex.fixos, isNegative: true },
+        { label: "Outras Despesas Variáveis", type: "item" as const, value: accountingData.opex.other, isNegative: true },
+        { label: "(=) RESULTADO OPERACIONAL LÍQUIDO (LUCRO LÍQUIDO)", type: "total" as const, value: accountingData.netProfit },
+        { label: "Margem Líquida Real %", type: "margin" as const, value: `${accountingData.netMargin.toFixed(1)}%` },
+      ];
+
+      exportAccountingCSV({
+        companyName: "DELSKI CLOUD",
+        periodLabel: accountingData.periodLabel,
+        regime: reportRegime,
+        generatedAt: new Date().toLocaleString("pt-BR"),
+        totals: {
+          revenue: accountingData.grossRevenue,
+          directCosts: accountingData.cogs.total,
+          grossProfit: accountingData.grossProfit,
+          grossMargin: accountingData.grossMargin,
+          opex: accountingData.opex.total,
+          netProfit: accountingData.netProfit,
+          netMargin: accountingData.netMargin,
+        },
+        dreRows,
+        revenueRecords: accountingData.filteredProjects.map((p) => ({
+          date: formatDate(p.created_at || (p as any).created_at),
+          project: p.title,
+          client: p.client?.company_name || p.client?.full_name || "Cliente",
+          serviceType: SERVICE_LABEL[p.service_type] || p.service_type,
+          amount: Number(p.budget || 0),
+          status: p.status,
+        })),
+        expenseRecords: accountingData.filteredExpenses.map((e) => ({
+          date: formatDate(e.dueDate),
+          description: e.description || "",
+          category: getCategoryInfo(e.category).label,
+          nature: e.nature === "fixo" ? "Fixo Mensal" : "Variável",
+          projectOrCompany: e.projectId ? `Projeto: ${e.projectName}` : "🏢 Empresa (Corporativo)",
+          amount: Number(e.amount || 0),
+          status: e.status,
+        })),
+        freelancerRecords: accountingData.filteredPayouts.map((po) => ({
+          date: formatDate(po.due_date),
+          freelancerName: po.freelancer?.full_name || "Freelancer",
+          projectName: po.project?.title || "Projeto",
+          amount: Number(po.amount || 0),
+          status: po.status,
+        })),
+      });
+      toast.success("Pacote contábil para Excel baixado com sucesso!");
+    } catch (err: any) {
+      toast.error("Erro ao gerar pacote contábil: " + (err?.message || "falha desconhecida"));
+    }
+  };
+
+  const handleSendReminder = (item: any, channel: "whatsapp" | "email") => {
+    if (channel === "whatsapp") {
+      const msg = encodeURIComponent(
+        `Olá! Aqui é da equipe financeira da DELSKI CLOUD. Gostaríamos de verificar o status do pagamento referente ao projeto "${item.title}" no valor de ${money(item.amount)}. Podemos ajudar com a 2ª via?`
+      );
+      const phoneClean = (item.clientPhone || "").replace(/\D/g, "");
+      if (!phoneClean) {
+        toast.info("Telefone não cadastrado. Abrindo WhatsApp Web...");
+        window.open(`https://api.whatsapp.com/send?text=${msg}`, "_blank");
+      } else {
+        window.open(`https://api.whatsapp.com/send?phone=55${phoneClean}&text=${msg}`, "_blank");
+      }
+      toast.success(`Lembrete de cobrança via WhatsApp aberto para ${item.clientName}!`);
+    } else {
+      const subject = encodeURIComponent(`Lembrete Financeiro — Projeto ${item.title}`);
+      const body = encodeURIComponent(
+        `Prezado(a) ${item.clientName},\n\nConstatamos que o pagamento referente ao projeto "${item.title}" no valor de ${money(item.amount)} está pendente.\n\nQualquer dúvida ou caso necessite de novo comprovante/fatura, estamos à total disposição.\n\nAtenciosamente,\nDELSKI CLOUD Financeiro`
+      );
+      window.location.href = `mailto:${item.clientEmail}?subject=${subject}&body=${body}`;
+      toast.success(`Lembrete por e-mail preparado para ${item.clientEmail || item.clientName}!`);
+    }
+  };
+
   const handleOpenEditModal = (p: any) => {
     setEditingProject(p);
     setEditBudget(String(p.budget || 0));
@@ -1411,6 +1852,22 @@ function GestorFinanceView() {
             >
               <Receipt className="h-4 w-4" /> Gerar Nova NFS-e
             </Button>
+          ) : activeMainFinanceTab === "relatorios" ? (
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                onClick={handleExportPDF}
+                className="gap-1.5 text-xs font-semibold h-9 px-3 border-border shadow-xs hover:bg-muted"
+              >
+                <Download className="h-4 w-4 text-blue-500" /> Exportar PDF
+              </Button>
+              <Button
+                onClick={handleExportCSV}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white gap-1.5 text-xs font-semibold h-9 px-3.5 shadow-sm"
+              >
+                <FileSpreadsheet className="h-4 w-4" /> Pacote Contábil
+              </Button>
+            </div>
           ) : (
             <Button
               onClick={() => setOpenAdd(true)}
@@ -1430,13 +1887,19 @@ function GestorFinanceView() {
               value="geral"
               className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
             >
-              <DollarSign className="h-4 w-4" /> 1. Visão Geral & Despesas
+              <DollarSign className="h-4 w-4" /> Visão Geral & Despesas
             </TabsTrigger>
             <TabsTrigger
               value="nfse"
               className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
             >
-              <Receipt className="h-4 w-4" /> 2. Emissão de NFS-e ({emittedInvoices.length})
+              <Receipt className="h-4 w-4" /> Emissão de NFS-e ({emittedInvoices.length})
+            </TabsTrigger>
+            <TabsTrigger
+              value="relatorios"
+              className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
+            >
+              <BarChart3 className="h-4 w-4" /> Relatórios & Contabilidade
             </TabsTrigger>
           </TabsList>
         </div>
@@ -1640,10 +2103,6 @@ function GestorFinanceView() {
                 <div className="mt-0.5 text-lg sm:text-xl font-bold text-foreground break-all">
                   {money(totals.revenue)}
                 </div>
-                <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
-                  <FolderKanban className="h-3 w-3 text-blue-500" />
-                  <span>{projects.length} projetos cadastrados</span>
-                </div>
               </div>
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-500">
                 <DollarSign className="h-4 w-4" />
@@ -1660,10 +2119,6 @@ function GestorFinanceView() {
                 <div className="text-xs text-muted-foreground font-medium">Custos com Freelancers</div>
                 <div className="mt-0.5 text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 break-all">
                   {money(totals.freelancerCosts)}
-                </div>
-                <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
-                  <Wallet className="h-3 w-3 text-emerald-500" />
-                  <span>{money(payoutTotals.paid)} pagos • {money(payoutTotals.owed)} a pagar</span>
                 </div>
               </div>
               <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500">
@@ -1821,9 +2276,6 @@ function GestorFinanceView() {
                 <CardTitle className="text-base font-bold text-foreground">
                   Lançamentos de despesas
                 </CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Despesas operacionais, verba de anúncios, ferramentas de IA e pagamentos gerais de serviços.
-                </p>
               </div>
               <Button
                 size="sm"
@@ -1968,9 +2420,6 @@ function GestorFinanceView() {
                 <CardTitle className="text-base font-bold text-stone-900">
                   Pagamentos de freelas
                 </CardTitle>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Gerencie prazos de pagamento, faça o envio de comprovantes e monitore quitações.
-                </p>
               </div>
 
               {/* Filter Buttons */}
@@ -2754,6 +3203,1254 @@ function GestorFinanceView() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ── ABA 3: RELATÓRIOS & CONTABILIDADE ───────────────────────────── */}
+        <TabsContent value="relatorios" className="space-y-6 focus-visible:outline-none">
+          {/* Painel Superior de Filtros e Controles Globais */}
+          <Card className="bg-card border-border shadow-xs">
+            <CardContent className="p-4 sm:p-5">
+              <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                  {/* Seletor de Período */}
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <Calendar className="h-3 w-3 text-blue-500" /> Período de Apuração
+                    </span>
+                    <Select
+                      value={reportPeriod}
+                      onValueChange={(v) => setReportPeriod(v as any)}
+                    >
+                      <SelectTrigger className="w-44 h-9 text-xs bg-background border-border text-foreground">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="mes_atual">Mês Atual</SelectItem>
+                        <SelectItem value="mes_anterior">Mês Anterior</SelectItem>
+                        <SelectItem value="trimestre">Último Trimestre (90d)</SelectItem>
+                        <SelectItem value="ano">Ano Atual (YTD)</SelectItem>
+                        <SelectItem value="custom">Intervalo Personalizado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Inputs para Período Personalizado */}
+                  {reportPeriod === "custom" && (
+                    <div className="flex items-center gap-2 pt-4 sm:pt-0">
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-muted-foreground font-medium">De</span>
+                        <Input
+                          type="date"
+                          value={customStartDate}
+                          onChange={(e) => setCustomStartDate(e.target.value)}
+                          className="h-9 text-xs w-36 bg-background border-border text-foreground"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-muted-foreground font-medium">Até</span>
+                        <Input
+                          type="date"
+                          value={customEndDate}
+                          onChange={(e) => setCustomEndDate(e.target.value)}
+                          className="h-9 text-xs w-36 bg-background border-border text-foreground"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Seletor de Regime Contábil */}
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1">
+                      <Scale className="h-3 w-3 text-emerald-500" /> Regime Contábil
+                    </span>
+                    <div className="flex items-center bg-muted/60 p-0.5 rounded-lg border border-border">
+                      <button
+                        type="button"
+                        onClick={() => setReportRegime("competencia")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                          reportRegime === "competencia"
+                            ? "bg-background text-foreground shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <FileText className="h-3.5 w-3.5 text-blue-500" />
+                        <span>Competência (DRE)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setReportRegime("caixa")}
+                        className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                          reportRegime === "caixa"
+                            ? "bg-background text-foreground shadow-xs"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        <Wallet className="h-3.5 w-3.5 text-emerald-500" />
+                        <span>Caixa (DFC)</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Botões de Exportação */}
+                <div className="flex items-center gap-2 self-end lg:self-auto w-full sm:w-auto justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={handleExportPDF}
+                    className="h-9 px-3.5 text-xs font-semibold gap-1.5 border-border shadow-xs hover:bg-muted"
+                  >
+                    <Download className="h-4 w-4 text-blue-500" />
+                    <span>Exportar PDF</span>
+                  </Button>
+                  <Button
+                    onClick={handleExportCSV}
+                    className="h-9 px-3.5 text-xs font-semibold gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs"
+                  >
+                    <FileSpreadsheet className="h-4 w-4" />
+                    <span>Pacote Contábil (Excel)</span>
+                  </Button>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-border flex items-center justify-between text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5 font-medium">
+                  <Clock className="h-3.5 w-3.5 text-indigo-500" />
+                  <span>Período Ativo: <strong className="text-foreground">{accountingData.periodLabel}</strong></span>
+                </span>
+                <span className="text-[11px]">
+                  Regime: <strong className="text-foreground">{reportRegime === "competencia" ? "Competência (Fechamento do Contrato)" : "Caixa (Efetivação Bancária)"}</strong>
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* 4 Cards de Resumo Rápido Contábil */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-muted-foreground font-medium">Receita Bruta</div>
+                    <div className="mt-0.5 text-xl font-bold text-foreground break-all">
+                      {money(accountingData.grossRevenue)}
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
+                      <FolderKanban className="h-3 w-3 text-blue-500" />
+                      <span>{accountingData.filteredProjects.length} contratos no período</span>
+                    </div>
+                  </div>
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-500">
+                    <DollarSign className="h-4 w-4" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-muted-foreground font-medium">Lucro Bruto Operacional</div>
+                    <div className="mt-0.5 text-xl font-bold text-emerald-600 dark:text-emerald-400 break-all">
+                      {money(accountingData.grossProfit)}
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                      <TrendingUp className="h-3 w-3 text-emerald-500" />
+                      <span>Margem Bruta: {accountingData.grossMargin.toFixed(1)}%</span>
+                    </div>
+                  </div>
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-muted-foreground font-medium">Despesas OPEX Corporativas</div>
+                    <div className="mt-0.5 text-xl font-bold text-rose-600 dark:text-rose-400 break-all">
+                      {money(accountingData.opex.total)}
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
+                      <Layers className="h-3 w-3 text-rose-500" />
+                      <span>SaaS, IA, Fixos e Mídia</span>
+                    </div>
+                  </div>
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-500/10 text-rose-500">
+                    <TrendingDown className="h-4 w-4" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-card border-border">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-muted-foreground font-medium">
+                      {reportRegime === "competencia" ? "Lucro Líquido Real" : "Saldo Líquido de Caixa"}
+                    </div>
+                    <div
+                      className={`mt-0.5 text-xl font-bold break-all ${
+                        accountingData.netProfit >= 0
+                          ? "text-indigo-600 dark:text-indigo-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      }`}
+                    >
+                      {money(reportRegime === "competencia" ? accountingData.netProfit : accountingData.cashFlow.netCashFlow)}
+                    </div>
+                    <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                      <CheckCircle2 className="h-3 w-3 text-indigo-500" />
+                      <span>
+                        {reportRegime === "competencia"
+                          ? `Margem Líquida: ${accountingData.netMargin.toFixed(1)}%`
+                          : `Entradas: ${money(accountingData.cashFlow.cashIn)}`}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                    <Wallet className="h-4 w-4" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Navegação Secundária dos 6 Módulos de Relatórios Contábeis */}
+          <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => setReportSubTab("dre_dfc")}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                reportSubTab === "dre_dfc"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <BarChart3 className="h-3.5 w-3.5 text-blue-500" />
+              <span>A. DRE & DFC</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportSubTab("inadimplencia")}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                reportSubTab === "inadimplencia"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <AlertCircle className="h-3.5 w-3.5 text-rose-500" />
+              <span>B. Inadimplência & Aging ({accountingData.agingList.filter((x) => x.isOverdue).length})</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportSubTab("lucratividade")}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                reportSubTab === "lucratividade"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+              <span>C. Rentabilidade por Projeto</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportSubTab("projecao")}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                reportSubTab === "projecao"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <CalendarDays className="h-3.5 w-3.5 text-amber-500" />
+              <span>D. Projeção de Contas (30/60/90d)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportSubTab("balanco")}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                reportSubTab === "balanco"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <Scale className="h-3.5 w-3.5 text-indigo-500" />
+              <span>E. Balanço Patrimonial</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportSubTab("fiscal")}
+              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                reportSubTab === "fiscal"
+                  ? "bg-background text-foreground shadow-xs"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <ReceiptText className="h-3.5 w-3.5 text-purple-500" />
+              <span>F. Fechamento Fiscal Contábil</span>
+            </button>
+          </div>
+
+          {/* ── MÓDULO A: DRE & DFC ────────────────────────────────────────── */}
+          {reportSubTab === "dre_dfc" && (
+            <div className="space-y-6">
+              <Card className="bg-card border-border shadow-xs">
+                <CardHeader className="pb-3 border-b border-border">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                      <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-blue-500" />
+                        <span>
+                          {reportRegime === "competencia"
+                            ? "Demonstração do Resultado do Exercício (DRE Gerencial)"
+                            : "Demonstração do Fluxo de Caixa (DFC — Regime de Caixa)"}
+                        </span>
+                      </CardTitle>
+                      <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                        Linhas consolidadas e detalhamento analítico com suporte a linhas expansíveis (acordeão).
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline" className="text-xs font-semibold self-start sm:self-auto">
+                      Período: {accountingData.periodLabel}
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                        <tr>
+                          <th className="text-left px-4 py-3 font-semibold">Conta / Discriminação Contábil</th>
+                          <th className="text-center px-4 py-3 font-semibold">Composição</th>
+                          <th className="text-right px-4 py-3 font-semibold">Valor (R$)</th>
+                          <th className="text-right px-4 py-3 font-semibold">% Sobre Receita</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {/* (+) RECEITA BRUTA OPERACIONAL */}
+                        <tr className="bg-muted/20 font-bold">
+                          <td className="px-4 py-3.5 text-foreground flex items-center gap-2">
+                            <Plus className="h-4 w-4 text-emerald-500" />
+                            <span>(+) RECEITA BRUTA OPERACIONAL</span>
+                          </td>
+                          <td className="px-4 py-3.5 text-center text-muted-foreground">
+                            {accountingData.filteredProjects.length} Projetos
+                          </td>
+                          <td className="px-4 py-3.5 text-right font-extrabold text-foreground">
+                            {money(accountingData.grossRevenue)}
+                          </td>
+                          <td className="px-4 py-3.5 text-right text-muted-foreground font-semibold">
+                            100,0%
+                          </td>
+                        </tr>
+
+                        {/* (-) CUSTOS DIRETOS DOS PROJETOS (COGS) Header */}
+                        <tr
+                          onClick={() => setExpandedSections((s) => ({ ...s, cogs: !s.cogs }))}
+                          className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors font-bold"
+                        >
+                          <td className="px-4 py-3 text-rose-600 dark:text-rose-400 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Zap className="h-4 w-4 text-amber-500" />
+                              <span>(-) CUSTOS DIRETOS DOS PROJETOS (COGS / CPV)</span>
+                            </div>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground">
+                              {expandedSections.cogs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                          </td>
+                          <td className="px-4 py-3 text-center text-muted-foreground font-normal">
+                            Freelancers + APIs + Mídia
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-rose-600 dark:text-rose-400">
+                            -{money(accountingData.cogs.total)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-rose-600 font-semibold">
+                            {accountingData.grossRevenue > 0
+                              ? ((accountingData.cogs.total / accountingData.grossRevenue) * 100).toFixed(1)
+                              : 0}%
+                          </td>
+                        </tr>
+
+                        {/* Sub-linhas COGS Expandíveis */}
+                        {expandedSections.cogs && (
+                          <>
+                            <tr className="bg-background hover:bg-muted/20 transition-colors">
+                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                <Users className="h-3.5 w-3.5 text-violet-500" />
+                                <span>Repasses a Freelancers & Prestadores</span>
+                              </td>
+                              <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">
+                                {accountingData.filteredPayouts.length} pagamentos
+                              </td>
+                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                -{money(accountingData.cogs.freela)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-muted-foreground">
+                                {accountingData.grossRevenue > 0 ? ((accountingData.cogs.freela / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                              </td>
+                            </tr>
+                            <tr className="bg-background hover:bg-muted/20 transition-colors">
+                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                <Zap className="h-3.5 w-3.5 text-amber-500" />
+                                <span>APIs & Webhooks Diretos (OpenAI, WhatsApp, etc.)</span>
+                              </td>
+                              <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Custos de IA por projeto</td>
+                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                -{money(accountingData.cogs.apis)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-muted-foreground">
+                                {accountingData.grossRevenue > 0 ? ((accountingData.cogs.apis / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                              </td>
+                            </tr>
+                            <tr className="bg-background hover:bg-muted/20 transition-colors">
+                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                <Megaphone className="h-3.5 w-3.5 text-rose-500" />
+                                <span>Tráfego Pago & Mídia de Clientes (Ads)</span>
+                              </td>
+                              <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Meta / Google Ads</td>
+                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                -{money(accountingData.cogs.ads)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-muted-foreground">
+                                {accountingData.grossRevenue > 0 ? ((accountingData.cogs.ads / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                              </td>
+                            </tr>
+                            <tr className="bg-background hover:bg-muted/20 transition-colors">
+                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                <Globe className="h-3.5 w-3.5 text-cyan-500" />
+                                <span>Domínios & Infraestrutura Dedicada</span>
+                              </td>
+                              <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Servidores e registros</td>
+                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                -{money(accountingData.cogs.dominios)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-muted-foreground">
+                                {accountingData.grossRevenue > 0 ? ((accountingData.cogs.dominios / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                              </td>
+                            </tr>
+                            {accountingData.cogs.other > 0 && (
+                              <tr className="bg-background hover:bg-muted/20 transition-colors">
+                                <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span>Outros Custos Diretos de Entrega</span>
+                                </td>
+                                <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Diversos de projetos</td>
+                                <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                  -{money(accountingData.cogs.other)}
+                                </td>
+                                <td className="px-4 py-2 text-right text-muted-foreground">
+                                  {accountingData.grossRevenue > 0 ? ((accountingData.cogs.other / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                                </td>
+                              </tr>
+                            )}
+                          </>
+                        )}
+
+                        {/* (=) LUCRO BRUTO OPERACIONAL */}
+                        <tr className="bg-emerald-500/10 font-bold border-y-2 border-border">
+                          <td className="px-4 py-3.5 text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
+                            <Calculator className="h-4 w-4 text-emerald-500" />
+                            <span>(=) LUCRO BRUTO OPERACIONAL</span>
+                          </td>
+                          <td className="px-4 py-3.5 text-center text-emerald-700 dark:text-emerald-300 font-semibold">
+                            Margem Bruta: {accountingData.grossMargin.toFixed(1)}%
+                          </td>
+                          <td className="px-4 py-3.5 text-right font-extrabold text-emerald-700 dark:text-emerald-300 text-sm">
+                            {money(accountingData.grossProfit)}
+                          </td>
+                          <td className="px-4 py-3.5 text-right text-emerald-700 dark:text-emerald-300 font-extrabold">
+                            {accountingData.grossMargin.toFixed(1)}%
+                          </td>
+                        </tr>
+
+                        {/* (-) DESPESAS OPERACIONAIS (OPEX) Header */}
+                        <tr
+                          onClick={() => setExpandedSections((s) => ({ ...s, opex: !s.opex }))}
+                          className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors font-bold"
+                        >
+                          <td className="px-4 py-3 text-rose-600 dark:text-rose-400 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Building className="h-4 w-4 text-slate-500" />
+                              <span>(-) DESPESAS OPERACIONAIS / CORPORATIVAS (OPEX)</span>
+                            </div>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground">
+                              {expandedSections.opex ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                            </Button>
+                          </td>
+                          <td className="px-4 py-3 text-center text-muted-foreground font-normal">
+                            SaaS + IA + Marketing + Fixos
+                          </td>
+                          <td className="px-4 py-3 text-right font-bold text-rose-600 dark:text-rose-400">
+                            -{money(accountingData.opex.total)}
+                          </td>
+                          <td className="px-4 py-3 text-right text-rose-600 font-semibold">
+                            {accountingData.grossRevenue > 0
+                              ? ((accountingData.opex.total / accountingData.grossRevenue) * 100).toFixed(1)
+                              : 0}%
+                          </td>
+                        </tr>
+
+                        {/* Sub-linhas OPEX Expandíveis */}
+                        {expandedSections.opex && (
+                          <>
+                            <tr className="bg-background hover:bg-muted/20 transition-colors">
+                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                <Wrench className="h-3.5 w-3.5 text-blue-500" />
+                                <span>Ferramentas & Softwares SaaS (Vercel, Supabase, Adobe)</span>
+                              </td>
+                              <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Infraestrutura corporativa</td>
+                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                -{money(accountingData.opex.saas)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-muted-foreground">
+                                {accountingData.grossRevenue > 0 ? ((accountingData.opex.saas / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                              </td>
+                            </tr>
+                            <tr className="bg-background hover:bg-muted/20 transition-colors">
+                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                <Bot className="h-3.5 w-3.5 text-indigo-500" />
+                                <span>Ferramentas de IA & Automação Corporativa (ChatGPT, Make)</span>
+                              </td>
+                              <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Assinaturas da agência</td>
+                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                -{money(accountingData.opex.ia)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-muted-foreground">
+                                {accountingData.grossRevenue > 0 ? ((accountingData.opex.ia / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                              </td>
+                            </tr>
+                            <tr className="bg-background hover:bg-muted/20 transition-colors">
+                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                <Sparkles className="h-3.5 w-3.5 text-pink-500" />
+                                <span>Influencers & Marketing Próprio da Agência</span>
+                              </td>
+                              <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Branding e publis</td>
+                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                -{money(accountingData.opex.marketing)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-muted-foreground">
+                                {accountingData.grossRevenue > 0 ? ((accountingData.opex.marketing / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                              </td>
+                            </tr>
+                            <tr className="bg-background hover:bg-muted/20 transition-colors">
+                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                <Target className="h-3.5 w-3.5 text-emerald-500" />
+                                <span>Aquisição de Leads & Prospecção (Apollo, Scrapers)</span>
+                              </td>
+                              <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Cold mail e bases</td>
+                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                -{money(accountingData.opex.leads)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-muted-foreground">
+                                {accountingData.grossRevenue > 0 ? ((accountingData.opex.leads / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                              </td>
+                            </tr>
+                            <tr className="bg-background hover:bg-muted/20 transition-colors">
+                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                <Building2 className="h-3.5 w-3.5 text-slate-500" />
+                                <span>Custos Operacionais Fixos (Aluguel, Contabilidade)</span>
+                              </td>
+                              <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Estrutura e serviços</td>
+                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                -{money(accountingData.opex.fixos)}
+                              </td>
+                              <td className="px-4 py-2 text-right text-muted-foreground">
+                                {accountingData.grossRevenue > 0 ? ((accountingData.opex.fixos / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                              </td>
+                            </tr>
+                            {accountingData.opex.other > 0 && (
+                              <tr className="bg-background hover:bg-muted/20 transition-colors">
+                                <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
+                                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
+                                  <span>Outras Despesas Variáveis Corporativas</span>
+                                </td>
+                                <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Deslocamento e taxas</td>
+                                <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                  -{money(accountingData.opex.other)}
+                                </td>
+                                <td className="px-4 py-2 text-right text-muted-foreground">
+                                  {accountingData.grossRevenue > 0 ? ((accountingData.opex.other / accountingData.grossRevenue) * 100).toFixed(1) : 0}%
+                                </td>
+                              </tr>
+                            )}
+                          </>
+                        )}
+
+                        {/* (=) RESULTADO OPERACIONAL LÍQUIDO */}
+                        <tr className="bg-indigo-500/10 font-bold border-t-2 border-border">
+                          <td className="px-4 py-4 text-indigo-700 dark:text-indigo-300 flex items-center gap-2 text-sm">
+                            <CheckCircle2 className="h-5 w-5 text-indigo-500" />
+                            <span>(=) RESULTADO OPERACIONAL LÍQUIDO (LUCRO LÍQUIDO)</span>
+                          </td>
+                          <td className="px-4 py-4 text-center text-indigo-700 dark:text-indigo-300 font-semibold">
+                            Margem Líquida Real: {accountingData.netMargin.toFixed(1)}%
+                          </td>
+                          <td className="px-4 py-4 text-right font-black text-indigo-700 dark:text-indigo-300 text-base">
+                            {money(accountingData.netProfit)}
+                          </td>
+                          <td className="px-4 py-4 text-right text-indigo-700 dark:text-indigo-300 font-black text-sm">
+                            {accountingData.netMargin.toFixed(1)}%
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Tabela Comparativa Mês a Mês do Ano Atual */}
+              <Card className="bg-card border-border shadow-xs">
+                <CardHeader className="pb-3 border-b border-border">
+                  <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                    <CalendarDays className="h-4 w-4 text-indigo-500" />
+                    <span>Evolução da DRE Mês a Mês — Ano {new Date().getFullYear()}</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Acompanhamento de sazonalidade, receita bruta, despesas e margem líquida mês a mês.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs text-left">
+                      <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                        <tr>
+                          <th className="px-3 py-2.5 font-semibold">Mês</th>
+                          <th className="px-3 py-2.5 text-right font-semibold">Receita Bruta</th>
+                          <th className="px-3 py-2.5 text-right font-semibold">Custos Diretos</th>
+                          <th className="px-3 py-2.5 text-right font-semibold">Lucro Bruto</th>
+                          <th className="px-3 py-2.5 text-right font-semibold">OPEX</th>
+                          <th className="px-3 py-2.5 text-right font-semibold">Lucro Líquido</th>
+                          <th className="px-3 py-2.5 text-right font-semibold">Margem %</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {Array.from({ length: 12 }).map((_, mIdx) => {
+                          const currentYear = new Date().getFullYear();
+                          const mStart = new Date(currentYear, mIdx, 1);
+                          const mEnd = new Date(currentYear, mIdx + 1, 0, 23, 59, 59);
+
+                          const mProjects = projects.filter((p) => {
+                            const d = new Date(p.created_at || (p as any).created_at);
+                            return d >= mStart && d <= mEnd;
+                          });
+                          const mRev = mProjects.reduce((a, b) => a + Number(b.budget || 0), 0);
+                          const mExpenses = combinedExpenses.filter((e) => {
+                            const d = new Date(e.dueDate ? e.dueDate + "T12:00:00" : Date.now());
+                            return d >= mStart && d <= mEnd;
+                          });
+                          const mDirectExp = mExpenses.filter((e) => Boolean(e.projectId)).reduce((a, b) => a + Number(b.amount || 0), 0);
+                          const mPayouts = allPayouts.filter((p) => {
+                            if (!p.due_date) return false;
+                            const d = new Date(p.due_date);
+                            return d >= mStart && d <= mEnd;
+                          }).reduce((a, b) => a + Number(b.amount || 0), 0);
+                          const mCogs = mPayouts + mDirectExp;
+                          const mGross = mRev - mCogs;
+                          const mOpex = mExpenses.filter((e) => !e.projectId).reduce((a, b) => a + Number(b.amount || 0), 0);
+                          const mNet = mGross - mOpex;
+                          const mMargin = mRev > 0 ? (mNet / mRev) * 100 : 0;
+                          const monthName = format(mStart, "MMM", { locale: ptBR }).toUpperCase();
+
+                          return (
+                            <tr key={mIdx} className="hover:bg-muted/20 transition-colors">
+                              <td className="px-3 py-2.5 font-bold text-foreground capitalize">
+                                {monthName}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-medium text-foreground">
+                                {money(mRev)}
+                              </td>
+                              <td className="px-3 py-2.5 text-right text-rose-500 font-medium">
+                                -{money(mCogs)}
+                              </td>
+                              <td className="px-3 py-2.5 text-right text-emerald-600 dark:text-emerald-400 font-semibold">
+                                {money(mGross)}
+                              </td>
+                              <td className="px-3 py-2.5 text-right text-rose-500 font-medium">
+                                -{money(mOpex)}
+                              </td>
+                              <td
+                                className={`px-3 py-2.5 text-right font-bold ${
+                                  mNet >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"
+                                }`}
+                              >
+                                {money(mNet)}
+                              </td>
+                              <td className="px-3 py-2.5 text-right font-semibold text-foreground">
+                                {mMargin.toFixed(0)}%
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ── MÓDULO B: INADIMPLÊNCIA & AGING LIST ───────────────────────── */}
+          {reportSubTab === "inadimplencia" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="text-xs text-muted-foreground font-medium">Total de Recebíveis da Carteira</div>
+                    <div className="text-xl font-bold text-foreground mt-0.5">
+                      {money(accountingData.totalReceivables)}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground mt-1 block">
+                      {accountingData.agingList.length} contratos monitorados
+                    </span>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="text-xs text-muted-foreground font-medium">Total em Atraso (Vencidos)</div>
+                    <div className="text-xl font-bold text-rose-600 dark:text-rose-400 mt-0.5">
+                      {money(accountingData.overdueReceivables)}
+                    </div>
+                    <span className="text-[11px] text-rose-500 mt-1 block font-medium">
+                      {accountingData.agingList.filter((x) => x.isOverdue).length} cobranças em aberto
+                    </span>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="text-xs text-muted-foreground font-medium">Taxa de Inadimplência</div>
+                    <div className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                      {accountingData.defaultRate.toFixed(1)}%
+                    </div>
+                    <span className="text-[11px] text-muted-foreground mt-1 block">
+                      % do valor global em atraso
+                    </span>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="bg-card border-border shadow-xs">
+                <CardHeader className="pb-3 border-b border-border">
+                  <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-rose-500" />
+                    <span>Aging List — Mapa Cronológico de Vencimentos</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Classificação de cobranças por faixa de atraso com envio direto de lembretes.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                        <tr>
+                          <th className="text-left px-4 py-3 font-semibold">Cliente / Projeto</th>
+                          <th className="text-left px-4 py-3 font-semibold">Prazo / Vencimento</th>
+                          <th className="text-right px-4 py-3 font-semibold">Valor Contratado</th>
+                          <th className="text-center px-4 py-3 font-semibold">Faixa de Atraso</th>
+                          <th className="text-right px-4 py-3 font-semibold">Ação de Cobrança</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {accountingData.agingList.map((item) => {
+                          const badgeColor =
+                            item.bracket === "61_90_plus"
+                              ? "bg-rose-500/10 text-rose-600 border-rose-500/30"
+                              : item.bracket === "31_60"
+                              ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                              : item.bracket === "1_30"
+                              ? "bg-yellow-500/10 text-yellow-600 border-yellow-500/30"
+                              : "bg-emerald-500/10 text-emerald-600 border-emerald-500/30";
+
+                          const labelText =
+                            item.bracket === "61_90_plus"
+                              ? "61+ dias de atraso"
+                              : item.bracket === "31_60"
+                              ? "31 a 60 dias de atraso"
+                              : item.bracket === "1_30"
+                              ? "1 a 30 dias de atraso"
+                              : "No Prazo / A Vencer";
+
+                          return (
+                            <tr key={item.id} className="hover:bg-muted/20 transition-colors">
+                              <td className="px-4 py-3.5 font-semibold text-foreground">
+                                <div className="flex items-center gap-2">
+                                  <FolderKanban className="h-4 w-4 text-blue-500 shrink-0" />
+                                  <span>{item.title}</span>
+                                </div>
+                                <span className="text-[11px] font-normal text-muted-foreground block mt-0.5">
+                                  {item.clientName}
+                                </span>
+                              </td>
+                              <td className="px-4 py-3.5 text-muted-foreground">
+                                {formatDate(item.deadline)}
+                              </td>
+                              <td className="px-4 py-3.5 text-right font-bold text-foreground">
+                                {money(item.amount)}
+                              </td>
+                              <td className="px-4 py-3.5 text-center">
+                                <Badge variant="outline" className={`text-xs font-semibold ${badgeColor}`}>
+                                  {labelText}
+                                </Badge>
+                              </td>
+                              <td className="px-4 py-3.5 text-right">
+                                <div className="flex items-center justify-end gap-1.5">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleSendReminder(item, "whatsapp")}
+                                    className="h-7 px-2 text-[11px] gap-1 text-emerald-600 border-emerald-500/30 hover:bg-emerald-500/10"
+                                    title="Enviar Lembrete por WhatsApp"
+                                  >
+                                    <Send className="h-3 w-3" /> WhatsApp
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => handleSendReminder(item, "email")}
+                                    className="h-7 px-2 text-[11px] gap-1 text-blue-600 border-blue-500/30 hover:bg-blue-500/10"
+                                    title="Enviar Lembrete por E-mail"
+                                  >
+                                    <Mail className="h-3 w-3" /> E-mail
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ── MÓDULO C: MARGEM DE CONTRIBUIÇÃO POR PROJETO ───────────────── */}
+          {reportSubTab === "lucratividade" && (
+            <div className="space-y-6">
+              <Card className="bg-card border-border shadow-xs">
+                <CardHeader className="pb-3 border-b border-border">
+                  <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-emerald-500" />
+                    <span>Ranking de Lucratividade & Margem de Contribuição por Projeto</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Avaliação unitária da rentabilidade de cada contrato (Receita - Custos Diretos de Freela, APIs e Mídia).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                        <tr>
+                          <th className="text-left px-4 py-3 font-semibold">Posição / Projeto</th>
+                          <th className="text-left px-4 py-3 font-semibold">Cliente</th>
+                          <th className="text-right px-4 py-3 font-semibold">Receita</th>
+                          <th className="text-right px-4 py-3 font-semibold">Custos Diretos</th>
+                          <th className="text-right px-4 py-3 font-semibold">Margem Líquida ($)</th>
+                          <th className="text-right px-4 py-3 font-semibold">Margem %</th>
+                          <th className="text-center px-4 py-3 font-semibold">Classificação</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {accountingData.profitabilityRanking.map((proj, idx) => {
+                          const isHigh = proj.marginPercent >= 50;
+                          const isMed = proj.marginPercent >= 25 && proj.marginPercent < 50;
+                          const maxMargin = Math.max(...accountingData.profitabilityRanking.map((p) => p.margin), 1);
+                          const barWidth = Math.max(5, (proj.margin / maxMargin) * 100);
+
+                          return (
+                            <tr key={proj.id} className="hover:bg-muted/20 transition-colors">
+                              <td className="px-4 py-3.5 font-bold text-foreground">
+                                <div className="flex items-center gap-2">
+                                  <span className="grid h-5 w-5 place-items-center rounded-full bg-muted text-[10px] text-muted-foreground font-bold">
+                                    #{idx + 1}
+                                  </span>
+                                  <span className="truncate max-w-[200px]">{proj.title}</span>
+                                </div>
+                                <div className="w-full bg-muted/60 h-1.5 rounded-full mt-1.5 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${
+                                      isHigh ? "bg-emerald-500" : isMed ? "bg-amber-500" : "bg-rose-500"
+                                    }`}
+                                    style={{ width: `${barWidth}%` }}
+                                  />
+                                </div>
+                              </td>
+                              <td className="px-4 py-3.5 text-muted-foreground">
+                                {proj.clientName}
+                              </td>
+                              <td className="px-4 py-3.5 text-right font-medium text-foreground">
+                                {money(proj.revenue)}
+                              </td>
+                              <td className="px-4 py-3.5 text-right text-rose-500 font-medium">
+                                {money(proj.directCosts)}
+                              </td>
+                              <td className="px-4 py-3.5 text-right font-extrabold text-foreground">
+                                {money(proj.margin)}
+                              </td>
+                              <td className="px-4 py-3.5 text-right font-bold text-foreground">
+                                {proj.marginPercent.toFixed(1)}%
+                              </td>
+                              <td className="px-4 py-3.5 text-center">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-xs font-semibold ${
+                                    isHigh
+                                      ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
+                                      : isMed
+                                      ? "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                                      : "bg-rose-500/10 text-rose-600 border-rose-500/30"
+                                  }`}
+                                >
+                                  {isHigh ? "Alta Rentabilidade" : isMed ? "Moderada" : "Alerta / Baixa"}
+                                </Badge>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ── MÓDULO D: PROJEÇÃO DE CONTAS A PAGAR ───────────────────────── */}
+          {reportSubTab === "projecao" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Próximos 30 Dias
+                      </span>
+                      <Calendar className="h-4 w-4 text-blue-500" />
+                    </div>
+                    <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-2">
+                      {money(accountingData.projections.d30)}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Assinaturas fixas + repasses de freelas agendados
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Projeção para 60 Dias
+                      </span>
+                      <CalendarDays className="h-4 w-4 text-indigo-500" />
+                    </div>
+                    <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-2">
+                      {money(accountingData.projections.d60)}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      2 ciclos fixos + compromissos firmados
+                    </p>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        Projeção para 90 Dias
+                      </span>
+                      <Clock className="h-4 w-4 text-amber-500" />
+                    </div>
+                    <div className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-2">
+                      {money(accountingData.projections.d90)}
+                    </div>
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Runway e previsão de desembolsos trimestrais
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="bg-card border-border shadow-xs">
+                <CardHeader className="pb-3 border-b border-border">
+                  <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                    <Layers className="h-4 w-4 text-amber-500" />
+                    <span>Mapeamento de Obrigações Recorrentes & Fixas da Empresa</span>
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Assinaturas de IA, ferramentas SaaS corporativas e infraestrutura mensal mapeada.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                  {combinedExpenses.filter((e) => e.nature === "fixo").length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {combinedExpenses
+                        .filter((e) => e.nature === "fixo")
+                        .map((exp) => {
+                          const catInfo = getCategoryInfo(exp.category);
+                          const CatIcon = catInfo.icon;
+                          return (
+                            <div
+                              key={exp.id}
+                              className="p-3 rounded-xl bg-muted/30 border border-border flex items-center justify-between"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-lg bg-background ${catInfo.colorClass}`}>
+                                  <CatIcon className="h-4 w-4" />
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-xs text-foreground">{exp.description}</p>
+                                  <span className="text-[11px] text-muted-foreground">
+                                    {catInfo.label} • Vencimento: {formatDate(exp.dueDate)}
+                                  </span>
+                                </div>
+                              </div>
+                              <span className="font-bold text-rose-600 dark:text-rose-400 text-sm">
+                                {money(exp.amount)}/mês
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground text-center py-6">
+                      Nenhuma despesa fixa recorrente cadastrada. Ao registrar despesas, marque o tipo como "Custo Fixo / Mensal".
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ── MÓDULO E: BALANÇO PATRIMONIAL ─────────────────────────────── */}
+          {reportSubTab === "balanco" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Coluna 1: ATIVOS */}
+                <Card className="bg-card border-border shadow-xs">
+                  <CardHeader className="pb-3 border-b border-border bg-emerald-500/5">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-bold text-emerald-700 dark:text-emerald-400 flex items-center gap-2">
+                        <ArrowUpRight className="h-5 w-5 text-emerald-500" />
+                        <span>ATIVOS DA EMPRESA (+)</span>
+                      </CardTitle>
+                      <span className="text-lg font-black text-emerald-700 dark:text-emerald-400">
+                        {money(accountingData.balanceSheet.totalAssets)}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border text-xs">
+                      <div>
+                        <p className="font-semibold text-foreground">Saldo Líquido em Caixa / Bancos</p>
+                        <span className="text-[11px] text-muted-foreground">Recursos disponíveis imediatos</span>
+                      </div>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        {money(accountingData.balanceSheet.assetsCash)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border text-xs">
+                      <div>
+                        <p className="font-semibold text-foreground">Contas a Receber (Clientes & Projetos)</p>
+                        <span className="text-[11px] text-muted-foreground">Valor total em contratos vigentes</span>
+                      </div>
+                      <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                        {money(accountingData.balanceSheet.assetsReceivables)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Coluna 2: PASSIVOS */}
+                <Card className="bg-card border-border shadow-xs">
+                  <CardHeader className="pb-3 border-b border-border bg-rose-500/5">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-base font-bold text-rose-600 dark:text-rose-400 flex items-center gap-2">
+                        <ArrowDownRight className="h-5 w-5 text-rose-500" />
+                        <span>PASSIVOS & OBRIGAÇÕES (-)</span>
+                      </CardTitle>
+                      <span className="text-lg font-black text-rose-600 dark:text-rose-400">
+                        {money(accountingData.balanceSheet.totalLiabilities)}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-4 space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border text-xs">
+                      <div>
+                        <p className="font-semibold text-foreground">Contas a Pagar (Fornecedores & SaaS)</p>
+                        <span className="text-[11px] text-muted-foreground">Despesas pendentes de quitação</span>
+                      </div>
+                      <span className="font-bold text-rose-600 dark:text-rose-400">
+                        {money(accountingData.balanceSheet.liabilitiesPayable)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border text-xs">
+                      <div>
+                        <p className="font-semibold text-foreground">Repasses a Freelancers (A Pagar)</p>
+                        <span className="text-[11px] text-muted-foreground">Obrigações com prestadores de serviço</span>
+                      </div>
+                      <span className="font-bold text-rose-600 dark:text-rose-400">
+                        {money(accountingData.balanceSheet.liabilitiesFreelancers)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border text-xs">
+                      <div>
+                        <p className="font-semibold text-foreground">Provisão de Impostos (Simples Nacional ~6%)</p>
+                        <span className="text-[11px] text-muted-foreground">Estimativa fiscal sobre faturamento</span>
+                      </div>
+                      <span className="font-bold text-rose-600 dark:text-rose-400">
+                        {money(accountingData.balanceSheet.liabilitiesTaxesEstimated)}
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Card Destaque: Patrimônio Líquido Estimado */}
+              <Card className="bg-card border-indigo-500/30 shadow-xs">
+                <CardContent className="p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div>
+                    <span className="text-xs uppercase font-bold tracking-wider text-muted-foreground flex items-center gap-1.5">
+                      <Scale className="h-4 w-4 text-indigo-500" />
+                      <span>(=) PATRIMÔNIO LÍQUIDO ESTIMADO (ATIVOS - PASSIVOS)</span>
+                    </span>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Indicador sintético de solidez financeira e valor contábil líquido da operação.
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span
+                      className={`text-2xl font-black ${
+                        accountingData.balanceSheet.estimatedEquity >= 0
+                          ? "text-emerald-600 dark:text-emerald-400"
+                          : "text-rose-600 dark:text-rose-400"
+                      }`}
+                    >
+                      {money(accountingData.balanceSheet.estimatedEquity)}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* ── MÓDULO F: FECHAMENTO FISCAL & CONTABILIDADE ───────────────── */}
+          {reportSubTab === "fiscal" && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="text-xs text-muted-foreground font-medium">NFS-e Emitidas no Período</div>
+                    <div className="text-xl font-bold text-foreground mt-0.5">
+                      {accountingData.fiscal.nfseCount} notas
+                    </div>
+                    <span className="text-[11px] text-muted-foreground mt-1 block">
+                      Faturamento oficial: {money(accountingData.fiscal.nfseTotalBilled)}
+                    </span>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="text-xs text-muted-foreground font-medium">Impostos Estimados (DAS ~6%)</div>
+                    <div className="text-xl font-bold text-purple-600 dark:text-purple-400 mt-0.5">
+                      {money(accountingData.fiscal.estimatedTaxes.das)}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground mt-1 block">
+                      Simples Nacional (Anexo III)
+                    </span>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-card border-border">
+                  <CardContent className="p-4">
+                    <div className="text-xs text-muted-foreground font-medium">ISS Estimado (2% a 5%)</div>
+                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400 mt-0.5">
+                      {money(accountingData.fiscal.estimatedTaxes.iss)}
+                    </div>
+                    <span className="text-[11px] text-muted-foreground mt-1 block">
+                      Tributo municipal
+                    </span>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card className="bg-card border-border shadow-xs">
+                <CardHeader className="pb-3 border-b border-border flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
+                      <ReceiptText className="h-4 w-4 text-purple-500" />
+                      <span>Faturamento Bruto por Tipo de Serviço (Enquadramento Fiscal)</span>
+                    </CardTitle>
+                    <CardDescription className="text-xs text-muted-foreground">
+                      Discriminação por atividade para conferência de alíquotas e apuração do Simples Nacional / Lucro Presumido.
+                    </CardDescription>
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={handleExportCSV}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold gap-1.5 shadow-xs self-start sm:self-auto"
+                  >
+                    <FileSpreadsheet className="h-3.5 w-3.5" /> Baixar Pacote Contábil Completo
+                  </Button>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border">
+                      <span className="text-[11px] uppercase font-semibold text-muted-foreground block">
+                        Automação & IA
+                      </span>
+                      <div className="text-lg font-bold text-foreground mt-1">
+                        {money(accountingData.fiscal.byServiceType.IA)}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">LC 116 / 01.07</span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border">
+                      <span className="text-[11px] uppercase font-semibold text-muted-foreground block">
+                        Tráfego Pago & Mídia
+                      </span>
+                      <div className="text-lg font-bold text-foreground mt-1">
+                        {money(accountingData.fiscal.byServiceType.Trafego)}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">LC 116 / 17.06</span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border">
+                      <span className="text-[11px] uppercase font-semibold text-muted-foreground block">
+                        Desenvolvimento de Sites
+                      </span>
+                      <div className="text-lg font-bold text-foreground mt-1">
+                        {money(accountingData.fiscal.byServiceType.Sites)}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">LC 116 / 01.05</span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-muted/30 border border-border">
+                      <span className="text-[11px] uppercase font-semibold text-muted-foreground block">
+                        Social Media & Gestão
+                      </span>
+                      <div className="text-lg font-bold text-foreground mt-1">
+                        {money(accountingData.fiscal.byServiceType.SocialMedia)}
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">LC 116 / 17.01</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

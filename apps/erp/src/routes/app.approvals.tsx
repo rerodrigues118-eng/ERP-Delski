@@ -281,9 +281,6 @@ function ApprovalsPage() {
                 <Users className="h-4 w-4 text-blue-600" />
                 Usuários e Solicitações de Cadastro ({filteredRequests.length})
               </CardTitle>
-              <CardDescription className="text-xs">
-                Visualize os detalhes cadastrais e aprove ou recuse solicitações de novos membros.
-              </CardDescription>
             </div>
 
             <div className="flex flex-wrap items-center gap-3">

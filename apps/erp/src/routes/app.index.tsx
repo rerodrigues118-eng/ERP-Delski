@@ -820,7 +820,6 @@ function Dashboard() {
                 icon={Users}
                 iconBg="bg-red-500/10"
                 iconColor="text-red-500 dark:text-red-400"
-                sub="Repasse a parceiros"
               />
               <KpiCard
                 label="Margem Bruta"
@@ -841,7 +840,6 @@ function Dashboard() {
                 icon={Activity}
                 iconBg="bg-amber-500/10"
                 iconColor="text-amber-500 dark:text-amber-400"
-                sub="Em andamento"
               />
             </>
           )}
@@ -895,7 +893,6 @@ function Dashboard() {
           <div className="lg:col-span-4 flex flex-col gap-4">
             <DistributionMetricCard
               title="Prazo Médio de Entrega"
-              subtitle="Tempo médio real entre cadastro e prazo de entrega"
               averageLabel="MÉDIA REAL"
               numericAverage={deliveryStats.avg}
               averageUnit="dias"
@@ -1131,7 +1128,6 @@ function Dashboard() {
       <motion.div variants={itemVariants}>
         <SectionHeader
           title={isGestor ? "Projetos em Destaque" : "Seus Projetos Contratados"}
-          description="Últimos projetos cadastrados e em execução"
           action={
             <Button asChild variant="outline" size="sm" className="rounded-lg text-xs cursor-pointer">
               <Link to="/app/projects">Ver todos</Link>

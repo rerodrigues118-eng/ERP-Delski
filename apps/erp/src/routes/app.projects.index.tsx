@@ -369,7 +369,6 @@ function GestorProjectsView() {
     <div className="space-y-6 max-w-7xl mx-auto pb-16">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <p className="section-label mb-1">Gestão de Projetos</p>
           <h1 className="page-title">Projetos</h1>
           <p className="text-sm text-muted-foreground mt-1">Visão geral dos projetos de IA, Tráfego e Sites.</p>
         </div>

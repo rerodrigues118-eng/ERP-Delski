@@ -259,10 +259,6 @@ function ContractModelsPage() {
           <h1 className="font-serif text-3xl font-bold tracking-tight text-stone-900">
             Modelos de Contrato
           </h1>
-          <p className="text-sm text-stone-500 mt-1 max-w-2xl">
-            Cadastre um ou múltiplos modelos `.docx` simultaneamente, extraia variáveis
-            automaticamente e edite o mapeamento.
-          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
@@ -284,9 +280,6 @@ function ContractModelsPage() {
                 Suporta múltiplos arquivos .docx
               </Badge>
             </CardTitle>
-            <CardDescription>
-              Selecione um ou vários arquivos `.docx` para importar modelos de uma só vez.
-            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">

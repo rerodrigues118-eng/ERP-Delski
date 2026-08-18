@@ -136,7 +136,6 @@ function SupportPage() {
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <p className="section-label mb-1">Atendimento ao Cliente</p>
           <h1 className="page-title">Central de Suporte</h1>
           <p className="text-sm text-gray-400 mt-1">
             Gerencie e responda os chamados abertos pelos clientes.
