@@ -39,6 +39,8 @@ import {
   Calendar,
   DollarSign,
   AlertCircle,
+  FileText,
+  UploadCloud,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
