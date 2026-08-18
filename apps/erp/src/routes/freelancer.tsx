@@ -74,10 +74,10 @@ function FreelancerLayout() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
         <div className="text-center space-y-3">
           <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto" />
-          <p className="text-sm text-gray-500 font-medium">
+          <p className="text-sm text-muted-foreground font-medium">
             Carregando painel do prestador...
           </p>
         </div>

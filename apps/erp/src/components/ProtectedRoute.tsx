@@ -51,8 +51,13 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 
   if (isLoading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center bg-white">
-        <p className="text-muted-foreground animate-pulse text-sm font-medium">Carregando...</p>
+      <div className="flex h-screen w-full flex-col items-center justify-center gap-3.5 bg-background text-foreground transition-colors duration-200">
+        <div className="relative flex items-center justify-center">
+          <div className="h-9 w-9 rounded-full border-2 border-primary/20 border-t-primary animate-spin" />
+        </div>
+        <p className="text-muted-foreground animate-pulse text-xs font-semibold tracking-wide">
+          Carregando DELSKI CLOUD...
+        </p>
       </div>
     );
   }

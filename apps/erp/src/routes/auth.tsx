@@ -84,8 +84,8 @@ function AuthGuard() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
+        <Loader2 className="h-6 w-6 animate-spin text-blue-600 dark:text-blue-400" />
       </div>
     );
   }
