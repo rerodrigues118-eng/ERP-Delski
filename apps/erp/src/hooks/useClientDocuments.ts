@@ -12,40 +12,47 @@ export function useClientDocuments(clientId?: string, authUserId?: string) {
     queryKey: ["client_documents", clientId, authUserId],
     enabled: !!clientId || !!authUserId,
     queryFn: async (): Promise<ClientDocumentItem[]> => {
-      let query = (supabase.from("client_documents") as any).select("*");
+      try {
+        let query = (supabase.from("client_documents") as any).select("*");
 
-      if (clientId && authUserId && clientId !== authUserId) {
-        query = query.or(`client_id.eq.${clientId},client_id.eq.${authUserId}`);
-      } else if (clientId) {
-        query = query.eq("client_id", clientId);
-      } else if (authUserId) {
-        query = query.eq("client_id", authUserId);
-      } else {
-        return [];
-      }
-
-      const { data, error } = await query.order("uploaded_at", { ascending: false });
-
-      if (error) {
-        console.warn("Erro ao buscar client_documents:", error);
-        return [];
-      }
-
-      const items: ClientDocumentItem[] = (data ?? []).map((doc: any) => {
-        let public_url = doc.file_url;
-        if (!public_url && doc.file_path) {
-          const { data: pub } = supabase.storage
-            .from("client-documents")
-            .getPublicUrl(doc.file_path);
-          public_url = pub?.publicUrl ?? null;
+        if (clientId && authUserId && clientId !== authUserId) {
+          query = query.or(`client_id.eq.${clientId},client_id.eq.${authUserId}`);
+        } else if (clientId) {
+          query = query.eq("client_id", clientId);
+        } else if (authUserId) {
+          query = query.eq("client_id", authUserId);
+        } else {
+          return [];
         }
-        return {
-          ...doc,
-          public_url,
-        };
-      });
 
-      return items;
+        const { data, error } = await query.order("uploaded_at", { ascending: false });
+
+        if (error) {
+          console.warn("Aviso ao buscar client_documents:", error.message || error);
+          return [];
+        }
+
+        const items: ClientDocumentItem[] = (data ?? []).map((doc: any) => {
+          let public_url = doc.file_url;
+          if (!public_url && doc.file_path) {
+            try {
+              const { data: pub } = supabase.storage
+                .from("client-documents")
+                .getPublicUrl(doc.file_path);
+              public_url = pub?.publicUrl ?? null;
+            } catch {}
+          }
+          return {
+            ...doc,
+            public_url,
+          };
+        });
+
+        return items;
+      } catch (err) {
+        console.warn("Exceção ao carregar client_documents:", err);
+        return [];
+      }
     },
   });
 }

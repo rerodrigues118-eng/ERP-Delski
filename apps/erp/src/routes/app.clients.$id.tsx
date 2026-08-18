@@ -43,6 +43,8 @@ import {
   Download,
   Eye,
   FileCheck,
+  DollarSign,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -625,15 +627,16 @@ function ClientDetailPage() {
               ) : (
                 <div className="space-y-3">
                   <div className="grid grid-cols-1 gap-3">
-                    {clientDocs.map((doc) => {
-                      const meta = DOCUMENT_TYPE_META[doc.document_type] || {
-                        label: doc.document_type.replace(/_/g, " ").toUpperCase(),
+                    {(clientDocs || []).map((doc) => {
+                      const docType = doc?.document_type || "documento";
+                      const meta = (doc?.document_type && DOCUMENT_TYPE_META[doc.document_type]) || {
+                        label: String(docType).replace(/_/g, " ").toUpperCase(),
                         description: "Documento oficial do cliente",
                         badge: "Arquivo",
                       };
-                      const fileName = getFileName(doc.file_path, doc.file_url || doc.public_url, doc.document_type);
-                      const fileUrl = doc.file_url || doc.public_url || "#";
-                      const isPending = !doc.status || doc.status === "pendente" || doc.status === "em_analise";
+                      const fileName = getFileName(doc?.file_path, doc?.file_url || doc?.public_url, docType);
+                      const fileUrl = doc?.file_url || doc?.public_url || "#";
+                      const isPending = !doc?.status || doc.status === "pendente" || doc.status === "em_analise";
 
                       return (
                         <div
