@@ -155,14 +155,46 @@ function OnboardingPage() {
   // Fetch client registration pre-filled by gestor and existing uploaded documents
   useEffect(() => {
     async function loadClientData() {
-      if (!user) return;
       try {
-        const normalizedEmail = (user.email || "").toLowerCase().trim();
-        const { data: cData } = await (supabase.from("clients") as any)
-          .select("*")
-          .or(`auth_user_id.eq.${user.id},email.ilike.${normalizedEmail}`)
-          .limit(1)
-          .maybeSingle();
+        let activeUserId = user?.id;
+        let activeUserEmail = user?.email;
+
+        if (!activeUserId) {
+          const { data: sData } = await supabase.auth.getSession();
+          if (sData?.session?.user) {
+            activeUserId = sData.session.user.id;
+            activeUserEmail = sData.session.user.email;
+          }
+        }
+
+        // Check URL search parameters if any (?email=... or ?client_id=... or ?id=...)
+        const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
+        const queryEmail = searchParams.get("email") || searchParams.get("mail") || "";
+        const queryClientId = searchParams.get("client_id") || searchParams.get("id") || "";
+
+        const normalizedEmail = (activeUserEmail || queryEmail || corporateEmail || "").toLowerCase().trim();
+
+        let cData = null;
+        if (queryClientId) {
+          const { data } = await (supabase.from("clients") as any)
+            .select("*")
+            .eq("id", queryClientId)
+            .maybeSingle();
+          if (data) cData = data;
+        }
+
+        if (!cData && (activeUserId || normalizedEmail)) {
+          let query = (supabase.from("clients") as any).select("*");
+          if (activeUserId && normalizedEmail) {
+            query = query.or(`auth_user_id.eq.${activeUserId},email.ilike.${normalizedEmail}`);
+          } else if (activeUserId) {
+            query = query.eq("auth_user_id", activeUserId);
+          } else if (normalizedEmail) {
+            query = query.ilike("email", normalizedEmail);
+          }
+          const { data } = await query.limit(1).maybeSingle();
+          if (data) cData = data;
+        }
 
         if (cData) {
           if (cData.company_name) setCompanyName(cData.company_name);
@@ -178,17 +210,17 @@ function OnboardingPage() {
           if (cData.role_position) setRolePosition(cData.role_position);
           if (cData.phone) setPhone(cData.phone);
         } else {
-          if (user.email && !corporateEmail) setCorporateEmail(user.email);
+          if (normalizedEmail && !corporateEmail) setCorporateEmail(normalizedEmail);
           if (profile?.full_name && !contactName) setContactName(profile.full_name);
           if (profile?.phone && !phone) setPhone(formatPhone(profile.phone));
         }
 
         // Preload any existing documents from database
-        const targetClientId = cData?.id || user.id;
-        if (isFree) {
+        const targetClientId = cData?.id || activeUserId;
+        if (isFree && activeUserId) {
           const { data: fDocs } = await (supabase.from("freelancer_documents") as any)
             .select("*")
-            .eq("freelancer_id", user.id);
+            .eq("freelancer_id", activeUserId);
           if (fDocs && fDocs.length > 0) {
             const initialDocs: Record<string, UploadedDoc> = {};
             fDocs.forEach((d: any) => {
@@ -202,10 +234,10 @@ function OnboardingPage() {
             });
             setDocuments((prev) => ({ ...initialDocs, ...prev }));
           }
-        } else {
+        } else if (targetClientId) {
           const { data: cDocs } = await (supabase.from("client_documents") as any)
             .select("*")
-            .or(`client_id.eq.${targetClientId},client_id.eq.${user.id}`);
+            .eq("client_id", targetClientId);
           if (cDocs && cDocs.length > 0) {
             const initialDocs: Record<string, UploadedDoc> = {};
             cDocs.forEach((d: any) => {
@@ -230,33 +262,33 @@ function OnboardingPage() {
 
   // Load draft from sessionStorage on mount
   useEffect(() => {
-    if (!user?.id) return;
     try {
-      const savedDraft = sessionStorage.getItem(`delski_onboarding_draft_${user.id}`);
+      const storageKey = user?.id ? `delski_onboarding_draft_${user.id}` : `delski_onboarding_draft_guest`;
+      const savedDraft = sessionStorage.getItem(storageKey);
       if (savedDraft) {
         const draft = JSON.parse(savedDraft);
         if (draft.step && draft.step > 1 && draft.step <= totalSteps) setStep(draft.step);
-        if (draft.companyName) setCompanyName(draft.companyName);
-        if (draft.corporateName) setCorporateName(draft.corporateName);
-        if (draft.cnpj) setCnpj(draft.cnpj);
-        if (draft.segment) setSegment(draft.segment);
-        if (draft.corporateEmail) setCorporateEmail(draft.corporateEmail);
-        if (draft.address) setAddress(draft.address);
-        if (draft.city) setCity(draft.city);
-        if (draft.state) setState(draft.state);
-        if (draft.cep) setCep(draft.cep);
-        if (draft.contactName) setContactName(draft.contactName);
-        if (draft.rolePosition) setRolePosition(draft.rolePosition);
-        if (draft.phone) setPhone(draft.phone);
-        if (draft.instagram) setInstagram(draft.instagram);
-        if (draft.linkedin) setLinkedin(draft.linkedin);
-        if (draft.website) setWebsite(draft.website);
-        if (draft.documents && typeof draft.documents === "object") setDocuments(draft.documents);
-        if (draft.bankName) setBankName(draft.bankName);
-        if (draft.bankAgency) setBankAgency(draft.bankAgency);
-        if (draft.bankAccount) setBankAccount(draft.bankAccount);
-        if (draft.pixType) setPixType(draft.pixType);
-        if (draft.pixKey) setPixKey(draft.pixKey);
+        if (draft.companyName && !companyName) setCompanyName(draft.companyName);
+        if (draft.corporateName && !corporateName) setCorporateName(draft.corporateName);
+        if (draft.cnpj && !cnpj) setCnpj(draft.cnpj);
+        if (draft.segment && !segment) setSegment(draft.segment);
+        if (draft.corporateEmail && !corporateEmail) setCorporateEmail(draft.corporateEmail);
+        if (draft.address && !address) setAddress(draft.address);
+        if (draft.city && !city) setCity(draft.city);
+        if (draft.state && !state) setState(draft.state);
+        if (draft.cep && !cep) setCep(draft.cep);
+        if (draft.contactName && !contactName) setContactName(draft.contactName);
+        if (draft.rolePosition && !rolePosition) setRolePosition(draft.rolePosition);
+        if (draft.phone && !phone) setPhone(draft.phone);
+        if (draft.instagram && !instagram) setInstagram(draft.instagram);
+        if (draft.linkedin && !linkedin) setLinkedin(draft.linkedin);
+        if (draft.website && !website) setWebsite(draft.website);
+        if (draft.documents && typeof draft.documents === "object") setDocuments((d) => ({ ...draft.documents, ...d }));
+        if (draft.bankName && !bankName) setBankName(draft.bankName);
+        if (draft.bankAgency && !bankAgency) setBankAgency(draft.bankAgency);
+        if (draft.bankAccount && !bankAccount) setBankAccount(draft.bankAccount);
+        if (draft.pixType && !pixType) setPixType(draft.pixType);
+        if (draft.pixKey && !pixKey) setPixKey(draft.pixKey);
       }
     } catch (e) {
       console.warn("Erro ao restaurar rascunho de onboarding:", e);
@@ -265,7 +297,7 @@ function OnboardingPage() {
 
   // Auto-save draft to sessionStorage on state change
   useEffect(() => {
-    if (!user?.id || onboardingCompleted) return;
+    if (onboardingCompleted) return;
     const draftData = {
       step,
       companyName,
@@ -291,7 +323,8 @@ function OnboardingPage() {
       pixKey,
     };
     try {
-      sessionStorage.setItem(`delski_onboarding_draft_${user.id}`, JSON.stringify(draftData));
+      const storageKey = user?.id ? `delski_onboarding_draft_${user.id}` : `delski_onboarding_draft_guest`;
+      sessionStorage.setItem(storageKey, JSON.stringify(draftData));
     } catch (e) {}
   }, [
     user?.id,
@@ -360,15 +393,21 @@ function OnboardingPage() {
   // Upload document handler (Storage Bucket + DB Records)
   const handleFileUpload = async (docType: string, file: File) => {
     let currentUserId = user?.id;
+    let currentUserEmail = (user?.email || corporateEmail || "").trim().toLowerCase();
+
     if (!currentUserId) {
       try {
-        const { data: sessionData } = await supabase.auth.getUser();
-        currentUserId = sessionData?.user?.id || profile?.id || "temp_user";
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user) {
+          currentUserId = sessionData.session.user.id;
+          if (!currentUserEmail) currentUserEmail = sessionData.session.user.email?.trim().toLowerCase() || "";
+        }
       } catch {
-        currentUserId = profile?.id || "temp_user";
+        currentUserId = profile?.id;
       }
     }
 
+    const effectiveFolderId = currentUserId || "pending_user";
     setUploadingDoc(docType);
 
     try {
@@ -376,7 +415,7 @@ function OnboardingPage() {
       const safeName = `${docType}_${Date.now()}.${fileExt}`;
       const bucketName = isFree ? "freelancer-docs" : "client-documents";
       const folderPrefix = isFree ? "freelancers" : "clients";
-      const filePath = `${folderPrefix}/${currentUserId}/${safeName}`;
+      const filePath = `${folderPrefix}/${effectiveFolderId}/${safeName}`;
 
       let fileUrl = "";
 
@@ -390,7 +429,7 @@ function OnboardingPage() {
         // Fallback to secondary bucket
         const { data: fallbackUpload, error: fallbackError } = await supabase.storage
           .from("project-attachments")
-          .upload(`onboarding/${currentUserId}/${safeName}`, file, { upsert: true });
+          .upload(`onboarding/${effectiveFolderId}/${safeName}`, file, { upsert: true });
 
         if (!fallbackError && fallbackUpload) {
           const { data: pubData } = supabase.storage
@@ -413,7 +452,7 @@ function OnboardingPage() {
 
       // 2. Direct persistence into Supabase Database Table
       try {
-        if (isFree) {
+        if (isFree && currentUserId) {
           await (supabase.from("freelancer_documents") as any).upsert(
             {
               freelancer_id: currentUserId,
@@ -426,25 +465,28 @@ function OnboardingPage() {
             { onConflict: "freelancer_id,document_type" }
           );
         } else {
-          const normalizedEmail = (corporateEmail || user?.email || "").trim().toLowerCase();
-          const { data: clRecord } = await (supabase.from("clients") as any)
-            .select("id")
-            .or(`auth_user_id.eq.${currentUserId},email.ilike.${normalizedEmail}`)
-            .limit(1)
-            .maybeSingle();
+          let clId = currentUserId;
+          if (currentUserEmail) {
+            const { data: clRecord } = await (supabase.from("clients") as any)
+              .select("id")
+              .or(`auth_user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'},email.ilike.${currentUserEmail}`)
+              .limit(1)
+              .maybeSingle();
+            if (clRecord?.id) clId = clRecord.id;
+          }
 
-          const effectiveClientId = clRecord?.id || currentUserId;
-
-          await (supabase.from("client_documents") as any).insert([
-            {
-              client_id: effectiveClientId,
-              document_type: docType,
-              file_path: filePath,
-              file_url: fileUrl || null,
-              status: "em_analise",
-              uploaded_at: new Date().toISOString(),
-            },
-          ]);
+          if (clId) {
+            await (supabase.from("client_documents") as any).insert([
+              {
+                client_id: clId,
+                document_type: docType,
+                file_path: filePath,
+                file_url: fileUrl || null,
+                status: "em_analise",
+                uploaded_at: new Date().toISOString(),
+              },
+            ]);
+          }
         }
       } catch (dbErr) {
         console.warn("Aviso ao persistir documento no banco:", dbErr);
@@ -465,10 +507,11 @@ function OnboardingPage() {
           [docType]: newDoc,
         };
         try {
-          const savedDraft = sessionStorage.getItem(`delski_onboarding_draft_${currentUserId}`);
+          const storageKey = currentUserId ? `delski_onboarding_draft_${currentUserId}` : `delski_onboarding_draft_guest`;
+          const savedDraft = sessionStorage.getItem(storageKey);
           const parsed = savedDraft ? JSON.parse(savedDraft) : {};
           parsed.documents = updated;
-          sessionStorage.setItem(`delski_onboarding_draft_${currentUserId}`, JSON.stringify(parsed));
+          sessionStorage.setItem(storageKey, JSON.stringify(parsed));
         } catch {}
         return updated;
       });
@@ -552,19 +595,42 @@ function OnboardingPage() {
   // Final Submit
   const handleFinalize = async () => {
     let currentUserId = user?.id;
+    let currentUserEmail = (user?.email || corporateEmail || "").trim().toLowerCase();
+
     if (!currentUserId) {
       try {
-        const { data: sessionData } = await supabase.auth.getUser();
-        currentUserId = sessionData?.user?.id || profile?.id;
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user) {
+          currentUserId = sessionData.session.user.id;
+          if (!currentUserEmail) currentUserEmail = sessionData.session.user.email?.trim().toLowerCase() || "";
+        }
       } catch {
         currentUserId = profile?.id;
       }
     }
 
-    if (!currentUserId) {
-      toast.error("Sessão não identificada. Por favor, recarregue a página.");
-      return;
+    // Try finding existing client by email or auth_user_id
+    let resolvedClientId = currentUserId || null;
+    if (currentUserEmail || currentUserId) {
+      try {
+        const { data: existingClient } = await (supabase.from("clients") as any)
+          .select("id, auth_user_id, email, company_name")
+          .or(`auth_user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'},email.ilike.${currentUserEmail || 'null@null.com'}`)
+          .limit(1)
+          .maybeSingle();
+
+        if (existingClient?.id) {
+          resolvedClientId = existingClient.id;
+          if (!currentUserId && existingClient.auth_user_id) {
+            currentUserId = existingClient.auth_user_id;
+          }
+        }
+      } catch (e) {
+        console.warn("Aviso ao buscar cliente existente:", e);
+      }
     }
+
+    const effectiveUserId = currentUserId || resolvedClientId;
 
     setSubmitting(true);
 
@@ -576,12 +642,12 @@ function OnboardingPage() {
       if (isFree) {
         // ── FLUXO FREELANCER ──────────────────────────────────────────────
         const freelancerPayload: any = {
-          id: currentUserId,
+          id: effectiveUserId,
           company_name: companyName.trim() || profile?.full_name || "Prestador",
           corporate_name: corporateName.trim() || companyName.trim() || profile?.full_name || "Prestador",
           cnpj: cleanCnpj || null,
           segment: segment.trim() || null,
-          email: (corporateEmail || user?.email || "").trim().toLowerCase(),
+          email: currentUserEmail,
           address: address.trim() || null,
           city: city.trim() || null,
           state: state.trim() || null,
@@ -601,30 +667,30 @@ function OnboardingPage() {
           updated_at: new Date().toISOString(),
         };
 
-        try {
-          await (supabase.from("freelancers") as any).upsert(freelancerPayload);
-        } catch (fErr) {
-          console.warn("Freelancers upsert warn:", fErr);
+        if (effectiveUserId) {
+          try {
+            await (supabase.from("freelancers") as any).upsert(freelancerPayload);
+          } catch (fErr) {
+            console.warn("Freelancers upsert warn:", fErr);
+          }
+
+          try {
+            await (supabase.from("profiles") as any).upsert({
+              id: effectiveUserId,
+              full_name: contactName.trim() || profile?.full_name || "Prestador",
+              email: currentUserEmail,
+              phone: cleanPhone || profile?.phone,
+              role: "freelancer",
+              onboarding_completed: true,
+              status: "ativo",
+              approval_status: "approved",
+              updated_at: new Date().toISOString(),
+            });
+          } catch (pErr) {
+            console.warn("Profiles upsert warn:", pErr);
+          }
         }
 
-        // Upsert profile
-        try {
-          await (supabase.from("profiles") as any).upsert({
-            id: currentUserId,
-            full_name: contactName.trim() || profile?.full_name || "Prestador",
-            email: (corporateEmail || user?.email || "").trim().toLowerCase(),
-            phone: cleanPhone || profile?.phone,
-            role: "freelancer",
-            onboarding_completed: true,
-            status: "ativo",
-            approval_status: "approved",
-            updated_at: new Date().toISOString(),
-          });
-        } catch (pErr) {
-          console.warn("Profiles upsert warn:", pErr);
-        }
-
-        // Update user metadata in auth
         try {
           await supabase.auth.updateUser({
             data: {
@@ -633,18 +699,16 @@ function OnboardingPage() {
               full_name: contactName.trim() || profile?.full_name || "Prestador",
             },
           });
-        } catch (authErr) {
-          console.warn("Auth metadata update warn:", authErr);
-        }
+        } catch {}
 
         // Insert documents
         const docEntries = Object.entries(documents);
-        if (docEntries.length > 0) {
+        if (docEntries.length > 0 && effectiveUserId) {
           for (const [docType, docData] of docEntries) {
             try {
               await (supabase.from("freelancer_documents") as any).upsert(
                 {
-                  freelancer_id: currentUserId,
+                  freelancer_id: effectiveUserId,
                   document_type: docType,
                   file_path: docData.filePath,
                   file_url: docData.fileUrl || null,
@@ -660,8 +724,10 @@ function OnboardingPage() {
         }
 
         try {
-          sessionStorage.removeItem(`delski_onboarding_draft_${currentUserId}`);
-          localStorage.setItem(`delski_onboarding_completed_${currentUserId}`, "true");
+          if (effectiveUserId) {
+            sessionStorage.removeItem(`delski_onboarding_draft_${effectiveUserId}`);
+            localStorage.setItem(`delski_onboarding_completed_${effectiveUserId}`, "true");
+          }
         } catch (e) {}
 
         await refreshProfile();
@@ -672,31 +738,14 @@ function OnboardingPage() {
         }, 1200);
       } else {
         // ── FLUXO CLIENTE ─────────────────────────────────────────────────
-        let resolvedClientId: string | null = null;
-        const normalizedEmail = (corporateEmail || user?.email || "").trim().toLowerCase();
-
-        try {
-          const { data: existingClient } = await (supabase.from("clients") as any)
-            .select("id")
-            .or(`auth_user_id.eq.${currentUserId},email.ilike.${normalizedEmail}`)
-            .limit(1)
-            .maybeSingle();
-
-          if (existingClient?.id) {
-            resolvedClientId = existingClient.id;
-          }
-        } catch (e) {
-          console.warn("Aviso ao buscar cliente existente:", e);
-        }
-
         const clientPayload: any = {
-          auth_user_id: currentUserId,
+          auth_user_id: currentUserId || null,
           full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
           company_name: companyName.trim() || "Empresa Cliente",
           corporate_name: corporateName.trim() || companyName.trim() || "Empresa Cliente",
           cnpj: cleanCnpj || null,
           segment: segment.trim() || null,
-          email: normalizedEmail,
+          email: currentUserEmail,
           address: address.trim() || null,
           city: city.trim() || null,
           state: state.trim() || null,
@@ -716,7 +765,7 @@ function OnboardingPage() {
               .eq("id", resolvedClientId);
           } else {
             const { data: inserted } = await (supabase.from("clients") as any)
-              .upsert(clientPayload, { onConflict: "auth_user_id" })
+              .upsert(clientPayload, { onConflict: "email" })
               .select("id")
               .maybeSingle();
             resolvedClientId = inserted?.id || currentUserId;
@@ -725,61 +774,65 @@ function OnboardingPage() {
           console.warn("Aviso ao salvar na tabela clients:", cErr);
         }
 
-        // Upsert profile
-        try {
-          await (supabase.from("profiles") as any).upsert({
-            id: currentUserId,
-            full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
-            email: normalizedEmail,
-            phone: cleanPhone || profile?.phone,
-            role: "cliente",
-            onboarding_completed: true,
-            status: "ativo",
-            approval_status: "approved",
-            updated_at: new Date().toISOString(),
-          });
-        } catch (pErr) {
-          console.warn("Aviso ao atualizar profiles:", pErr);
-        }
-
-        // Update auth metadata
-        try {
-          await supabase.auth.updateUser({
-            data: {
+        if (currentUserId) {
+          try {
+            await (supabase.from("profiles") as any).upsert({
+              id: currentUserId,
+              full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
+              email: currentUserEmail,
+              phone: cleanPhone || profile?.phone,
               role: "cliente",
               onboarding_completed: true,
-              full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
-            },
-          });
-        } catch (authErr) {
-          console.warn("Aviso ao atualizar user_metadata:", authErr);
+              status: "ativo",
+              approval_status: "approved",
+              updated_at: new Date().toISOString(),
+            });
+          } catch (pErr) {
+            console.warn("Aviso ao atualizar profiles:", pErr);
+          }
+
+          try {
+            await supabase.auth.updateUser({
+              data: {
+                role: "cliente",
+                onboarding_completed: true,
+                full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
+              },
+            });
+          } catch (authErr) {
+            console.warn("Aviso ao atualizar user_metadata:", authErr);
+          }
         }
 
         // Insert documents
         const docEntries = Object.entries(documents);
         if (docEntries.length > 0) {
-          const targetId = resolvedClientId || currentUserId;
-          for (const [docType, docData] of docEntries) {
-            try {
-              await (supabase.from("client_documents") as any).insert([
-                {
-                  client_id: targetId,
-                  document_type: docType,
-                  file_path: docData.filePath,
-                  file_url: docData.fileUrl || null,
-                  status: "em_analise",
-                  uploaded_at: new Date().toISOString(),
-                },
-              ]);
-            } catch (dErr) {
-              console.warn("Error inserting client document:", dErr);
+          const targetDocClientId = resolvedClientId || currentUserId;
+          if (targetDocClientId) {
+            for (const [docType, docData] of docEntries) {
+              try {
+                await (supabase.from("client_documents") as any).insert([
+                  {
+                    client_id: targetDocClientId,
+                    document_type: docType,
+                    file_path: docData.filePath,
+                    file_url: docData.fileUrl || null,
+                    status: "em_analise",
+                    uploaded_at: new Date().toISOString(),
+                  },
+                ]);
+              } catch (dErr) {
+                console.warn("Error inserting client document:", dErr);
+              }
             }
           }
         }
 
         try {
-          sessionStorage.removeItem(`delski_onboarding_draft_${currentUserId}`);
-          localStorage.setItem(`delski_onboarding_completed_${currentUserId}`, "true");
+          if (currentUserId) {
+            sessionStorage.removeItem(`delski_onboarding_draft_${currentUserId}`);
+            localStorage.setItem(`delski_onboarding_completed_${currentUserId}`, "true");
+          }
         } catch (e) {}
 
         await refreshProfile();
@@ -787,14 +840,24 @@ function OnboardingPage() {
         toast.success("Homologação do Cliente concluída com sucesso! Redirecionando para o Portal...");
 
         setTimeout(() => {
-          window.location.href = "/cliente";
+          if (currentUserId) {
+            window.location.href = "/cliente";
+          } else if (currentUserEmail) {
+            window.location.href = `/portal/definir-senha?email=${encodeURIComponent(currentUserEmail)}`;
+          } else {
+            window.location.href = "/cliente";
+          }
         }, 1200);
       }
     } catch (err: any) {
       console.error("Erro ao finalizar onboarding:", err);
       try {
-        localStorage.setItem(`delski_onboarding_completed_${currentUserId}`, "true");
-        window.location.href = isFree ? "/freelancer" : "/cliente";
+        if (currentUserId) {
+          localStorage.setItem(`delski_onboarding_completed_${currentUserId}`, "true");
+          window.location.href = isFree ? "/freelancer" : "/cliente";
+        } else {
+          window.location.href = "/cliente";
+        }
       } catch {
         toast.error(`Erro ao salvar informações: ${err.message || "Tente novamente."}`);
       }
