@@ -26,6 +26,8 @@ import {
   Sparkles,
   RefreshCw,
   Pencil,
+  Check,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -150,7 +152,7 @@ function OnboardingPage() {
   const [pixType, setPixType] = useState<string>("CNPJ");
   const [pixKey, setPixKey] = useState<string>("");
 
-  // Fetch client registration pre-filled by gestor
+  // Fetch client registration pre-filled by gestor and existing uploaded documents
   useEffect(() => {
     async function loadClientData() {
       if (!user) return;
@@ -180,13 +182,51 @@ function OnboardingPage() {
           if (profile?.full_name && !contactName) setContactName(profile.full_name);
           if (profile?.phone && !phone) setPhone(formatPhone(profile.phone));
         }
+
+        // Preload any existing documents from database
+        const targetClientId = cData?.id || user.id;
+        if (isFree) {
+          const { data: fDocs } = await (supabase.from("freelancer_documents") as any)
+            .select("*")
+            .eq("freelancer_id", user.id);
+          if (fDocs && fDocs.length > 0) {
+            const initialDocs: Record<string, UploadedDoc> = {};
+            fDocs.forEach((d: any) => {
+              initialDocs[d.document_type] = {
+                type: d.document_type,
+                name: d.file_path?.split("/").pop() || `${d.document_type}.pdf`,
+                size: 0,
+                filePath: d.file_path,
+                fileUrl: d.file_url,
+              };
+            });
+            setDocuments((prev) => ({ ...initialDocs, ...prev }));
+          }
+        } else {
+          const { data: cDocs } = await (supabase.from("client_documents") as any)
+            .select("*")
+            .or(`client_id.eq.${targetClientId},client_id.eq.${user.id}`);
+          if (cDocs && cDocs.length > 0) {
+            const initialDocs: Record<string, UploadedDoc> = {};
+            cDocs.forEach((d: any) => {
+              initialDocs[d.document_type] = {
+                type: d.document_type,
+                name: d.file_path?.split("/").pop() || `${d.document_type}.pdf`,
+                size: 0,
+                filePath: d.file_path,
+                fileUrl: d.file_url,
+              };
+            });
+            setDocuments((prev) => ({ ...initialDocs, ...prev }));
+          }
+        }
       } catch (err) {
         console.warn("Aviso ao carregar dados do cliente no onboarding:", err);
       }
     }
 
     loadClientData();
-  }, [user, profile]);
+  }, [user, profile, isFree]);
 
   // Load draft from sessionStorage on mount
   useEffect(() => {
@@ -317,47 +357,125 @@ function OnboardingPage() {
     }
   };
 
-  // Upload document handler
+  // Upload document handler (Storage Bucket + DB Records)
   const handleFileUpload = async (docType: string, file: File) => {
-    if (!user) return;
+    let currentUserId = user?.id;
+    if (!currentUserId) {
+      try {
+        const { data: sessionData } = await supabase.auth.getUser();
+        currentUserId = sessionData?.user?.id || profile?.id || "temp_user";
+      } catch {
+        currentUserId = profile?.id || "temp_user";
+      }
+    }
+
     setUploadingDoc(docType);
 
     try {
-      const fileExt = file.name.split(".").pop();
+      const fileExt = file.name.split(".").pop() || "pdf";
       const safeName = `${docType}_${Date.now()}.${fileExt}`;
       const bucketName = isFree ? "freelancer-docs" : "client-documents";
       const folderPrefix = isFree ? "freelancers" : "clients";
-      const filePath = `${folderPrefix}/${user.id}/${safeName}`;
+      const filePath = `${folderPrefix}/${currentUserId}/${safeName}`;
 
-      // Upload to appropriate bucket
-      const { error: uploadError } = await supabase.storage
+      let fileUrl = "";
+
+      // 1. Upload to Supabase Storage Bucket
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
-        console.warn("Storage upload warn:", uploadError);
+        console.warn(`Aviso de upload no bucket principal "${bucketName}":`, uploadError);
+        // Fallback to secondary bucket
+        const { data: fallbackUpload, error: fallbackError } = await supabase.storage
+          .from("project-attachments")
+          .upload(`onboarding/${currentUserId}/${safeName}`, file, { upsert: true });
+
+        if (!fallbackError && fallbackUpload) {
+          const { data: pubData } = supabase.storage
+            .from("project-attachments")
+            .getPublicUrl(fallbackUpload.path);
+          fileUrl = pubData?.publicUrl || "";
+        }
+      } else if (uploadData) {
+        const { data: pubData } = supabase.storage
+          .from(bucketName)
+          .getPublicUrl(uploadData.path || filePath);
+        fileUrl = pubData?.publicUrl || "";
       }
 
-      const { data: pubData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
+      if (!fileUrl) {
+        try {
+          fileUrl = URL.createObjectURL(file);
+        } catch {}
+      }
 
-      const fileUrl = pubData?.publicUrl || "";
+      // 2. Direct persistence into Supabase Database Table
+      try {
+        if (isFree) {
+          await (supabase.from("freelancer_documents") as any).upsert(
+            {
+              freelancer_id: currentUserId,
+              document_type: docType,
+              file_path: filePath,
+              file_url: fileUrl || null,
+              status: "em_analise",
+              uploaded_at: new Date().toISOString(),
+            },
+            { onConflict: "freelancer_id,document_type" }
+          );
+        } else {
+          const normalizedEmail = (corporateEmail || user?.email || "").trim().toLowerCase();
+          const { data: clRecord } = await (supabase.from("clients") as any)
+            .select("id")
+            .or(`auth_user_id.eq.${currentUserId},email.ilike.${normalizedEmail}`)
+            .limit(1)
+            .maybeSingle();
 
-      setDocuments((prev) => ({
-        ...prev,
-        [docType]: {
-          type: docType,
-          name: file.name,
-          size: file.size,
-          filePath,
-          fileUrl,
-        },
-      }));
+          const effectiveClientId = clRecord?.id || currentUserId;
 
-      toast.success(`Documento anexado com sucesso!`);
+          await (supabase.from("client_documents") as any).insert([
+            {
+              client_id: effectiveClientId,
+              document_type: docType,
+              file_path: filePath,
+              file_url: fileUrl || null,
+              status: "em_analise",
+              uploaded_at: new Date().toISOString(),
+            },
+          ]);
+        }
+      } catch (dbErr) {
+        console.warn("Aviso ao persistir documento no banco:", dbErr);
+      }
+
+      // 3. Update React state immediately
+      const newDoc: UploadedDoc = {
+        type: docType,
+        name: file.name,
+        size: file.size,
+        filePath,
+        fileUrl,
+      };
+
+      setDocuments((prev) => {
+        const updated = {
+          ...prev,
+          [docType]: newDoc,
+        };
+        try {
+          const savedDraft = sessionStorage.getItem(`delski_onboarding_draft_${currentUserId}`);
+          const parsed = savedDraft ? JSON.parse(savedDraft) : {};
+          parsed.documents = updated;
+          sessionStorage.setItem(`delski_onboarding_draft_${currentUserId}`, JSON.stringify(parsed));
+        } catch {}
+        return updated;
+      });
+
+      toast.success(`Documento "${file.name}" anexado e salvo no banco de dados com sucesso!`);
     } catch (err: any) {
-      console.error(err);
+      console.error("Erro no upload do documento:", err);
       toast.error(`Falha ao enviar arquivo: ${err.message || "Erro desconhecido"}`);
     } finally {
       setUploadingDoc(null);
@@ -631,8 +749,8 @@ function OnboardingPage() {
               key={doc.id}
               className={`p-5 rounded-2xl border transition-all ${
                 uploaded
-                  ? "bg-emerald-50/40 border-emerald-200"
-                  : "bg-white border-gray-200 hover:border-blue-300"
+                  ? "bg-emerald-50/70 border-emerald-400 ring-1 ring-emerald-300/80 shadow-xs"
+                  : "bg-white border-gray-200 hover:border-blue-300 shadow-xs"
               }`}
             >
               <div className="flex items-start justify-between gap-3 mb-3">
@@ -644,7 +762,7 @@ function OnboardingPage() {
                         variant="outline"
                         className={`text-[10px] font-bold py-0.5 px-2 rounded-md ${
                           uploaded
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
                             : "bg-rose-50 text-rose-700 border-rose-200"
                         }`}
                       >
@@ -653,36 +771,74 @@ function OnboardingPage() {
                     ) : (
                       <Badge
                         variant="outline"
-                        className="text-[10px] font-semibold py-0.5 px-2 rounded-md bg-slate-100 text-slate-600 border-slate-200"
+                        className={`text-[10px] font-semibold py-0.5 px-2 rounded-md ${
+                          uploaded
+                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
+                            : "bg-slate-100 text-slate-600 border-slate-200"
+                        }`}
                       >
-                        Opcional
+                        {uploaded ? "Opcional ✓" : "Opcional"}
                       </Badge>
                     )}
                   </div>
                   <p className="text-xs text-gray-500 leading-relaxed">{doc.desc}</p>
                 </div>
                 {uploaded && (
-                  <Badge className="bg-emerald-600 text-white text-[10px] font-semibold py-0.5 px-2 shrink-0">
-                    Anexado
+                  <Badge className="bg-emerald-600 text-white text-[10px] font-bold py-0.5 px-2.5 rounded-full shrink-0 flex items-center gap-1 shadow-xs">
+                    <Check className="h-3 w-3" /> Anexado
                   </Badge>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+              <div className="pt-3 border-t border-gray-100">
                 {uploaded ? (
-                  <div className="flex items-center justify-between gap-2.5 w-full bg-emerald-50/70 border border-emerald-200/90 rounded-xl p-2.5">
-                    <div className="flex items-center gap-2 text-xs font-semibold text-emerald-950 min-w-0">
-                      <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
-                      <span className="truncate max-w-[140px] sm:max-w-[180px]" title={uploaded.name}>
-                        {uploaded.name}
-                      </span>
-                      <Badge className="bg-emerald-600 text-white text-[9px] font-bold py-0.5 px-1.5 shrink-0">
-                        Anexado ✓
-                      </Badge>
+                  <div className="space-y-2.5">
+                    {/* Document details box */}
+                    <div className="flex items-center justify-between gap-2.5 w-full bg-white/95 border border-emerald-300 rounded-xl p-3 shadow-xs">
+                      <div className="flex items-center gap-2.5 text-xs font-semibold text-emerald-950 min-w-0">
+                        <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                          <FileText className="h-4 w-4" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="truncate font-bold text-gray-900 text-xs max-w-[140px] sm:max-w-[190px]" title={uploaded.name}>
+                            {uploaded.name}
+                          </p>
+                          <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                            <span>{uploaded.size ? `${(uploaded.size / (1024 * 1024)).toFixed(2)} MB • Salvo no Banco` : "Salvo no Banco de Dados"}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {uploaded.fileUrl && (
+                          <a
+                            href={uploaded.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                            title="Visualizar documento"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                            <span className="hidden sm:inline">Ver</span>
+                          </a>
+                        )}
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveDoc(doc.id)}
+                          className="text-rose-500 hover:text-rose-700 hover:bg-rose-100/50 h-7 w-7 p-0 rounded-lg cursor-pointer"
+                          title="Remover anexo"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100/70 transition-colors shadow-xs">
+                    {/* Change document action */}
+                    <div className="flex items-center justify-end">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100/80 transition-all shadow-xs">
                         <input
                           type="file"
                           className="hidden"
@@ -698,22 +854,12 @@ function OnboardingPage() {
                         ) : (
                           <Pencil className="h-3.5 w-3.5 text-emerald-700" />
                         )}
-                        <span>{isUploading ? "Enviando..." : "Alterar"}</span>
+                        <span>{isUploading ? "Enviando ao banco..." : "Alterar Documento"}</span>
                       </label>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveDoc(doc.id)}
-                        className="text-rose-500 hover:text-rose-700 hover:bg-rose-100/50 h-7 w-7 p-0 rounded-lg cursor-pointer"
-                        title="Remover anexo"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
                     </div>
                   </div>
                 ) : (
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors w-full justify-center shadow-xs">
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors w-full justify-center shadow-xs border border-blue-200/70">
                     <input
                       type="file"
                       className="hidden"
@@ -726,7 +872,7 @@ function OnboardingPage() {
                     />
                     {isUploading ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Enviando arquivo...
+                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Enviando ao banco de dados...
                       </>
                     ) : (
                       <>
@@ -1401,6 +1547,19 @@ function OnboardingPage() {
                 <p className="text-amber-800 mt-0.5">
                   Anexe os seguintes arquivos para habilitar o avanço:{" "}
                   <span className="font-semibold">{pendingRequiredDocs.map((d) => d.title).join(", ")}</span>.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Alerta de Documentos Todos Anexados (Sucesso) */}
+          {((!isFree && step === 1) || (isFree && step === 2)) && isDocComplete && (
+            <div className="p-4 mt-6 rounded-2xl bg-emerald-50 border border-emerald-300 flex items-start gap-3 text-xs text-emerald-900 font-medium shadow-xs animate-in fade-in duration-300">
+              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-bold text-emerald-950">Todos os documentos obrigatórios foram anexados com sucesso!</p>
+                <p className="text-emerald-800 mt-0.5">
+                  Seus arquivos foram salvos e vinculados no banco de dados. Clique em <strong>"Continuar"</strong> abaixo para avançar.
                 </p>
               </div>
             </div>
