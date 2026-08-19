@@ -53,7 +53,12 @@ function ClienteLayout() {
         navigate({ to: "/acesso-negado" as any, replace: true });
       } else if (isGestor) {
         navigate({ to: "/app", replace: true });
-      } else if (!onboardingCompleted && profile?.role === "cliente") {
+      } else if (
+        !onboardingCompleted &&
+        profile?.role === "cliente" &&
+        typeof window !== "undefined" &&
+        localStorage.getItem(`delski_onboarding_completed_${user?.id}`) !== "true"
+      ) {
         navigate({ to: "/onboarding" as any, replace: true });
       }
     }

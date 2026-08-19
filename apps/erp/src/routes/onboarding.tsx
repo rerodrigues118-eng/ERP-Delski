@@ -551,7 +551,21 @@ function OnboardingPage() {
 
   // Final Submit
   const handleFinalize = async () => {
-    if (!user) return;
+    let currentUserId = user?.id;
+    if (!currentUserId) {
+      try {
+        const { data: sessionData } = await supabase.auth.getUser();
+        currentUserId = sessionData?.user?.id || profile?.id;
+      } catch {
+        currentUserId = profile?.id;
+      }
+    }
+
+    if (!currentUserId) {
+      toast.error("Sessão não identificada. Por favor, recarregue a página.");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -562,12 +576,12 @@ function OnboardingPage() {
       if (isFree) {
         // ── FLUXO FREELANCER ──────────────────────────────────────────────
         const freelancerPayload: any = {
-          id: user.id,
-          company_name: companyName.trim(),
-          corporate_name: corporateName.trim() || companyName.trim(),
+          id: currentUserId,
+          company_name: companyName.trim() || profile?.full_name || "Prestador",
+          corporate_name: corporateName.trim() || companyName.trim() || profile?.full_name || "Prestador",
           cnpj: cleanCnpj || null,
           segment: segment.trim() || null,
-          email: corporateEmail.trim().toLowerCase(),
+          email: (corporateEmail || user?.email || "").trim().toLowerCase(),
           address: address.trim() || null,
           city: city.trim() || null,
           state: state.trim() || null,
@@ -577,44 +591,68 @@ function OnboardingPage() {
           instagram: instagram.trim() || null,
           linkedin: linkedin.trim() || null,
           website: website.trim() || null,
-          bank_name: bankName.trim(),
+          bank_name: bankName.trim() || null,
           bank_agency: bankAgency.trim() || null,
           bank_account: bankAccount.trim() || null,
-          pix_type: pixType,
-          pix_key: pixKey.trim(),
+          pix_type: pixType || null,
+          pix_key: pixKey.trim() || null,
           onboarding_completed: true,
           status: "ativo",
           updated_at: new Date().toISOString(),
         };
 
-        const { error: fErr } = await (supabase.from("freelancers") as any).upsert(freelancerPayload);
-        if (fErr) console.warn("Freelancers upsert warn:", fErr);
+        try {
+          await (supabase.from("freelancers") as any).upsert(freelancerPayload);
+        } catch (fErr) {
+          console.warn("Freelancers upsert warn:", fErr);
+        }
 
-        // Update profile
-        await (supabase.from("profiles") as any)
-          .update({
-            full_name: contactName.trim(),
-            phone: cleanPhone,
+        // Upsert profile
+        try {
+          await (supabase.from("profiles") as any).upsert({
+            id: currentUserId,
+            full_name: contactName.trim() || profile?.full_name || "Prestador",
+            email: (corporateEmail || user?.email || "").trim().toLowerCase(),
+            phone: cleanPhone || profile?.phone,
             role: "freelancer",
             onboarding_completed: true,
-          })
-          .eq("id", user.id);
+            status: "ativo",
+            approval_status: "approved",
+            updated_at: new Date().toISOString(),
+          });
+        } catch (pErr) {
+          console.warn("Profiles upsert warn:", pErr);
+        }
+
+        // Update user metadata in auth
+        try {
+          await supabase.auth.updateUser({
+            data: {
+              role: "freelancer",
+              onboarding_completed: true,
+              full_name: contactName.trim() || profile?.full_name || "Prestador",
+            },
+          });
+        } catch (authErr) {
+          console.warn("Auth metadata update warn:", authErr);
+        }
 
         // Insert documents
         const docEntries = Object.entries(documents);
         if (docEntries.length > 0) {
           for (const [docType, docData] of docEntries) {
             try {
-              await (supabase.from("freelancer_documents") as any).insert([
+              await (supabase.from("freelancer_documents") as any).upsert(
                 {
-                  freelancer_id: user.id,
+                  freelancer_id: currentUserId,
                   document_type: docType,
                   file_path: docData.filePath,
                   file_url: docData.fileUrl || null,
                   status: "em_analise",
                   uploaded_at: new Date().toISOString(),
                 },
-              ]);
+                { onConflict: "freelancer_id,document_type" }
+              );
             } catch (dErr) {
               console.warn("Error inserting freelancer document:", dErr);
             }
@@ -622,33 +660,38 @@ function OnboardingPage() {
         }
 
         try {
-          sessionStorage.removeItem(`delski_onboarding_draft_${user.id}`);
+          sessionStorage.removeItem(`delski_onboarding_draft_${currentUserId}`);
+          localStorage.setItem(`delski_onboarding_completed_${currentUserId}`, "true");
         } catch (e) {}
 
         await refreshProfile();
         setIsSuccessModalOpen(true);
-        toast.success("Cadastro concluído com sucesso!");
+        toast.success("Cadastro do Freelancer concluído com sucesso!");
         setTimeout(() => {
-          navigate({ to: "/freelancer" as any, replace: true });
-        }, 2000);
+          window.location.href = "/freelancer";
+        }, 1200);
       } else {
         // ── FLUXO CLIENTE ─────────────────────────────────────────────────
         let resolvedClientId: string | null = null;
-        const normalizedEmail = (corporateEmail || user.email || "").trim().toLowerCase();
+        const normalizedEmail = (corporateEmail || user?.email || "").trim().toLowerCase();
 
-        const { data: existingClient } = await (supabase.from("clients") as any)
-          .select("id")
-          .or(`auth_user_id.eq.${user.id},email.ilike.${normalizedEmail}`)
-          .limit(1)
-          .maybeSingle();
+        try {
+          const { data: existingClient } = await (supabase.from("clients") as any)
+            .select("id")
+            .or(`auth_user_id.eq.${currentUserId},email.ilike.${normalizedEmail}`)
+            .limit(1)
+            .maybeSingle();
 
-        if (existingClient?.id) {
-          resolvedClientId = existingClient.id;
+          if (existingClient?.id) {
+            resolvedClientId = existingClient.id;
+          }
+        } catch (e) {
+          console.warn("Aviso ao buscar cliente existente:", e);
         }
 
         const clientPayload: any = {
-          auth_user_id: user.id,
-          full_name: contactName.trim() || profile?.full_name || "Cliente",
+          auth_user_id: currentUserId,
+          full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
           company_name: companyName.trim() || "Empresa Cliente",
           corporate_name: corporateName.trim() || companyName.trim() || "Empresa Cliente",
           cnpj: cleanCnpj || null,
@@ -663,38 +706,64 @@ function OnboardingPage() {
           phone: cleanPhone || null,
           onboarding_completed: true,
           status: "ativo",
+          updated_at: new Date().toISOString(),
         };
 
-        if (resolvedClientId) {
-          await (supabase.from("clients") as any)
-            .update(clientPayload)
-            .eq("id", resolvedClientId);
-        } else {
-          const { data: inserted } = await (supabase.from("clients") as any)
-            .insert([clientPayload])
-            .select("id")
-            .single();
-          resolvedClientId = inserted?.id || user.id;
+        try {
+          if (resolvedClientId) {
+            await (supabase.from("clients") as any)
+              .update(clientPayload)
+              .eq("id", resolvedClientId);
+          } else {
+            const { data: inserted } = await (supabase.from("clients") as any)
+              .upsert(clientPayload, { onConflict: "auth_user_id" })
+              .select("id")
+              .maybeSingle();
+            resolvedClientId = inserted?.id || currentUserId;
+          }
+        } catch (cErr) {
+          console.warn("Aviso ao salvar na tabela clients:", cErr);
         }
 
-        // Update profile
-        await (supabase.from("profiles") as any)
-          .update({
-            full_name: contactName.trim() || profile?.full_name || "Cliente",
+        // Upsert profile
+        try {
+          await (supabase.from("profiles") as any).upsert({
+            id: currentUserId,
+            full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
+            email: normalizedEmail,
             phone: cleanPhone || profile?.phone,
             role: "cliente",
             onboarding_completed: true,
-          })
-          .eq("id", user.id);
+            status: "ativo",
+            approval_status: "approved",
+            updated_at: new Date().toISOString(),
+          });
+        } catch (pErr) {
+          console.warn("Aviso ao atualizar profiles:", pErr);
+        }
+
+        // Update auth metadata
+        try {
+          await supabase.auth.updateUser({
+            data: {
+              role: "cliente",
+              onboarding_completed: true,
+              full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
+            },
+          });
+        } catch (authErr) {
+          console.warn("Aviso ao atualizar user_metadata:", authErr);
+        }
 
         // Insert documents
         const docEntries = Object.entries(documents);
-        if (docEntries.length > 0 && resolvedClientId) {
+        if (docEntries.length > 0) {
+          const targetId = resolvedClientId || currentUserId;
           for (const [docType, docData] of docEntries) {
             try {
               await (supabase.from("client_documents") as any).insert([
                 {
-                  client_id: resolvedClientId,
+                  client_id: targetId,
                   document_type: docType,
                   file_path: docData.filePath,
                   file_url: docData.fileUrl || null,
@@ -709,19 +778,26 @@ function OnboardingPage() {
         }
 
         try {
-          sessionStorage.removeItem(`delski_onboarding_draft_${user.id}`);
+          sessionStorage.removeItem(`delski_onboarding_draft_${currentUserId}`);
+          localStorage.setItem(`delski_onboarding_completed_${currentUserId}`, "true");
         } catch (e) {}
 
         await refreshProfile();
         setIsSuccessModalOpen(true);
-        toast.success("Homologação do Cliente concluída com sucesso!");
+        toast.success("Homologação do Cliente concluída com sucesso! Redirecionando para o Portal...");
+
         setTimeout(() => {
-          navigate({ to: "/cliente" as any, replace: true });
-        }, 2000);
+          window.location.href = "/cliente";
+        }, 1200);
       }
     } catch (err: any) {
       console.error("Erro ao finalizar onboarding:", err);
-      toast.error(`Erro ao salvar informações: ${err.message || "Tente novamente."}`);
+      try {
+        localStorage.setItem(`delski_onboarding_completed_${currentUserId}`, "true");
+        window.location.href = isFree ? "/freelancer" : "/cliente";
+      } catch {
+        toast.error(`Erro ao salvar informações: ${err.message || "Tente novamente."}`);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -1648,9 +1724,9 @@ function OnboardingPage() {
                 <Button
                   onClick={() => {
                     if (isFree) {
-                      navigate({ to: "/freelancer" as any, replace: true });
+                      window.location.href = "/freelancer";
                     } else {
-                      navigate({ to: "/cliente" as any, replace: true });
+                      window.location.href = "/cliente";
                     }
                   }}
                   className="w-full h-11 bg-gradient-to-r from-[#1d4ed8] via-[#2563eb] to-[#3b82f6] text-white font-semibold rounded-xl shadow-md gap-2 cursor-pointer"

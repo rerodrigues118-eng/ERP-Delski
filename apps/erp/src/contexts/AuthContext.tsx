@@ -172,10 +172,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           return;
         }
 
+        const localCompleted =
+          typeof window !== "undefined" &&
+          localStorage.getItem(`delski_onboarding_completed_${u.id}`) === "true";
+
         const isOnboardingDone = Boolean(
           byId?.onboarding_completed ||
           clientRow?.onboarding_completed ||
-          freelancerRow?.onboarding_completed
+          freelancerRow?.onboarding_completed ||
+          (u.user_metadata as any)?.onboarding_completed ||
+          localCompleted
         );
 
         if (byId) {

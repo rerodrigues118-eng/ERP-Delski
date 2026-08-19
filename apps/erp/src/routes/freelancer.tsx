@@ -56,7 +56,12 @@ function FreelancerLayout() {
         navigate({ to: "/app", replace: true });
       } else if (isCliente) {
         navigate({ to: "/cliente" as any, replace: true });
-      } else if (!onboardingCompleted && profile?.role === "freelancer") {
+      } else if (
+        !onboardingCompleted &&
+        profile?.role === "freelancer" &&
+        typeof window !== "undefined" &&
+        localStorage.getItem(`delski_onboarding_completed_${user?.id}`) !== "true"
+      ) {
         navigate({ to: "/onboarding" as any, replace: true });
       }
     }
