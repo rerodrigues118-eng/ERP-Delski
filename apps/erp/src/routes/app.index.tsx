@@ -32,7 +32,7 @@ import {
   Inbox,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useProjects } from "@/hooks/useProjects";
+import { useProjects, useFreelancerFinanceProjects } from "@/hooks/useProjects";
 import { useFreelancers } from "@/hooks/useProfiles";
 import { useClientsList } from "@/hooks/useClients";
 
@@ -329,9 +329,251 @@ function DistributionMetricCard({
   );
 }
 
+/* ── Freelancer Dashboard View (RBAC Isolado) ─────────────── */
+function FreelancerDashboardView() {
+  const { user, profile } = useAuth();
+  const { data: myProjects = [], isLoading: loadingProjects } = useFreelancerFinanceProjects(
+    user?.id,
+    user?.email,
+  );
+
+  const activeProjects = useMemo(
+    () => myProjects.filter((p) => p.status !== "Concluido"),
+    [myProjects],
+  );
+  const completedProjects = useMemo(
+    () => myProjects.filter((p) => p.status === "Concluido"),
+    [myProjects],
+  );
+
+  const totalEarnings = useMemo(
+    () => myProjects.reduce((acc, p) => acc + Number(p.freelancer_cost || 0), 0),
+    [myProjects],
+  );
+
+  const pendingEarnings = useMemo(
+    () => activeProjects.reduce((acc, p) => acc + Number(p.freelancer_cost || 0), 0),
+    [activeProjects],
+  );
+
+  const nearestDeadline = useMemo(() => {
+    const upcoming = activeProjects
+      .filter((p) => p.deadline)
+      .map((p) => ({
+        ...p,
+        date: new Date(p.deadline!).getTime(),
+      }))
+      .filter((p) => !isNaN(p.date) && p.date >= Date.now())
+      .sort((a, b) => a.date - b.date);
+
+    return upcoming[0] || null;
+  }, [activeProjects]);
+
+  let nearestDeadlineDays = "—";
+  if (nearestDeadline) {
+    const diffDays = Math.ceil((nearestDeadline.date - Date.now()) / (1000 * 60 * 60 * 24));
+    nearestDeadlineDays = diffDays === 0 ? "Hoje" : diffDays === 1 ? "Amanhã" : `${diffDays} dias`;
+  }
+
+  const displayName = profile?.full_name || user?.email?.split("@")[0] || "Prestador";
+
+  return (
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="space-y-8 max-w-7xl mx-auto pb-16"
+    >
+      {/* Header do Prestador */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border pb-5">
+        <div>
+          <span className="text-xs uppercase font-bold tracking-wider text-indigo-600 dark:text-indigo-400">
+            Painel do Prestador
+          </span>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mt-0.5">
+            Olá, {displayName}! 👋
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1">
+            Aqui está o resumo das suas demandas, remunerações acordadas e prazos de entrega.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="text-xs gap-1.5 border-border rounded-xl cursor-pointer"
+            asChild
+          >
+            <Link to="/app/finance">
+              <DollarSign className="h-3.5 w-3.5 text-emerald-600" /> Ver Extrato & Repasses
+            </Link>
+          </Button>
+          <Button
+            size="sm"
+            className="text-xs gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl cursor-pointer shadow-xs"
+            asChild
+          >
+            <Link to="/app/projects">
+              <Briefcase className="h-3.5 w-3.5" /> Ver Meus Projetos
+            </Link>
+          </Button>
+        </div>
+      </div>
+
+      {/* 4 KPIs Exclusivos do Freelancer */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          label="Ganhos Acumulados"
+          numericValue={totalEarnings}
+          prefix="R$ "
+          decimals={2}
+          icon={DollarSign}
+          iconBg="bg-emerald-500/10"
+          iconColor="text-emerald-600 dark:text-emerald-400"
+          sub="Remuneração de projetos alocados"
+        />
+
+        <KpiCard
+          label="A Receber (Em Execução)"
+          numericValue={pendingEarnings}
+          prefix="R$ "
+          decimals={2}
+          icon={Clock}
+          iconBg="bg-amber-500/10"
+          iconColor="text-amber-600 dark:text-amber-400"
+          sub={`${activeProjects.length} projeto(s) em andamento`}
+        />
+
+        <KpiCard
+          label="Projetos Concluídos"
+          numericValue={completedProjects.length}
+          icon={Award}
+          iconBg="bg-blue-500/10"
+          iconColor="text-blue-600 dark:text-blue-400"
+          sub="Entregas finalizadas com sucesso"
+        />
+
+        <KpiCard
+          label="Próxima Entrega"
+          value={nearestDeadlineDays}
+          icon={Sparkles}
+          iconBg="bg-indigo-500/10"
+          iconColor="text-indigo-600 dark:text-indigo-400"
+          sub={nearestDeadline ? nearestDeadline.title : "Sem prazos pendentes"}
+        />
+      </div>
+
+      {/* Seção: Meus Projetos em Andamento */}
+      <motion.div variants={itemVariants} className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-bold text-foreground">Suas Demandas & Projetos Ativos</h2>
+            <p className="text-xs text-muted-foreground">Projetos em que você está alocado(a) no momento.</p>
+          </div>
+          <Link
+            to="/app/projects"
+            className="text-xs font-semibold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+          >
+            Ver todos ({myProjects.length}) <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
+
+        {loadingProjects ? (
+          <div className="p-12 text-center border border-dashed rounded-2xl">
+            <Loader2 className="h-6 w-6 animate-spin mx-auto text-indigo-600 mb-2" />
+            <p className="text-xs text-muted-foreground">Carregando suas demandas...</p>
+          </div>
+        ) : activeProjects.length === 0 ? (
+          <div className="bg-card border border-border rounded-2xl p-12 text-center">
+            <Briefcase className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+            <p className="text-sm font-bold text-foreground">Nenhum projeto em andamento no momento</p>
+            <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
+              Assim que um gestor da agência vincular você a uma nova demanda, ela aparecerá aqui com todos os detalhes e briefings.
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {activeProjects.map((p) => {
+              let deadlineText = "Sem prazo";
+              if (p.deadline) {
+                try {
+                  const d = new Date(p.deadline);
+                  if (!isNaN(d.getTime())) deadlineText = d.toLocaleDateString("pt-BR");
+                } catch {}
+              }
+
+              return (
+                <div
+                  key={p.id}
+                  className="bg-card border border-border rounded-2xl p-5 shadow-subtle hover:border-indigo-500/30 hover:shadow-lg transition-all flex flex-col justify-between"
+                >
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      <Badge variant="outline" className="text-[10px] bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20">
+                        {SERVICE_LABEL[p.service_type] || p.service_type}
+                      </Badge>
+                      <Badge variant="secondary" className="text-[10px]">
+                        {STATUS_LABEL[p.status] || p.status}
+                      </Badge>
+                    </div>
+
+                    <Link
+                      to="/app/projects/$id"
+                      params={{ id: p.id }}
+                      className="text-sm font-bold text-foreground hover:text-indigo-600 dark:hover:text-indigo-400 line-clamp-1 block mb-1"
+                    >
+                      {p.title}
+                    </Link>
+
+                    <p className="text-xs text-muted-foreground font-medium mb-2 truncate">
+                      {p.client?.full_name || "Cliente Parceiro"}
+                    </p>
+
+                    <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed mb-4">
+                      {p.briefing_content || "Sem briefing descritivo inserido."}
+                    </p>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between pt-3 border-t border-border text-xs">
+                      <span className="text-muted-foreground">
+                        Prazo: <strong className="text-foreground">{deadlineText}</strong>
+                      </span>
+                      <span className="font-extrabold text-emerald-600 dark:text-emerald-400">
+                        R$ {Number(p.freelancer_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                      </span>
+                    </div>
+
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="w-full mt-3 text-xs rounded-xl cursor-pointer hover:bg-indigo-500/10 hover:text-indigo-600 hover:border-indigo-500/30"
+                    >
+                      <Link to="/app/projects/$id" params={{ id: p.id }}>
+                        Abrir Área do Projeto →
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 /* ── Dashboard Principal ─────────────────────────────────── */
 function Dashboard() {
   const { profile, user, isGestor, isCliente, isFreelancer } = useAuth();
+
+  if (isFreelancer) {
+    return <FreelancerDashboardView />;
+  }
+
   const { data: projects = [], isLoading: loadingProjects } = useProjects();
   const { data: clientsList = [] } = useClientsList();
   const { data: freelancers = [] } = useFreelancers();

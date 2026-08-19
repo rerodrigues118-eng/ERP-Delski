@@ -162,41 +162,65 @@ function FreelancerProjectCard({ project }: { project: Project }) {
     }
   }
 
+  const clientDisplayName = project.client?.full_name || "Cliente Parceiro";
+
   return (
-    <div className="group bg-card rounded-2xl border border-border p-5 shadow-subtle hover:shadow-lg hover:border-purple-500/30 transition-all">
-      <div className="flex items-start justify-between gap-2 mb-3">
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
-          SERVICE_BADGE_COLORS[project.service_type] || "bg-muted text-muted-foreground border-border"
-        }`}>
-          {SERVICE_LABEL[project.service_type] || project.service_type}
-        </span>
+    <div className="group bg-card rounded-2xl border border-border p-5 shadow-subtle hover:shadow-lg hover:border-indigo-500/30 transition-all flex flex-col justify-between">
+      <div>
+        <div className="flex items-start justify-between gap-2 mb-3">
+          <span
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[11px] font-semibold border ${
+              SERVICE_BADGE_COLORS[project.service_type] || "bg-muted text-muted-foreground border-border"
+            }`}
+          >
+            {SERVICE_LABEL[project.service_type] || project.service_type}
+          </span>
+          <span
+            className={`inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-semibold border ${
+              STATUS_BADGE_COLORS[project.status] || "bg-muted text-muted-foreground border-border"
+            }`}
+          >
+            {STATUS_LABEL[project.status] || project.status}
+          </span>
+        </div>
+
+        <Link
+          to="/app/projects/$id"
+          params={{ id: project.id }}
+          className="block text-[15px] font-bold text-foreground hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors line-clamp-1 mb-1"
+        >
+          {project.title}
+        </Link>
+        <p className="text-[12px] text-muted-foreground font-medium truncate mb-2.5">
+          {clientDisplayName}
+        </p>
+        <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed mb-4">
+          {project.briefing_content || "Sem briefing detalhado no momento."}
+        </p>
       </div>
-      <Link
-        to="/app/projects/$id"
-        params={{ id: project.id }}
-        className="block text-[14px] font-bold text-foreground hover:text-purple-600 dark:hover:text-purple-400 transition-colors line-clamp-1 mb-1"
-      >
-        {project.title}
-      </Link>
-      <p className="text-[12px] text-muted-foreground font-medium truncate mb-3">
-        {project.client?.full_name || "—"}
-      </p>
-      <p className="line-clamp-2 text-xs text-muted-foreground leading-relaxed mb-4">
-        {project.briefing_content || "Sem briefing ainda."}
-      </p>
-      <div className="flex items-center justify-between pt-3 border-t border-border">
-        <span className="text-[11px] text-muted-foreground">{formattedDate}</span>
-        <span className="text-[12px] font-bold text-emerald-600 dark:text-emerald-400">
-          R$ {Number(project.freelancer_cost || project.budget || 0).toLocaleString("pt-BR", { minimumFractionDigits: 0 })}
-        </span>
+
+      <div>
+        <div className="flex items-center justify-between pt-3 border-t border-border/80">
+          <div className="flex flex-col">
+            <span className="text-[10px] uppercase font-bold text-muted-foreground">Prazo de Entrega</span>
+            <span className="text-[11px] font-medium text-foreground">{formattedDate}</span>
+          </div>
+          <div className="flex flex-col text-right">
+            <span className="text-[10px] uppercase font-bold text-muted-foreground">Sua Remuneração</span>
+            <span className="text-[13px] font-extrabold text-emerald-600 dark:text-emerald-400">
+              R$ {Number(project.freelancer_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+            </span>
+          </div>
+        </div>
+
+        <Link
+          to="/app/projects/$id"
+          params={{ id: project.id }}
+          className="mt-3.5 flex items-center justify-center w-full py-2 rounded-xl bg-muted/60 hover:bg-accent text-xs font-semibold text-foreground transition-colors border border-border cursor-pointer shadow-2xs"
+        >
+          Acessar Área do Projeto →
+        </Link>
       </div>
-      <Link
-        to="/app/projects/$id"
-        params={{ id: project.id }}
-        className="mt-3 flex items-center justify-center w-full py-2 rounded-xl bg-muted/60 hover:bg-accent text-xs font-semibold text-foreground transition-colors border border-border"
-      >
-        Ver Detalhes →
-      </Link>
     </div>
   );
 }

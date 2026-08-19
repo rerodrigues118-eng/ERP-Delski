@@ -269,6 +269,51 @@ function ProjectDetailPage() {
     );
   }
 
+  // Strict Freelancer RBAC Isolation & Security Guard
+  if (isFreelancer) {
+    const userEmail = (user?.email || "").toLowerCase().trim();
+    const userId = user?.id;
+
+    const isAssigned = (project.freelancers || []).some((f: any) => {
+      const fId = f.id || f.freelancer_id || f.profile?.id;
+      const fEmail = (f.email || f.profile?.email || "").toLowerCase().trim();
+      return (userId && fId === userId) || (userEmail && fEmail === userEmail);
+    });
+
+    if (!isAssigned) {
+      return (
+        <div className="space-y-6 max-w-5xl mx-auto pb-16">
+          <Link
+            to="/app/projects"
+            className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1 w-fit"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Voltar para Meus Projetos
+          </Link>
+          <Card className="p-12 text-center space-y-3 border-dashed border-rose-500/30 rounded-2xl shadow-subtle">
+            <Lock className="h-10 w-10 text-rose-500 mx-auto" />
+            <h2 className="text-base font-bold text-foreground">Acesso Restrito ao Projeto</h2>
+            <p className="text-xs text-muted-foreground max-w-md mx-auto">
+              Você não possui autorização para acessar os detalhes deste projeto pois não está alocado a ele como prestador responsável.
+            </p>
+            <div className="pt-2">
+              <Button asChild size="sm" variant="outline" className="text-xs">
+                <Link to="/app/projects">Voltar aos Meus Projetos</Link>
+              </Button>
+            </div>
+          </Card>
+        </div>
+      );
+    }
+
+    return (
+      <FreelancerProjectDetailView
+        project={project}
+        tasks={tasks}
+        updateTaskStatus={updateTaskStatus}
+      />
+    );
+  }
+
   // Briefing Saving
   const handleSaveBriefing = () => {
     updateProject.mutate({
@@ -1644,6 +1689,286 @@ function ProjectDetailPage() {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+}
+
+// ── FREELANCER EXCLUSIVE DETAIL VIEW (RBAC ISOLATED) ─────────────────────────
+function FreelancerProjectDetailView({
+  project,
+  tasks,
+  updateTaskStatus,
+}: {
+  project: any;
+  tasks: any[];
+  updateTaskStatus: any;
+}) {
+  const completedTasks = tasks.filter((t) => t.status === "Concluida").length;
+  const progressPercent = tasks.length ? Math.round((completedTasks / tasks.length) * 100) : 0;
+
+  let formattedDeadline = "Sem prazo definido";
+  if (project.deadline) {
+    try {
+      const d = new Date(project.deadline);
+      if (!isNaN(d.getTime())) {
+        formattedDeadline = d.toLocaleDateString("pt-BR");
+      }
+    } catch {}
+  }
+
+  const clientName = project.client?.full_name || "Cliente Parceiro";
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-border pb-5">
+        <div className="space-y-1">
+          <Link
+            to="/app/projects"
+            className="text-xs text-muted-foreground hover:text-foreground hover:underline flex items-center gap-1 w-fit mb-1"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Voltar para Meus Projetos
+          </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">{project.title}</h1>
+            <Badge
+              variant="outline"
+              className="bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border-indigo-500/20 text-xs font-semibold"
+            >
+              {SERVICE_LABEL[project.service_type] || project.service_type}
+            </Badge>
+            <Badge className="bg-zinc-800 text-zinc-200 border-zinc-700 text-xs font-medium">
+              {STATUS_LABEL[project.status] || project.status}
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Empresa Parceira: <strong className="text-foreground">{clientName}</strong> • Prazo final:{" "}
+            <strong className="text-foreground">{formattedDeadline}</strong>
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Col (2/3): Briefing & Tarefas */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Card 1: Briefing & Escopo da Demanda */}
+          <Card className="bg-card border-border shadow-subtle rounded-2xl">
+            <CardHeader className="pb-3 border-b border-border/70">
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                    <FileText className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                    Briefing & Escopo da Demanda
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Orientações, especificações e diretrizes de execução do projeto.
+                  </CardDescription>
+                </div>
+                {project.google_drive_link && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5 text-xs border-indigo-500/30 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/10 cursor-pointer"
+                    asChild
+                  >
+                    <a href={project.google_drive_link} target="_blank" rel="noopener noreferrer">
+                      <ExternalLink className="h-3.5 w-3.5" /> Abrir Pasta de Arquivos
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-4">
+              <div className="p-4 rounded-xl bg-muted/40 border border-border text-xs leading-relaxed text-foreground whitespace-pre-wrap font-sans">
+                {project.briefing_content || "Nenhum briefing descritivo inserido para este projeto."}
+              </div>
+
+              {project.google_drive_link && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-indigo-500/5 p-3 rounded-xl border border-indigo-500/15">
+                  <ExternalLink className="h-4 w-4 text-indigo-500 flex-shrink-0" />
+                  <span className="truncate">
+                    Repositório de arquivos do projeto:{" "}
+                    <a
+                      href={project.google_drive_link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-indigo-600 dark:text-indigo-400 hover:underline"
+                    >
+                      {project.google_drive_link}
+                    </a>
+                  </span>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Card 2: Tarefas & Atividades Atribuídas */}
+          <Card className="bg-card border-border shadow-subtle rounded-2xl">
+            <CardHeader className="pb-3 border-b border-border/70">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                    <Layers className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    Quadro de Tarefas da Sua Entrega
+                  </CardTitle>
+                  <CardDescription className="text-xs text-muted-foreground">
+                    Atualize o status das suas atividades à medida que for avançando na produção.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-muted-foreground">
+                    {completedTasks}/{tasks.length} concluídas
+                  </span>
+                  <div className="w-24">
+                    <Progress value={progressPercent} className="h-2" />
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-4">
+              {tasks.length === 0 ? (
+                <div className="p-8 text-center border border-dashed rounded-xl space-y-1">
+                  <CheckCircle2 className="h-7 w-7 text-muted-foreground/40 mx-auto" />
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Nenhuma tarefa estruturada para este projeto no momento.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {tasks.map((task) => (
+                    <div
+                      key={task.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-xl border border-border bg-muted/20 hover:bg-muted/40 transition-colors"
+                    >
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-foreground truncate">{task.title}</span>
+                          {task.phase && (
+                            <Badge variant="outline" className="text-[10px] bg-background">
+                              {task.phase}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
+                          {task.start_date && <span>Início: {formatDate(task.start_date)}</span>}
+                          {task.due_date && <span>Prazo: {formatDate(task.due_date)}</span>}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <Select
+                          value={task.status}
+                          onValueChange={(newStatus) =>
+                            updateTaskStatus.mutate({
+                              id: task.id,
+                              projectId: project.id,
+                              status: newStatus as TaskStatus,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-8 text-xs w-36 bg-background border-border">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Pendente">Pendente</SelectItem>
+                            <SelectItem value="Em andamento">Em andamento</SelectItem>
+                            <SelectItem value="Em revisao">Em revisão</SelectItem>
+                            <SelectItem value="Concluida">Concluída</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Right Col (1/3): Remuneração, Contrato & Gestão */}
+        <div className="space-y-6">
+          {/* Card 3: Sua Remuneração */}
+          <Card className="bg-card border-emerald-500/20 shadow-subtle rounded-2xl">
+            <CardHeader className="pb-3 border-b border-border/70">
+              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+                <DollarSign className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                Sua Remuneração Acordada
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3">
+              <div>
+                <span className="text-xs text-muted-foreground font-medium">Valor do Seu Repasse</span>
+                <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-0.5">
+                  R$ {Number(project.freelancer_cost || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-border space-y-2 text-xs">
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Status do Pagamento:</span>
+                  <Badge
+                    className={`text-[10px] ${
+                      project.status === "Concluido"
+                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
+                        : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                    }`}
+                  >
+                    {project.status === "Concluido" ? "Liberado para Pagamento" : "Aguardando Conclusão"}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground">
+                  <span>Prazo Previsto:</span>
+                  <span className="font-semibold text-foreground">{formattedDeadline}</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 4: Empresa Parceira */}
+          <Card className="bg-card border-border shadow-subtle rounded-2xl">
+            <CardHeader className="pb-3 border-b border-border/70">
+              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+                <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                Informações da Demanda
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 space-y-3 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-border">
+                <span className="text-muted-foreground">Empresa:</span>
+                <span className="font-bold text-foreground">{clientName}</span>
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-border">
+                <span className="text-muted-foreground">Categoria:</span>
+                <span className="font-semibold text-foreground">
+                  {SERVICE_LABEL[project.service_type] || project.service_type}
+                </span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Status do Projeto:</span>
+                <span className="font-semibold text-foreground">{STATUS_LABEL[project.status] || project.status}</span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Card 5: Suporte & Contato */}
+          <Card className="bg-card border-border shadow-subtle rounded-2xl">
+            <CardHeader className="pb-3 border-b border-border/70">
+              <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+                <ShieldCheck className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                Alinhamento com Gestor Delski
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pt-4 text-xs text-muted-foreground space-y-3">
+              <p>
+                Dúvidas sobre o escopo ou ajustes de prazos? Entre em contato diretamente com o gestor responsável ou abra um chamado pelo painel.
+              </p>
+              <Button asChild size="sm" variant="outline" className="w-full text-xs cursor-pointer">
+                <Link to="/app/suporte">Acessar Canal de Suporte</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }

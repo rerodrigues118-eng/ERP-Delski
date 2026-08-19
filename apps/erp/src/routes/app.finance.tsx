@@ -462,73 +462,102 @@ function FreelancerFinanceView({ user }: { user: any }) {
         </Card>
       </div>
 
-      <Card className="bg-card">
-        <CardHeader>
-          <CardTitle className="text-base font-bold">Meus Projetos & Repasses Acordados</CardTitle>
+      <Card className="bg-card border-border shadow-subtle rounded-2xl">
+        <CardHeader className="pb-3 border-b border-border/70">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-bold flex items-center gap-2 text-foreground">
+                <Receipt className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+                Meus Projetos & Extrato de Repasses
+              </CardTitle>
+              <CardDescription className="text-xs text-muted-foreground">
+                Consulte o histórico de honorários por projeto, datas de liberação e comprovantes de transferência.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b border-border">
+              <thead className="bg-muted/50 text-xs uppercase text-muted-foreground border-b border-border font-semibold">
                 <tr>
                   <th className="text-left px-4 py-3">Projeto</th>
                   <th className="text-left px-4 py-3">Serviço</th>
-                  <th className="text-left px-4 py-3">Status do Projeto</th>
+                  <th className="text-left px-4 py-3">Prazo do Projeto</th>
                   <th className="text-right px-4 py-3">Seu Repasse (R$)</th>
-                  <th className="text-right px-4 py-3">Situação</th>
+                  <th className="text-center px-4 py-3">Situação</th>
+                  <th className="text-right px-4 py-3">Comprovante</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border">
-                {projects.map((p) => (
-                  <tr key={p.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3.5 font-bold text-foreground">{p.title}</td>
-                    <td className="px-4 py-3.5">
-                      <Badge variant="outline" className="text-xs">
-                        {SERVICE_LABEL[p.service_type] || p.service_type}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3.5">
-                      <Badge variant="secondary" className="text-xs">
-                        {STATUS_LABEL[p.status] || p.status}
-                      </Badge>
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-extrabold text-indigo-600 dark:text-indigo-400">
-                      {money(Number(p.freelancer_cost || 0))}
-                    </td>
-                    <td className="px-4 py-3.5 text-right">
-                      {(() => {
-                        const payout = payoutByProject.get(p.id);
-                        const isPago = payout?.status === "pago";
-                        const paymentDate = payout?.payment_date
-                          ? formatDate(payout.payment_date)
-                          : null;
-                        return (
-                          <Badge
-                            className={`text-xs ${
-                              isPago
-                                ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
-                                : p.status === "Concluido"
-                                ? "bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30"
-                                : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
-                            }`}
-                          >
-                            {isPago
-                              ? paymentDate
-                                ? `Pago em ${paymentDate}`
-                                : "Pago"
+              <tbody className="divide-y divide-border text-xs">
+                {projects.map((p) => {
+                  const payout = payoutByProject.get(p.id);
+                  const isPago = payout?.status === "pago" || p.status === "Concluido";
+                  const paymentDate = payout?.payment_date ? formatDate(payout.payment_date) : null;
+                  const receiptUrl = payout?.payment_receipt_url || null;
+
+                  return (
+                    <tr key={p.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-4 py-3.5 font-bold text-foreground">
+                        <Link
+                          to="/app/projects/$id"
+                          params={{ id: p.id }}
+                          className="hover:text-indigo-600 dark:hover:text-indigo-400 hover:underline"
+                        >
+                          {p.title}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3.5">
+                        <Badge variant="outline" className="text-[10px]">
+                          {SERVICE_LABEL[p.service_type] || p.service_type}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3.5 text-muted-foreground font-mono text-xs">
+                        {p.deadline ? formatDate(p.deadline) : "—"}
+                      </td>
+                      <td className="px-4 py-3.5 text-right font-extrabold text-indigo-600 dark:text-indigo-400">
+                        {money(Number(p.freelancer_cost || 0))}
+                      </td>
+                      <td className="px-4 py-3.5 text-center">
+                        <Badge
+                          className={`text-[10px] ${
+                            payout?.status === "pago"
+                              ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30"
                               : p.status === "Concluido"
-                              ? "Liberado / Quitado"
-                              : "A Receber na Conclusão"}
-                          </Badge>
-                        );
-                      })()}
-                    </td>
-                  </tr>
-                ))}
+                              ? "bg-sky-500/15 text-sky-700 dark:text-sky-400 border-sky-500/30"
+                              : "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                          }`}
+                        >
+                          {payout?.status === "pago"
+                            ? paymentDate
+                              ? `Pago em ${paymentDate}`
+                              : "Pago / Liquidado"
+                            : p.status === "Concluido"
+                            ? "Liberado / Quitado"
+                            : "A Receber na Conclusão"}
+                        </Badge>
+                      </td>
+                      <td className="px-4 py-3.5 text-right whitespace-nowrap">
+                        {receiptUrl ? (
+                          <a
+                            href={receiptUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-500/20"
+                          >
+                            <Download className="h-3 w-3" /> Comprovante
+                          </a>
+                        ) : (
+                          <span className="text-muted-foreground/60 text-[11px]">Não anexado</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
                 {projects.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
-                      Nenhum projeto alocado ao seu perfil.
+                    <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
+                      Nenhum projeto alocado ao seu perfil no momento.
                     </td>
                   </tr>
                 )}
