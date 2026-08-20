@@ -1,10 +1,18 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -21,6 +29,7 @@ import {
   Loader2,
   CheckCircle2,
   Files,
+  Sparkles,
 } from "lucide-react";
 import {
   useContractModels,
@@ -110,6 +119,7 @@ interface PendingFile {
 }
 
 function ContractModelsPage() {
+  const navigate = useNavigate();
   const { data: models = [], isLoading } = useContractModels();
   const uploadTemplate = useUploadContractTemplate();
   const extractVariables = useExtractContractVariables();
@@ -119,6 +129,14 @@ function ContractModelsPage() {
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([]);
   const [isSubmittingBatch, setIsSubmittingBatch] = useState(false);
 
+  // Estado do Modal de Novo Modelo em Branco
+  const [isNewModalOpen, setIsNewModalOpen] = useState(false);
+  const [newModelName, setNewModelName] = useState("");
+  const [newServiceType, setNewServiceType] = useState<"IA" | "Trafego" | "Sites" | "Social Media">("IA");
+  const [newContractType, setNewContractType] = useState<ContractModality>("PJ");
+  const [newTargetType, setNewTargetType] = useState<"freelancer" | "client">("freelancer");
+  const [isCreating, setIsCreating] = useState(false);
+
   const handleDeleteModel = async (id: string, name: string) => {
     if (!confirm(`Tem certeza de que deseja apagar o modelo "${name}"?`)) return;
     try {
@@ -127,6 +145,44 @@ function ContractModelsPage() {
     } catch (error) {
       console.error(error);
       toast.error("Erro ao apagar modelo.");
+    }
+  };
+
+  const handleOpenNewModal = () => {
+    setNewModelName(`Modelo ${models.length + 1}`);
+    setNewServiceType("IA");
+    setNewContractType("PJ");
+    setNewTargetType("freelancer");
+    setIsNewModalOpen(true);
+  };
+
+  const handleConfirmCreateEmptyModel = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newModelName.trim()) {
+      toast.error("Informe um nome para o modelo de contrato.");
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      const created = await createContractModel.mutateAsync({
+        name: newModelName.trim(),
+        service_type: newServiceType,
+        contract_type: newContractType,
+        target_type: newTargetType,
+        docx_path: "",
+        variable_map: defaultVariableMap,
+        is_active: false,
+      });
+
+      toast.success("Modelo criado com sucesso! Abrindo editor...");
+      setIsNewModalOpen(false);
+      navigate({ to: "/app/contract-models/$id", params: { id: created.id } });
+    } catch (error: any) {
+      console.error("Erro ao criar modelo em branco:", error);
+      toast.error(`Erro ao criar modelo: ${error?.message || "Tente novamente."}`);
+    } finally {
+      setIsCreating(false);
     }
   };
 
@@ -236,20 +292,6 @@ function ContractModelsPage() {
     }
   };
 
-  const handleCreateEmptyModel = async () => {
-    const modelName = `Modelo ${models.length + 1}`;
-    await createContractModel.mutateAsync({
-      name: modelName,
-      service_type: "IA",
-      contract_type: "PJ",
-      target_type: "freelancer",
-      docx_path: "",
-      variable_map: defaultVariableMap,
-      is_active: false,
-    });
-    toast.success("Modelo criado. Complete as informações no editor.");
-  };
-
   const anyExtracting = pendingFiles.some((p) => p.isExtracting);
 
   return (
@@ -262,8 +304,8 @@ function ContractModelsPage() {
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
-            onClick={handleCreateEmptyModel}
-            className="gap-2 bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium rounded-md shadow-xs text-xs h-9 px-4 border-0"
+            onClick={handleOpenNewModal}
+            className="gap-2 bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium rounded-md shadow-xs text-xs h-9 px-4 border-0 cursor-pointer"
           >
             <FilePlus className="h-4 w-4" /> Novo Modelo em Branco
           </Button>
@@ -551,6 +593,126 @@ function ContractModelsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Criação de Novo Modelo em Branco */}
+      <Dialog open={isNewModalOpen} onOpenChange={setIsNewModalOpen}>
+        <DialogContent className="sm:max-w-[480px] bg-card border-border rounded-2xl p-6 space-y-4">
+          <DialogHeader className="space-y-1.5">
+            <DialogTitle className="text-lg font-bold flex items-center gap-2 text-foreground">
+              <FilePlus className="h-5 w-5 text-blue-600" />
+              Novo Modelo de Contrato em Branco
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground">
+              Crie a estrutura inicial do modelo para configurar o mapeamento de variáveis e vincular o arquivo .docx.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleConfirmCreateEmptyModel} className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="new-model-name" className="text-xs font-semibold">
+                Nome do Modelo <span className="text-blue-600">*</span>
+              </Label>
+              <Input
+                id="new-model-name"
+                value={newModelName}
+                onChange={(e) => setNewModelName(e.target.value)}
+                placeholder="Ex: Contrato de Prestação de Serviços PJ"
+                className="h-10 text-xs"
+                required
+                autoFocus
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="new-target-type" className="text-xs font-semibold">
+                  Destinatário
+                </Label>
+                <Select
+                  value={newTargetType}
+                  onValueChange={(val: "freelancer" | "client") => setNewTargetType(val)}
+                >
+                  <SelectTrigger id="new-target-type" className="h-10 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="freelancer">Freelancer</SelectItem>
+                    <SelectItem value="client">Cliente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label htmlFor="new-contract-type" className="text-xs font-semibold">
+                  Modalidade
+                </Label>
+                <Select
+                  value={newContractType}
+                  onValueChange={(val: ContractModality) => setNewContractType(val)}
+                >
+                  <SelectTrigger id="new-contract-type" className="h-10 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PJ">PJ</SelectItem>
+                    <SelectItem value="Avulso">Avulso</SelectItem>
+                    <SelectItem value="Recorrente">Recorrente</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="new-service-type" className="text-xs font-semibold">
+                Área de Serviço
+              </Label>
+              <Select
+                value={newServiceType}
+                onValueChange={(val: "IA" | "Trafego" | "Sites" | "Social Media") => setNewServiceType(val)}
+              >
+                <SelectTrigger id="new-service-type" className="h-10 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IA">Inteligência Artificial (IA)</SelectItem>
+                  <SelectItem value="Trafego">Tráfego Pago</SelectItem>
+                  <SelectItem value="Sites">Desenvolvimento de Sites</SelectItem>
+                  <SelectItem value="Social Media">Social Media & Conteúdo</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <DialogFooter className="pt-4 flex items-center justify-end gap-2 border-t border-border">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setIsNewModalOpen(false)}
+                disabled={isCreating}
+                className="h-9 px-4 text-xs font-semibold rounded-xl"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isCreating}
+                className="h-9 px-5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer"
+              >
+                {isCreating ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" /> Criando...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3.5 w-3.5" /> Criar e Abrir Editor
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

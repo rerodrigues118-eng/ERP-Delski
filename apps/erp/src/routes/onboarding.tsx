@@ -557,13 +557,13 @@ function OnboardingPage() {
     if (isFree) {
       if (step === 1) {
         if (!companyName.trim() || !corporateEmail.trim() || !contactName.trim()) {
-          return toast.error("Preencha todos os campos obrigatórios (Nome, E-mail, Responsável).");
+          return toast.error("Preencha todos os campos destacados (Nome, E-mail, Responsável).");
         }
       }
       if (step === 2) {
         if (!isDocComplete) {
           return toast.error(
-            `Anexo obrigatório pendente: ${pendingRequiredDocs.map((d) => d.title).join(", ")}. Por favor, anexe os documentos para avançar.`
+            `Documentos pendentes: ${pendingRequiredDocs.map((d) => d.title).join(", ")}. Por favor, anexe os arquivos para avançar.`
           );
         }
       }
@@ -577,7 +577,7 @@ function OnboardingPage() {
       if (step === 1) {
         if (!isDocComplete) {
           return toast.error(
-            `Anexo obrigatório pendente: ${pendingRequiredDocs.map((d) => d.title).join(", ")}. Por favor, anexe os documentos para avançar.`
+            `Documentos pendentes: ${pendingRequiredDocs.map((d) => d.title).join(", ")}. Por favor, anexe os arquivos para avançar.`
           );
         }
       }
@@ -870,10 +870,10 @@ function OnboardingPage() {
   const renderDocumentUploadCard = () => (
     <div className="space-y-6">
       <div className="space-y-1">
-        <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-          <FileCheck className="h-5 w-5 text-blue-600" /> Documentação Obrigatória
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+          <FileCheck className="h-5 w-5 text-blue-600" /> Documentação da Empresa
         </h2>
-        <p className="text-xs sm:text-sm text-gray-500">
+        <p className="text-xs sm:text-sm text-slate-500">
           Anexe os arquivos para validação cadastral e conformidade jurídica (PDF, PNG ou JPG até 10MB).
         </p>
       </div>
@@ -888,62 +888,49 @@ function OnboardingPage() {
               key={doc.id}
               className={`p-5 rounded-2xl border transition-all ${
                 uploaded
-                  ? "bg-emerald-50/70 border-emerald-400 ring-1 ring-emerald-300/80 shadow-xs"
-                  : "bg-white border-gray-200 hover:border-blue-300 shadow-xs"
+                  ? "bg-slate-50/90 border-slate-300 ring-1 ring-blue-500/20 shadow-xs"
+                  : "bg-white border-slate-200 hover:border-blue-300 shadow-xs"
               }`}
             >
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-sm text-gray-900">{doc.title}</h3>
-                    {doc.required ? (
+                    <h3 className="font-bold text-sm text-slate-900">
+                      {doc.title} {doc.required && <span className="text-blue-600 font-bold ml-0.5">*</span>}
+                    </h3>
+                    {!doc.required && (
                       <Badge
                         variant="outline"
-                        className={`text-[10px] font-bold py-0.5 px-2 rounded-md ${
-                          uploaded
-                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                            : "bg-rose-50 text-rose-700 border-rose-200"
-                        }`}
+                        className="text-[10px] font-medium py-0.5 px-2 rounded-md bg-slate-100 text-slate-600 border-slate-200"
                       >
-                        {uploaded ? "Obrigatório ✓" : "Obrigatório *"}
-                      </Badge>
-                    ) : (
-                      <Badge
-                        variant="outline"
-                        className={`text-[10px] font-semibold py-0.5 px-2 rounded-md ${
-                          uploaded
-                            ? "bg-emerald-100 text-emerald-800 border-emerald-300"
-                            : "bg-slate-100 text-slate-600 border-slate-200"
-                        }`}
-                      >
-                        {uploaded ? "Opcional ✓" : "Opcional"}
+                        Opcional
                       </Badge>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 leading-relaxed">{doc.desc}</p>
+                  <p className="text-xs text-slate-500 leading-relaxed">{doc.desc}</p>
                 </div>
                 {uploaded && (
-                  <Badge className="bg-emerald-600 text-white text-[10px] font-bold py-0.5 px-2.5 rounded-full shrink-0 flex items-center gap-1 shadow-xs">
-                    <Check className="h-3 w-3" /> Anexado
+                  <Badge className="bg-blue-600 text-white text-[10px] font-bold py-0.5 px-2.5 rounded-full shrink-0 flex items-center gap-1 shadow-xs">
+                    <Check className="h-3 w-3 text-white" /> Anexado
                   </Badge>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-gray-100">
+              <div className="pt-3 border-t border-slate-100">
                 {uploaded ? (
                   <div className="space-y-2.5">
                     {/* Document details box */}
-                    <div className="flex items-center justify-between gap-2.5 w-full bg-white/95 border border-emerald-300 rounded-xl p-3 shadow-xs">
-                      <div className="flex items-center gap-2.5 text-xs font-semibold text-emerald-950 min-w-0">
-                        <div className="h-8 w-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                    <div className="flex items-center justify-between gap-2.5 w-full bg-white border border-slate-200 rounded-xl p-3 shadow-xs">
+                      <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-900 min-w-0">
+                        <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
                           <FileText className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate font-bold text-gray-900 text-xs max-w-[140px] sm:max-w-[190px]" title={uploaded.name}>
+                          <p className="truncate font-bold text-slate-900 text-xs max-w-[140px] sm:max-w-[190px]" title={uploaded.name}>
                             {uploaded.name}
                           </p>
-                          <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 font-medium">
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
+                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-600" />
                             <span>{uploaded.size ? `${(uploaded.size / (1024 * 1024)).toFixed(2)} MB • Salvo no Banco` : "Salvo no Banco de Dados"}</span>
                           </div>
                         </div>
@@ -955,10 +942,10 @@ function OnboardingPage() {
                             href={uploaded.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-[11px] font-bold bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 transition-colors"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors"
                             title="Visualizar documento"
                           >
-                            <ExternalLink className="h-3.5 w-3.5" />
+                            <ExternalLink className="h-3.5 w-3.5 text-blue-600" />
                             <span className="hidden sm:inline">Ver</span>
                           </a>
                         )}
@@ -967,7 +954,7 @@ function OnboardingPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveDoc(doc.id)}
-                          className="text-rose-500 hover:text-rose-700 hover:bg-rose-100/50 h-7 w-7 p-0 rounded-lg cursor-pointer"
+                          className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 h-7 w-7 p-0 rounded-lg cursor-pointer"
                           title="Remover anexo"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
@@ -977,7 +964,7 @@ function OnboardingPage() {
 
                     {/* Change document action */}
                     <div className="flex items-center justify-end">
-                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-white border border-emerald-300 text-emerald-800 hover:bg-emerald-100/80 transition-all shadow-xs">
+                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all shadow-xs">
                         <input
                           type="file"
                           className="hidden"
@@ -989,16 +976,16 @@ function OnboardingPage() {
                           disabled={isUploading}
                         />
                         {isUploading ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-emerald-600" />
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
                         ) : (
-                          <Pencil className="h-3.5 w-3.5 text-emerald-700" />
+                          <Pencil className="h-3.5 w-3.5 text-blue-600" />
                         )}
                         <span>{isUploading ? "Enviando ao banco..." : "Alterar Documento"}</span>
                       </label>
                     </div>
                   </div>
                 ) : (
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors w-full justify-center shadow-xs border border-blue-200/70">
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors w-full justify-center shadow-xs">
                     <input
                       type="file"
                       className="hidden"
@@ -1011,11 +998,11 @@ function OnboardingPage() {
                     />
                     {isUploading ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin text-blue-600" /> Enviando ao banco de dados...
+                        <Loader2 className="h-4 w-4 animate-spin text-white" /> Enviando ao banco de dados...
                       </>
                     ) : (
                       <>
-                        <UploadCloud className="h-4 w-4 text-blue-600" /> Selecionar Arquivo
+                        <UploadCloud className="h-4 w-4 text-white" /> Selecionar Arquivo
                       </>
                     )}
                   </label>
@@ -1192,12 +1179,12 @@ function OnboardingPage() {
 
                     <div className="flex flex-wrap gap-2.5">
                       {Object.keys(documents).length === 0 ? (
-                        <p className="text-xs text-amber-600 font-medium">Nenhum documento anexado ainda.</p>
+                        <p className="text-xs text-slate-500 font-medium">Nenhum documento anexado ainda.</p>
                       ) : (
                         Object.entries(documents).map(([type, doc]) => (
-                          <Badge key={type} className="bg-emerald-100 text-emerald-900 border-emerald-300 text-xs py-1.5 px-3 flex items-center gap-1.5 font-semibold">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-                            <span>{doc.name}</span>
+                          <Badge key={type} className="bg-slate-100 text-slate-800 border-slate-200 text-xs py-1.5 px-3 flex items-center gap-1.5 font-medium shadow-2xs">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
+                            <span className="truncate max-w-[240px]">{doc.name}</span>
                           </Badge>
                         ))
                       )}
@@ -1679,13 +1666,13 @@ function OnboardingPage() {
 
           {/* Alerta de Documentos Pendentes */}
           {((!isFree && step === 1) || (isFree && step === 2)) && !isDocComplete && (
-            <div className="p-4 mt-6 rounded-2xl bg-amber-50/90 border border-amber-200 flex items-start gap-3 text-xs text-amber-900 font-medium">
-              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+            <div className="p-4 mt-6 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3 text-xs text-slate-700 font-medium">
+              <AlertCircle className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-amber-950">Documentos obrigatórios pendentes:</p>
-                <p className="text-amber-800 mt-0.5">
+                <p className="font-bold text-slate-900">Documentos necessários pendentes:</p>
+                <p className="text-slate-600 mt-0.5">
                   Anexe os seguintes arquivos para habilitar o avanço:{" "}
-                  <span className="font-semibold">{pendingRequiredDocs.map((d) => d.title).join(", ")}</span>.
+                  <span className="font-semibold text-slate-900">{pendingRequiredDocs.map((d) => d.title).join(", ")}</span>.
                 </p>
               </div>
             </div>
@@ -1693,11 +1680,11 @@ function OnboardingPage() {
 
           {/* Alerta de Documentos Todos Anexados (Sucesso) */}
           {((!isFree && step === 1) || (isFree && step === 2)) && isDocComplete && (
-            <div className="p-4 mt-6 rounded-2xl bg-emerald-50 border border-emerald-300 flex items-start gap-3 text-xs text-emerald-900 font-medium shadow-xs animate-in fade-in duration-300">
-              <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0 mt-0.5" />
+            <div className="p-4 mt-6 rounded-2xl bg-blue-50/60 border border-blue-200 flex items-start gap-3 text-xs text-blue-900 font-medium shadow-2xs animate-in fade-in duration-300">
+              <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
               <div>
-                <p className="font-bold text-emerald-950">Todos os documentos obrigatórios foram anexados com sucesso!</p>
-                <p className="text-emerald-800 mt-0.5">
+                <p className="font-bold text-slate-900">Todos os documentos foram anexados com sucesso!</p>
+                <p className="text-slate-600 mt-0.5">
                   Seus arquivos foram salvos e vinculados no banco de dados. Clique em <strong>"Continuar"</strong> abaixo para avançar.
                 </p>
               </div>
@@ -1705,14 +1692,14 @@ function OnboardingPage() {
           )}
 
           {/* Navigation Controls */}
-          <div className="flex items-center justify-between pt-8 mt-8 border-t border-gray-100">
+          <div className="flex items-center justify-between pt-8 mt-8 border-t border-slate-100">
             {step > 1 ? (
               <Button
                 type="button"
                 variant="outline"
                 onClick={prevStep}
                 disabled={submitting}
-                className="h-10 px-5 text-xs font-semibold rounded-xl cursor-pointer"
+                className="h-10 px-5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer"
               >
                 <ArrowLeft className="h-4 w-4 mr-1.5" /> Voltar
               </Button>
@@ -1725,9 +1712,9 @@ function OnboardingPage() {
                 type="button"
                 onClick={nextStep}
                 disabled={(!isFree && step === 1 && !isDocComplete) || (isFree && step === 2 && !isDocComplete)}
-                className={`h-10 px-6 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
+                className={`h-10 px-6 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
                   ((!isFree && step === 1 && !isDocComplete) || (isFree && step === 2 && !isDocComplete))
-                    ? "bg-slate-300 text-slate-500 hover:bg-slate-300 cursor-not-allowed shadow-none"
+                    ? "bg-slate-200 text-slate-400 hover:bg-slate-200 cursor-not-allowed shadow-none"
                     : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
                 }`}
               >
@@ -1738,7 +1725,7 @@ function OnboardingPage() {
                 type="button"
                 onClick={handleFinalize}
                 disabled={submitting}
-                className="h-10 px-8 text-xs font-bold rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm flex items-center gap-2 cursor-pointer"
+                className="h-11 px-8 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center gap-2 cursor-pointer transition-all"
               >
                 {submitting ? (
                   <>

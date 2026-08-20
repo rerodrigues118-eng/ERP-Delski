@@ -79,6 +79,8 @@ function DefinirSenhaPage() {
 
     setLoading(true);
     try {
+      const cleanEmail = email.trim().toLowerCase();
+
       // 1. Verificar se já existe uma sessão ativa (ex: vindo de link de recovery)
       const { data: sessionData } = await supabase.auth.getSession();
 
@@ -86,49 +88,51 @@ function DefinirSenhaPage() {
         // Atualizar senha do usuário autenticado
         const { error: updateError } = await supabase.auth.updateUser({
           password: password,
-        });
-        if (updateError) throw updateError;
-      } else if (email) {
-        // Tentar registrar/ativar a conta com o e-mail convidado
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-          email: email.trim().toLowerCase(),
-          password: password,
-          options: {
-            data: {
-              role: "cliente",
-              approval_status: "approved",
-            },
+          data: {
+            role: "cliente",
+            approval_status: "approved",
           },
         });
+        if (updateError) throw updateError;
+      } else if (cleanEmail) {
+        // Tentar primeiro logar com a senha digitada
+        const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
+          email: cleanEmail,
+          password: password,
+        });
 
-        if (signUpError) {
-          // Se o usuário já existe no auth, tenta fazer signIn com a nova senha ou notifica
-          const { error: signInError } = await supabase.auth.signInWithPassword({
-            email: email.trim().toLowerCase(),
+        if (loginErr) {
+          // Se não logou, tenta criar conta (signUp)
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: cleanEmail,
             password: password,
+            options: {
+              data: {
+                role: "cliente",
+                approval_status: "approved",
+              },
+            },
           });
 
-          if (signInError) {
-            // Tenta atualizar senha se for token de recuperação na URL
+          if (signUpError) {
+            // Se o usuário já existe no auth mas a senha era outra, tenta updateUser via recovery
             const { error: updateErr } = await supabase.auth.updateUser({ password });
             if (updateErr) {
-              throw new Error(signUpError.message || "Erro ao configurar senha.");
+              // Tenta autenticar novamente com as novas credenciais
+              const { error: retryLoginErr } = await supabase.auth.signInWithPassword({
+                email: cleanEmail,
+                password: password,
+              });
+              if (retryLoginErr) {
+                throw new Error(signUpError.message || retryLoginErr.message || "Erro ao configurar senha.");
+              }
             }
-          }
-        }
-
-        // Garantir criação / atualização de profile como cliente
-        const currentUserId = signUpData?.user?.id;
-        if (currentUserId) {
-          try {
-            await (supabase.from("profiles") as any).upsert({
-              id: currentUserId,
-              email: email.trim().toLowerCase(),
-              role: "cliente",
-              approval_status: "approved",
+          } else if (!signUpData.session) {
+            // Se o signUp não retornou sessão imediatamente, faz o signIn automático
+            await supabase.auth.signInWithPassword({
+              email: cleanEmail,
+              password: password,
             });
-          } catch (pErr) {
-            console.warn("Profile upsert fallback:", pErr);
           }
         }
       } else {
@@ -137,13 +141,37 @@ function DefinirSenhaPage() {
         if (updateErr) throw updateErr;
       }
 
-      setSuccess(true);
-      toast.success("Conta ativada com sucesso! Bem-vindo(a) ao Delski.");
+      // 2. Garantir perfil atualizado no Supabase
+      const { data: latestSession } = await supabase.auth.getSession();
+      const currentUserId = latestSession.session?.user?.id;
 
-      // Aguardar animação de celebração e redirecionar para Onboarding do Cliente
+      if (currentUserId && cleanEmail) {
+        try {
+          await (supabase.from("profiles") as any).upsert({
+            id: currentUserId,
+            email: cleanEmail,
+            role: "cliente",
+            approval_status: "approved",
+            status: "ativo",
+            updated_at: new Date().toISOString(),
+          });
+
+          // Vincular à tabela clients
+          await (supabase.from("clients") as any)
+            .update({ auth_user_id: currentUserId, status: "ativo" })
+            .ilike("email", cleanEmail);
+        } catch (pErr) {
+          console.warn("Profile upsert fallback:", pErr);
+        }
+      }
+
+      setSuccess(true);
+      toast.success("Conta ativada com sucesso! Bem-vindo(a) ao Delski Cloud.");
+
+      // Redirecionar diretamente para Onboarding do Cliente
       setTimeout(() => {
-        navigate({ to: "/onboarding", replace: true });
-      }, 1500);
+        window.location.href = "/onboarding";
+      }, 1200);
     } catch (err: any) {
       console.error("[Definir Senha Error]", err);
       const msg = err?.message || "Não foi possível definir a senha. Tente novamente.";
