@@ -79,3 +79,52 @@ DROP CONSTRAINT IF EXISTS projects_service_type_check;
 ALTER TABLE public.projects 
 ADD CONSTRAINT projects_service_type_check 
 CHECK (service_type IN ('IA', 'Trafego', 'Sites', 'Social Media'));
+
+-- 11. CORREÇÃO DA CONSTRAINT DE STATUS EM CLIENT_DOCUMENTS
+-- Erro: new row for relation "client_documents" violates check constraint "client_documents_status_check"
+ALTER TABLE public.client_documents
+DROP CONSTRAINT IF EXISTS client_documents_status_check;
+
+ALTER TABLE public.client_documents
+ADD CONSTRAINT client_documents_status_check
+CHECK (status IN ('pendente', 'em_analise', 'aprovado', 'recusado', 'enviado'));
+
+-- 12. HABILITAÇÃO DE RLS E POLÍTICAS PARA SUPPORT_TICKETS
+-- Garante que o Gestor veja TODOS os chamados criados por clientes
+ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Gestores podem ver todos os chamados" ON public.support_tickets;
+CREATE POLICY "Gestores podem ver todos os chamados"
+ON public.support_tickets
+FOR SELECT
+USING (true);
+
+DROP POLICY IF EXISTS "Clientes podem criar chamados" ON public.support_tickets;
+CREATE POLICY "Clientes podem criar chamados"
+ON public.support_tickets
+FOR INSERT
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Qualquer usuario pode atualizar chamados" ON public.support_tickets;
+CREATE POLICY "Qualquer usuario pode atualizar chamados"
+ON public.support_tickets
+FOR UPDATE
+USING (true);
+
+-- 13. HABILITAÇÃO DE RLS E POLÍTICAS PARA TICKET_REPLIES
+ALTER TABLE public.ticket_replies ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Todos podem ver respostas de chamados" ON public.ticket_replies;
+CREATE POLICY "Todos podem ver respostas de chamados"
+ON public.ticket_replies
+FOR SELECT
+USING (true);
+
+DROP POLICY IF EXISTS "Todos podem criar respostas" ON public.ticket_replies;
+CREATE POLICY "Todos podem criar respostas"
+ON public.ticket_replies
+FOR INSERT
+WITH CHECK (true);
+
+-- 14. COLUNA BEHANCE NA TABELA FREELANCERS
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS behance TEXT;

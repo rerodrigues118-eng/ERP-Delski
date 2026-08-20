@@ -264,6 +264,7 @@ function FreelancerDashboardPage() {
   const [instagram, setInstagram] = useState("");
   const [linkedin, setLinkedin] = useState("");
   const [website, setWebsite] = useState("");
+  const [behance, setBehance] = useState("");
 
   // ── Tab 3: Form state (Dados Bancários do Prestador) ───────────────────────
   const [bankName, setBankName] = useState("");
@@ -509,6 +510,7 @@ function FreelancerDashboardPage() {
       setInstagram(freelancer.instagram || "");
       setLinkedin(freelancer.linkedin || "");
       setWebsite(freelancer.website || "");
+      setBehance((freelancer as any).behance || "");
 
       setBankName(freelancer.bank_name || "");
       setBankAgency(freelancer.bank_agency || "");
@@ -543,6 +545,7 @@ function FreelancerDashboardPage() {
         instagram: instagram.trim(),
         linkedin: linkedin.trim(),
         website: website.trim(),
+        behance: behance.trim(),
       },
     });
   };
@@ -558,8 +561,6 @@ function FreelancerDashboardPage() {
       userId: user?.id,
       patch: {
         bank_name: bankName.trim(),
-        bank_agency: bankAgency.trim(),
-        bank_account: bankAccount.trim(),
         pix_type: pixType,
         pix_key: pixKey.trim(),
       },
@@ -1556,6 +1557,22 @@ function FreelancerDashboardPage() {
                     />
                   </div>
                 </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="f-behance" className="text-xs font-semibold text-gray-700">
+                    Behance
+                  </Label>
+                  <div className="relative">
+                    <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <Input
+                      id="f-behance"
+                      value={behance}
+                      onChange={(e) => setBehance(e.target.value)}
+                      placeholder="behance.net/..."
+                      className="h-10 pl-9"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="flex justify-end pt-4 border-t border-gray-100">
@@ -1879,7 +1896,7 @@ function FreelancerDashboardPage() {
             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
               <div>
                 <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-emerald-600" /> Dados Bancários & Chave PIX
+                  <CreditCard className="h-5 w-5 text-emerald-600" /> Dados Bancários
                 </h2>
                 <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
                   Informe a conta bancária da sua PJ onde os pagamentos e reembolsos serão creditados.
@@ -1931,32 +1948,6 @@ function FreelancerDashboardPage() {
                     placeholder="Chave Pix para recebimento"
                     className="h-10 font-mono text-sm"
                     required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="agency" className="text-xs font-semibold text-gray-700">
-                    Agência
-                  </Label>
-                  <Input
-                    id="agency"
-                    value={bankAgency}
-                    onChange={(e) => setBankAgency(e.target.value)}
-                    placeholder="0001"
-                    className="h-10 font-mono text-sm"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label htmlFor="account" className="text-xs font-semibold text-gray-700">
-                    Conta Corrente
-                  </Label>
-                  <Input
-                    id="account"
-                    value={bankAccount}
-                    onChange={(e) => setBankAccount(e.target.value)}
-                    placeholder="123456-7"
-                    className="h-10 font-mono text-sm"
                   />
                 </div>
               </div>

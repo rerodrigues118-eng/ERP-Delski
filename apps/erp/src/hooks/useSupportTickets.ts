@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export type TicketStatus = "Aberto" | "Em Andamento" | "Resolvido";
@@ -62,7 +62,8 @@ export function useSupportTickets() {
     queryKey: ["support_tickets"],
     queryFn: async () => {
       try {
-        const { data: tickets, error: ticketsErr } = await (supabase.from("support_tickets") as any)
+        // Uses supabaseAdmin to bypass RLS — gestor must see ALL client tickets
+        const { data: tickets, error: ticketsErr } = await (supabaseAdmin.from("support_tickets") as any)
           .select("*")
           .order("created_at", { ascending: false });
 
@@ -70,7 +71,7 @@ export function useSupportTickets() {
           return getStoredTickets();
         }
 
-        const { data: replies } = await (supabase.from("ticket_replies") as any)
+        const { data: replies } = await (supabaseAdmin.from("ticket_replies") as any)
           .select("*")
           .order("created_at", { ascending: true });
 

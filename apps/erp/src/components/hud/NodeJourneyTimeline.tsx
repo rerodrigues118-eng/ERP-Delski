@@ -126,7 +126,7 @@ export function NodeJourneyTimeline({
             </span>
           </div>
           <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-hud">
-            Jornada de Entregas & Marcos de Projetos
+            Jornada de Entregas
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 font-medium">
             Acompanhamento de nós e etapas em tempo real de cada serviço contratado.

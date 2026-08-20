@@ -735,7 +735,7 @@ function ClienteDashboardPage() {
                   <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-zinc-800 pb-4">
                     <div>
                       <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-blue-600" /> Cronograma & Entregas
+                        <Clock className="h-4 w-4 text-blue-600" /> Cronograma
                       </h3>
                     </div>
                   </div>
@@ -790,7 +790,7 @@ function ClienteDashboardPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-zinc-800 pb-4">
                   <div>
                     <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center gap-2">
-                      <TrendingUp className="h-4 w-4 text-blue-600" /> Evolução de Entregas & Marcos do Projeto
+                      <TrendingUp className="h-4 w-4 text-blue-600" /> Jornada de Entregas
                     </h3>
                   </div>
 
