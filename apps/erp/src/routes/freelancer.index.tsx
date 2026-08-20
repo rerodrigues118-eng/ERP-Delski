@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2,
@@ -213,7 +213,7 @@ function FreelancerDashboardPage() {
   const [pixKey, setPixKey] = useState("");
 
   // Filter projects assigned to this freelancer
-  const assignedProjects = React.useMemo(() => {
+  const assignedProjects = useMemo(() => {
     return allProjects.filter((p) =>
       p.freelancers?.some((f: any) => {
         const fId = f?.id || f?.profile?.id;
