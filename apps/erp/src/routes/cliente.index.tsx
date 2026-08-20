@@ -4,39 +4,31 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2,
   FileText,
-  DollarSign,
   Briefcase,
   LifeBuoy,
   CheckCircle2,
-  Clock,
-  AlertCircle,
   UploadCloud,
   FileCheck,
   Download,
-  ExternalLink,
+  Eye,
   Plus,
   Trash2,
   Loader2,
   ShieldCheck,
   Send,
   Calendar,
-  CreditCard,
   Receipt,
-  Eye,
   KeyRound,
   Camera,
-  Layers,
   Sparkles,
   Search,
   MessageSquare,
-  ChevronRight,
   Check,
   User,
-  Phone,
-  Mail,
   Zap,
   ArrowRight,
-  ArrowUpRight,
+  HelpCircle,
+  Paperclip,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -92,7 +84,7 @@ import { NodeJourneyTimeline } from "@/components/hud/NodeJourneyTimeline";
 export const Route = createFileRoute("/cliente/")({
   head: () => ({
     meta: [
-      { title: "Portal do Cliente — DELSKI HUD" },
+      { title: "Portal do Cliente — DELSKI CLOUD" },
       { name: "description", content: "Acompanhe seus projetos, documentos, faturas, SAC e configurações em tempo real." },
     ],
   }),
@@ -163,6 +155,7 @@ const STATUS_BADGE_STYLES: Record<string, { label: string; bg: string; text: str
 
 function ClienteDashboardPage() {
   const { user, profile } = useAuth();
+  // Navigation Tabs order: Dashboard | Projetos | Documentos & Faturas | SAC | Configurações
   const [activeTab, setActiveTab] = useState<string>("dashboard");
 
   // Queries
@@ -170,7 +163,6 @@ function ClienteDashboardPage() {
   const clientId = client?.id || user?.id || "";
   const { data: clientDocs = [] } = useClientDocuments(clientId);
   const uploadDoc = useUploadClientDocument();
-  const deleteDoc = useDeleteClientDocument();
 
   const { data: tickets = [] } = useClientSupportTickets(clientId, user?.email || undefined);
   const createTicket = useCreateTicket();
@@ -197,7 +189,7 @@ function ClienteDashboardPage() {
   const updateClientProfile = useUpdateCurrentClientProfile();
   const uploadPaymentReceipt = useUploadClientPaymentReceipt();
 
-  // Listen to tab switch events from top navbar
+  // Listen to tab switch events from top navbar or buttons
   useEffect(() => {
     const handleTabSwitch = (e: any) => {
       if (e.detail) {
@@ -251,8 +243,7 @@ function ClienteDashboardPage() {
     }
   };
 
-  // ── SAC Ticket Management & Chat State ────────────────────────────────────
-  const [openTicketModal, setOpenTicketModal] = useState(false);
+  // ── SAC Inline Ticket Management & Chat State ────────────────────────────
   const [ticketProject, setTicketProject] = useState<string>("");
   const [ticketCategory, setTicketCategory] = useState<string>("Projeto");
   const [ticketSubject, setTicketSubject] = useState("");
@@ -261,9 +252,20 @@ function ClienteDashboardPage() {
   const [ticketEvidenceFile, setTicketEvidenceFile] = useState<File | null>(null);
   const [submittingTicket, setSubmittingTicket] = useState(false);
 
-  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [activeTicketId, setActiveTicketId] = useState<string | null>(null);
   const [chatReplyMessage, setChatReplyMessage] = useState("");
   const [sendingReply, setSendingReply] = useState(false);
+
+  // Automatically select the first ticket if available
+  useEffect(() => {
+    if (tickets.length > 0 && !activeTicketId) {
+      setActiveTicketId(tickets[0].id);
+    }
+  }, [tickets, activeTicketId]);
+
+  const activeTicket = useMemo(() => {
+    return tickets.find((t) => t.id === activeTicketId) || tickets[0] || null;
+  }, [tickets, activeTicketId]);
 
   const handleCreateTicketSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,7 +283,7 @@ function ClienteDashboardPage() {
         });
       }
 
-      await createTicket.mutateAsync({
+      const newTicket = await createTicket.mutateAsync({
         clientId,
         projectId: ticketProject || undefined,
         clientName: client?.company_name || client?.contact_name || profile?.full_name || "Cliente",
@@ -297,7 +299,9 @@ function ClienteDashboardPage() {
       setTicketMessage("");
       setTicketProject("");
       setTicketEvidenceFile(null);
-      setOpenTicketModal(false);
+      if (newTicket?.id) {
+        setActiveTicketId(newTicket.id);
+      }
       toast.success("Chamado aberto com sucesso!");
     } finally {
       setSubmittingTicket(false);
@@ -306,33 +310,18 @@ function ClienteDashboardPage() {
 
   const handleSendChatReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedTicket || !chatReplyMessage.trim()) return;
+    if (!activeTicket || !chatReplyMessage.trim()) return;
 
     setSendingReply(true);
     try {
       await sendReply.mutateAsync({
-        ticketId: selectedTicket.id,
+        ticketId: activeTicket.id,
         message: chatReplyMessage.trim(),
         senderName: client?.contact_name || profile?.full_name || "Cliente",
         senderRole: "cliente",
         newStatus: "Em Andamento",
       });
       setChatReplyMessage("");
-      setSelectedTicket((prev) => {
-        if (!prev) return null;
-        const newReply = {
-          id: `reply-${Date.now()}`,
-          ticket_id: prev.id,
-          sender_name: client?.contact_name || profile?.full_name || "Cliente",
-          sender_role: "cliente" as const,
-          message: chatReplyMessage.trim(),
-          created_at: new Date().toISOString(),
-        };
-        return {
-          ...prev,
-          replies: [...(prev.replies || []), newReply],
-        };
-      });
       toast.success("Mensagem enviada com sucesso!");
     } finally {
       setSendingReply(false);
@@ -539,7 +528,7 @@ function ClienteDashboardPage() {
       <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
         <div className="w-10 h-10 rounded-full border-2 border-slate-200 border-t-blue-600 animate-spin" />
         <p className="text-xs font-bold uppercase tracking-widest text-slate-500 font-hud">
-          Carregando DELSKI HUD...
+          Carregando DELSKI CLOUD...
         </p>
       </div>
     );
@@ -553,7 +542,6 @@ function ClienteDashboardPage() {
   const openTicketsCount = tickets.filter((t) => ["Aberto", "Em atendimento", "Em Andamento"].includes(t.status)).length;
   const availableDocsCount = clientDocs.length + emittedNfses.length;
 
-  // Calculate Overall Deliveries Progress Percentage
   const overallProgressPercentage = clientProjects.length === 0
     ? 100
     : Math.round(
@@ -567,17 +555,18 @@ function ClienteDashboardPage() {
 
   const slaPercentage = openTicketsCount === 0 ? 100 : Math.max(75, 100 - openTicketsCount * 5);
 
+  // Exact navigation tabs requested: Dashboard | Projetos | Documentos & Faturas | SAC | Configurações
   const TABS_NAV = [
-    { value: "dashboard", label: "Dashboard HUD", icon: <Sparkles className="h-4 w-4" /> },
+    { value: "dashboard", label: "Dashboard", icon: <Sparkles className="h-4 w-4" /> },
     { value: "projetos", label: "Projetos", count: clientProjects.length, icon: <Briefcase className="h-4 w-4" /> },
-    { value: "ocorrencias", label: "SAC / Suporte", count: tickets.length, icon: <LifeBuoy className="h-4 w-4" /> },
     { value: "documentos", label: "Documentos & Faturas", count: availableDocsCount, icon: <FileText className="h-4 w-4" /> },
+    { value: "sac", label: "SAC", count: tickets.length, icon: <LifeBuoy className="h-4 w-4" /> },
     { value: "configuracoes", label: "Configurações", icon: <User className="h-4 w-4" /> },
   ];
 
   return (
     <div className="space-y-6">
-      {/* ── Segmented HUD Tab Navigation (Floating Pill Bar) ───────────── */}
+      {/* ── Segmented Navigation (Floating Pill Bar) ───────────────────── */}
       <div className="flex items-center justify-start sm:justify-center overflow-x-auto no-scrollbar py-2">
         <div className="flex items-center gap-1.5 p-1.5 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-[0_4px_20px_rgba(0,0,0,0.03)]">
           {TABS_NAV.map((tab) => {
@@ -608,10 +597,10 @@ function ClienteDashboardPage() {
         </div>
       </div>
 
-      {/* ── Tab Views (With Fluid AnimatePresence Transitions) ──────────── */}
+      {/* ── Tab Views ─────────────────────────────────────────────────── */}
       <AnimatePresence mode="wait">
         {/* ═══════════════════════════════════════════════════════════════════
-            TAB 1: DASHBOARD HUD (HERO ARC GAUGE, DONUT METERS, JOURNEY MAP)
+            TAB 1: DASHBOARD (HERO HUD SPEEDOMETER + MULTI-CHARTS + JOURNEY MAP)
         ═══════════════════════════════════════════════════════════════════ */}
         {activeTab === "dashboard" && (
           <motion.div
@@ -622,7 +611,7 @@ function ClienteDashboardPage() {
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             className="space-y-6"
           >
-            {/* 1. Hero Arc Gauge Visualizer (2.5s sweep) */}
+            {/* 1. Cohesive Hero Visualizer (Compact Speedometer + Realtime SLA Bar + Sparkline Velocity) */}
             <ArcGaugeVisualizer
               percentage={overallProgressPercentage}
               slaPercentage={slaPercentage}
@@ -647,14 +636,14 @@ function ClienteDashboardPage() {
               />
 
               <DonutProgressMeter
-                label="SAC / Central de Suporte"
+                label="Central de Atendimento SAC"
                 sublabel={openTicketsCount === 0 ? "SLA 100% Homologado" : `${openTicketsCount} chamado(s) em andamento`}
                 percentage={slaPercentage}
                 countNumber={tickets.length}
                 badgeText={openTicketsCount === 0 ? "Em Dia" : "Atendimento"}
                 badgeType={openTicketsCount === 0 ? "green" : "amber"}
                 icon={<LifeBuoy className="h-5 w-5" />}
-                onClick={() => setActiveTab("ocorrencias")}
+                onClick={() => setActiveTab("sac")}
                 accentColor={openTicketsCount === 0 ? "#10B981" : "#F59E0B"}
               />
 
@@ -680,76 +669,6 @@ function ClienteDashboardPage() {
               }}
               onViewAll={() => setActiveTab("projetos")}
             />
-
-            {/* 4. Quick Actions Concierge Card */}
-            <div className="hud-card p-6 sm:p-8">
-              <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-4 mb-5">
-                <div>
-                  <h3 className="text-lg font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
-                    Acesso Rápido & Concierge Executivo
-                  </h3>
-                  <p className="text-xs text-slate-400 font-medium">Ações frequentes do seu dia a dia na plataforma.</p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <button
-                  type="button"
-                  onClick={() => setOpenTicketModal(true)}
-                  className="p-4 rounded-[24px] bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center justify-between shadow-lg shadow-blue-500/20 transition-all cursor-pointer group font-hud"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                      <Plus className="h-4 w-4" />
-                    </div>
-                    <span>Abrir Chamado SAC</span>
-                  </div>
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("projetos")}
-                  className="p-4 rounded-[24px] bg-slate-50 dark:bg-zinc-900 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200/70 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 font-bold text-xs flex items-center justify-between transition-all cursor-pointer group font-hud"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-zinc-800 flex items-center justify-center text-slate-700 dark:text-zinc-300">
-                      <Briefcase className="h-4 w-4" />
-                    </div>
-                    <span>Meus Projetos</span>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setActiveTab("documentos")}
-                  className="p-4 rounded-[24px] bg-slate-50 dark:bg-zinc-900 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200/70 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 font-bold text-xs flex items-center justify-between transition-all cursor-pointer group font-hud"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-zinc-800 flex items-center justify-center text-slate-700 dark:text-zinc-300">
-                      <FileCheck className="h-4 w-4" />
-                    </div>
-                    <span>Baixar Contratos & NF-e</span>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setOpenReceiptModal(true)}
-                  className="p-4 rounded-[24px] bg-slate-50 dark:bg-zinc-900 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200/70 dark:border-zinc-800 text-slate-800 dark:text-zinc-200 font-bold text-xs flex items-center justify-between transition-all cursor-pointer group font-hud"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-200/80 dark:bg-zinc-800 flex items-center justify-center text-slate-700 dark:text-zinc-300">
-                      <UploadCloud className="h-4 w-4" />
-                    </div>
-                    <span>Enviar Comprovante</span>
-                  </div>
-                  <ArrowRight className="h-4 w-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
-            </div>
           </motion.div>
         )}
 
@@ -894,109 +813,7 @@ function ClienteDashboardPage() {
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            TAB 3: SAC / SUPORTE
-        ═══════════════════════════════════════════════════════════════════ */}
-        {activeTab === "ocorrencias" && (
-          <motion.div
-            key="ocorrencias"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -12 }}
-            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-            className="hud-card p-6 sm:p-8 space-y-6"
-          >
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-5">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center gap-2.5">
-                  <LifeBuoy className="h-5 w-5 text-blue-600" /> Central de Atendimento & SAC
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-400 mt-0.5 font-medium">
-                  Abra solicitações de suporte, tire dúvidas de faturamento ou escopo com SLA de atendimento direto.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setOpenTicketModal(true)}
-                className="px-4 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 flex items-center gap-2 transition-all active:scale-95 cursor-pointer font-hud self-start sm:self-center"
-              >
-                <Plus className="h-4 w-4" /> Novo Chamado
-              </button>
-            </div>
-
-            {tickets.length === 0 ? (
-              <div className="py-20 text-center space-y-3">
-                <LifeBuoy className="h-12 w-12 text-slate-300 dark:text-zinc-700 mx-auto" />
-                <h3 className="text-base font-bold text-slate-800 dark:text-zinc-200 font-hud">
-                  Nenhum chamado aberto
-                </h3>
-                <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                  Seu atendimento está 100% em dia. Para tirar qualquer dúvida de escopo ou faturamento, clique em "Novo Chamado".
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {tickets.map((t) => {
-                  const statusInfo = STATUS_BADGE_STYLES[t.status] || {
-                    label: t.status,
-                    bg: "bg-slate-100 dark:bg-zinc-800",
-                    text: "text-slate-700 dark:text-zinc-300",
-                    border: "border-slate-200 dark:border-zinc-700",
-                  };
-
-                  return (
-                    <div
-                      key={t.id}
-                      onClick={() => setSelectedTicket(t)}
-                      className="p-5 rounded-[24px] bg-slate-50/70 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 hover:border-blue-400/50 hover:shadow-xs transition-all cursor-pointer space-y-3"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                            <MessageSquare className="h-4 w-4" />
-                          </div>
-                          <div>
-                            <h4 className="text-sm font-extrabold text-slate-900 dark:text-white font-hud">
-                              {t.subject}
-                            </h4>
-                            <p className="text-xs text-slate-400 font-medium">
-                              Protocolo: <span className="font-mono text-[11px]">#{t.id.slice(0, 8)}</span> • {formatDate(t.created_at)}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold font-hud ${statusInfo.bg} ${statusInfo.text}`}>
-                            {statusInfo.label}
-                          </span>
-                          <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-200/70 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 font-hud">
-                            {t.category || "Geral"}
-                          </span>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-slate-600 dark:text-zinc-300 line-clamp-2 leading-relaxed bg-white dark:bg-zinc-950 p-3 rounded-2xl border border-slate-200/60 dark:border-zinc-800">
-                        {t.message}
-                      </p>
-
-                      <div className="flex items-center justify-between pt-1 text-xs text-slate-400">
-                        <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-bold font-hud">
-                          <MessageSquare className="h-3.5 w-3.5" /> {(t.replies || []).length} resposta{(t.replies || []).length !== 1 ? "s" : ""}
-                        </span>
-                        <span className="text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1 hover:underline font-hud">
-                          Abrir conversa <ArrowRight className="h-3.5 w-3.5" />
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </motion.div>
-        )}
-
-        {/* ═══════════════════════════════════════════════════════════════════
-            TAB 4: DOCUMENTOS & FATURAS
+            TAB 3: DOCUMENTOS & FATURAS
         ═══════════════════════════════════════════════════════════════════ */}
         {activeTab === "documentos" && (
           <motion.div
@@ -1143,6 +960,307 @@ function ClienteDashboardPage() {
                   ))}
                 </div>
               )}
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            TAB 4: SAC (REFORMULADA COM FORMULÁRIO INLINE EM GRID 2 COLUNAS)
+        ═══════════════════════════════════════════════════════════════════ */}
+        {activeTab === "sac" && (
+          <motion.div
+            key="sac"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            className="space-y-6"
+          >
+            {/* Header */}
+            <div className="hud-card p-6 sm:p-7">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight font-hud flex items-center gap-2.5">
+                    <LifeBuoy className="h-5 w-5 text-blue-600" /> Central de Atendimento & SAC
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-400 mt-0.5 font-medium">
+                    Envie novas solicitações de suporte diretamente ou gerencie as respostas de chamados em andamento.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 dark:bg-blue-950/60 border border-blue-200/70 text-blue-700 dark:text-blue-300 text-xs font-bold font-hud self-start sm:self-center">
+                  <ShieldCheck className="h-4 w-4" /> SLA Atendimento &lt; 2h
+                </div>
+              </div>
+            </div>
+
+            {/* 2-Column Grid: Left (Fixed Inline Form) | Right (Tickets History & Chat) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* ── COLUNA DA ESQUERDA: FORMULÁRIO INLINE FIXO (5 cols) ────── */}
+              <div className="lg:col-span-5 hud-card p-6 sm:p-7 space-y-5 sticky top-24">
+                <div className="border-b border-slate-100 dark:border-white/5 pb-3">
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white font-hud flex items-center gap-2">
+                    <Plus className="h-4 w-4 text-blue-600" /> Abrir Novo Chamado
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-0.5">Preencha os campos abaixo para abrir um ticket imediato.</p>
+                </div>
+
+                <form onSubmit={handleCreateTicketSubmit} className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
+                      Assunto da Solicitação <span className="text-blue-600">*</span>
+                    </Label>
+                    <Input
+                      value={ticketSubject}
+                      onChange={(e) => setTicketSubject(e.target.value)}
+                      placeholder="Ex: Dúvida sobre entrega do Projeto"
+                      className="h-10 text-xs rounded-2xl bg-slate-50 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-hud"
+                      required
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Categoria</Label>
+                      <Select value={ticketCategory} onValueChange={setTicketCategory}>
+                        <SelectTrigger className="h-10 text-xs rounded-2xl bg-slate-50 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-hud">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl">
+                          <SelectItem value="Projeto">Projeto</SelectItem>
+                          <SelectItem value="Financeiro">Financeiro</SelectItem>
+                          <SelectItem value="Dúvida">Dúvida Geral</SelectItem>
+                          <SelectItem value="Alteração de Escopo">Alteração de Escopo</SelectItem>
+                          <SelectItem value="Técnico">Suporte Técnico</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Prioridade</Label>
+                      <Select value={ticketPriority} onValueChange={(val: any) => setTicketPriority(val)}>
+                        <SelectTrigger className="h-10 text-xs rounded-2xl bg-slate-50 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-hud">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl">
+                          <SelectItem value="Baixa">Baixa</SelectItem>
+                          <SelectItem value="Media">Média</SelectItem>
+                          <SelectItem value="Alta">Alta</SelectItem>
+                          <SelectItem value="Critica">Crítica</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {clientProjects.length > 0 && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Projeto Vinculado (Opcional)</Label>
+                      <Select value={ticketProject} onValueChange={setTicketProject}>
+                        <SelectTrigger className="h-10 text-xs rounded-2xl bg-slate-50 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-hud">
+                          <SelectValue placeholder="Selecione o projeto" />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl">
+                          <SelectItem value="">Nenhum (Dúvida Geral)</SelectItem>
+                          {clientProjects.map((p) => (
+                            <SelectItem key={p.id} value={p.id}>
+                              {p.title}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
+                      Mensagem / Descrição <span className="text-blue-600">*</span>
+                    </Label>
+                    <Textarea
+                      value={ticketMessage}
+                      onChange={(e) => setTicketMessage(e.target.value)}
+                      placeholder="Descreva detalhadamente o que você precisa..."
+                      rows={4}
+                      className="text-xs rounded-2xl resize-none bg-slate-50 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-hud"
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Anexo de Evidência (Opcional)</Label>
+                    <Input
+                      type="file"
+                      onChange={(e) => setTicketEvidenceFile(e.target.files?.[0] || null)}
+                      className="h-10 text-xs rounded-2xl bg-slate-50 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800"
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    disabled={submittingTicket}
+                    className="w-full h-11 text-xs font-black rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-500/20 flex items-center justify-center gap-2 cursor-pointer font-hud transition-all"
+                  >
+                    {submittingTicket ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    {submittingTicket ? "Enviando Chamado..." : "Enviar Chamado ao SAC"}
+                  </Button>
+                </form>
+              </div>
+
+              {/* ── COLUNA DA DIREITA: PAINEL MEUS CHAMADOS & CHAT (7 cols) ── */}
+              <div className="lg:col-span-7 space-y-6">
+                {/* Tickets list */}
+                <div className="hud-card p-6 sm:p-7 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white font-hud flex items-center gap-2">
+                      <MessageSquare className="h-4 w-4 text-blue-600" /> Meus Chamados ({tickets.length})
+                    </h3>
+                    <span className="text-xs text-slate-400 font-medium font-hud">
+                      {openTicketsCount} em aberto
+                    </span>
+                  </div>
+
+                  {tickets.length === 0 ? (
+                    <div className="py-12 text-center space-y-2">
+                      <LifeBuoy className="h-10 w-10 text-slate-300 dark:text-zinc-700 mx-auto" />
+                      <p className="text-sm font-bold text-slate-800 dark:text-zinc-200 font-hud">
+                        Nenhum chamado aberto
+                      </p>
+                      <p className="text-xs text-slate-400 max-w-sm mx-auto">
+                        Use o formulário ao lado para abrir uma solicitação. Ela aparecerá aqui imediatamente.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+                      {tickets.map((t) => {
+                        const isSelected = activeTicket?.id === t.id;
+                        const statusInfo = STATUS_BADGE_STYLES[t.status] || {
+                          label: t.status,
+                          bg: "bg-slate-100 dark:bg-zinc-800",
+                          text: "text-slate-700 dark:text-zinc-300",
+                        };
+
+                        return (
+                          <div
+                            key={t.id}
+                            onClick={() => setActiveTicketId(t.id)}
+                            className={`p-4 rounded-2xl border transition-all cursor-pointer space-y-2 ${
+                              isSelected
+                                ? "bg-blue-50/70 dark:bg-blue-950/40 border-blue-400 dark:border-blue-700 shadow-sm"
+                                : "bg-slate-50/70 dark:bg-zinc-900/60 border-slate-200/80 dark:border-zinc-800 hover:border-slate-300"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-bold text-slate-900 dark:text-white truncate font-hud">
+                                {t.subject}
+                              </span>
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold font-hud ${statusInfo.bg} ${statusInfo.text}`}>
+                                {statusInfo.label}
+                              </span>
+                            </div>
+
+                            <p className="text-xs text-slate-500 dark:text-zinc-400 line-clamp-1">
+                              {t.message}
+                            </p>
+
+                            <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1 font-medium font-hud">
+                              <span>#{t.id.slice(0, 8)} • {formatDate(t.created_at)}</span>
+                              <span className="text-blue-600 dark:text-blue-400 font-bold">
+                                {(t.replies || []).length} resposta(s)
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Inline Conversation Chat for Selected Ticket */}
+                {activeTicket && (
+                  <div className="hud-card p-6 sm:p-7 space-y-4">
+                    <div className="flex items-center justify-between border-b border-slate-100 dark:border-white/5 pb-3">
+                      <div>
+                        <h4 className="text-sm font-extrabold text-slate-900 dark:text-white font-hud">
+                          Conversa: {activeTicket.subject}
+                        </h4>
+                        <p className="text-[11px] text-slate-400 font-medium">
+                          Protocolo #{activeTicket.id.slice(0, 8)} • Categoria: {activeTicket.category || "Geral"}
+                        </p>
+                      </div>
+
+                      <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 font-hud">
+                        {activeTicket.status}
+                      </span>
+                    </div>
+
+                    {/* Messages Feed */}
+                    <div className="space-y-3 max-h-72 overflow-y-auto p-4 rounded-2xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800">
+                      {/* Ticket Original Message */}
+                      <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 shadow-2xs space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-zinc-200 font-hud">
+                          <span>{activeTicket.client_name || "Você"}</span>
+                          <span className="text-[10px] font-normal text-slate-400">{formatDate(activeTicket.created_at)}</span>
+                        </div>
+                        <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed font-medium">{activeTicket.message}</p>
+                        {activeTicket.evidence_url && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(activeTicket.evidence_url!, "_blank")}
+                            className="h-7 text-xs font-bold rounded-lg gap-1 mt-1 font-hud"
+                          >
+                            <Eye className="h-3 w-3" /> Ver anexo
+                          </Button>
+                        )}
+                      </div>
+
+                      {/* Replies */}
+                      {(activeTicket.replies || []).map((reply, idx) => {
+                        const isGestor = reply.sender_role === "gestor" || reply.sender_role === "admin";
+                        return (
+                          <div
+                            key={reply.id || idx}
+                            className={`p-3.5 rounded-2xl border space-y-1.5 ${
+                              isGestor
+                                ? "bg-blue-50/90 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 ml-4 text-slate-900 dark:text-white"
+                                : "bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800 mr-4 text-slate-900 dark:text-white"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between text-xs font-bold font-hud">
+                              <span className={isGestor ? "text-blue-700 dark:text-blue-400 flex items-center gap-1" : "text-slate-800 dark:text-zinc-200"}>
+                                {isGestor && <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />}
+                                {reply.sender_name}
+                              </span>
+                              <span className="text-[10px] font-normal text-slate-400">{formatDate(reply.created_at)}</span>
+                            </div>
+                            <p className="text-xs leading-relaxed font-medium">{reply.message}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Reply Form */}
+                    <form onSubmit={handleSendChatReply} className="space-y-3 pt-1">
+                      <Textarea
+                        value={chatReplyMessage}
+                        onChange={(e) => setChatReplyMessage(e.target.value)}
+                        placeholder="Digite sua resposta para a equipe Delski..."
+                        rows={3}
+                        className="text-xs rounded-2xl resize-none bg-slate-50 dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 font-hud"
+                        required
+                      />
+                      <div className="flex justify-end">
+                        <Button
+                          type="submit"
+                          disabled={sendingReply || !chatReplyMessage.trim()}
+                          className="h-10 px-5 text-xs font-bold rounded-2xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer font-hud"
+                        >
+                          {sendingReply ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+                          {sendingReply ? "Enviando..." : "Responder Chamado"}
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+              </div>
             </div>
           </motion.div>
         )}
@@ -1567,231 +1685,6 @@ function ClienteDashboardPage() {
               Fechar
             </Button>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Modal: SAC New Ticket ─────────────────────────────────────── */}
-      <Dialog open={openTicketModal} onOpenChange={setOpenTicketModal}>
-        <DialogContent className="sm:max-w-[500px] bg-white dark:bg-[#11131A] rounded-[32px] p-6 sm:p-8 space-y-4 border border-slate-200/80 dark:border-white/10 shadow-2xl">
-          <DialogHeader className="space-y-1.5 border-b border-slate-100 dark:border-white/5 pb-3">
-            <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-white font-hud flex items-center gap-2">
-              <LifeBuoy className="h-5 w-5 text-blue-600" /> Abrir Novo Chamado no SAC
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400 font-medium">
-              Envie sua solicitação diretamente para a equipe de gestão da Delski com SLA ágil.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleCreateTicketSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
-                Assunto <span className="text-blue-600">*</span>
-              </Label>
-              <Input
-                value={ticketSubject}
-                onChange={(e) => setTicketSubject(e.target.value)}
-                placeholder="Ex: Dúvida sobre entrega do Projeto"
-                className="h-10 text-xs rounded-xl"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Categoria</Label>
-                <Select value={ticketCategory} onValueChange={setTicketCategory}>
-                  <SelectTrigger className="h-10 text-xs rounded-xl font-hud">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Projeto">Projeto</SelectItem>
-                    <SelectItem value="Financeiro">Financeiro</SelectItem>
-                    <SelectItem value="Dúvida">Dúvida Geral</SelectItem>
-                    <SelectItem value="Alteração de Escopo">Alteração de Escopo</SelectItem>
-                    <SelectItem value="Técnico">Suporte Técnico</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Prioridade</Label>
-                <Select value={ticketPriority} onValueChange={(val: any) => setTicketPriority(val)}>
-                  <SelectTrigger className="h-10 text-xs rounded-xl font-hud">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Baixa">Baixa</SelectItem>
-                    <SelectItem value="Media">Média</SelectItem>
-                    <SelectItem value="Alta">Alta</SelectItem>
-                    <SelectItem value="Critica">Crítica (Urgente)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {clientProjects.length > 0 && (
-              <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Projeto Vinculado (Opcional)</Label>
-                <Select value={ticketProject} onValueChange={setTicketProject}>
-                  <SelectTrigger className="h-10 text-xs rounded-xl font-hud">
-                    <SelectValue placeholder="Selecione o projeto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Nenhum (Dúvida Geral)</SelectItem>
-                    {clientProjects.map((p) => (
-                      <SelectItem key={p.id} value={p.id}>
-                        {p.title}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
-                Descrição da Solicitação <span className="text-blue-600">*</span>
-              </Label>
-              <Textarea
-                value={ticketMessage}
-                onChange={(e) => setTicketMessage(e.target.value)}
-                placeholder="Detalhe o que você precisa..."
-                rows={4}
-                className="text-xs rounded-2xl resize-none"
-                required
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Anexo de Evidência (Opcional)</Label>
-              <Input
-                type="file"
-                onChange={(e) => setTicketEvidenceFile(e.target.files?.[0] || null)}
-                className="h-10 text-xs rounded-xl"
-              />
-            </div>
-
-            <DialogFooter className="pt-3 border-t border-slate-100 dark:border-white/5 flex items-center justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setOpenTicketModal(false)}
-                disabled={submittingTicket}
-                className="h-9 px-4 text-xs font-bold rounded-xl font-hud"
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={submittingTicket}
-                className="h-9 px-5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer font-hud"
-              >
-                {submittingTicket ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                {submittingTicket ? "Enviando..." : "Enviar Chamado"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Modal: SAC Chat / Conversation ────────────────────────────── */}
-      <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
-        <DialogContent className="sm:max-w-[600px] bg-white dark:bg-[#11131A] rounded-[32px] p-6 sm:p-8 space-y-5 border border-slate-200/80 dark:border-white/10 shadow-2xl">
-          <DialogHeader className="space-y-1 border-b border-slate-100 dark:border-white/5 pb-3">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-bold font-hud">
-                {selectedTicket?.category || "SAC"}
-              </span>
-              <Badge variant="outline" className="text-xs font-semibold">
-                {selectedTicket?.status || "Aberto"}
-              </Badge>
-            </div>
-            <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-white font-hud">
-              {selectedTicket?.subject}
-            </DialogTitle>
-            <DialogDescription className="text-xs text-slate-400 font-medium">
-              Aberto em {formatDate(selectedTicket?.created_at)} • Protocolo #{selectedTicket?.id.slice(0, 8)}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-3.5 max-h-72 overflow-y-auto p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800">
-            {/* Original message */}
-            <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 shadow-2xs space-y-1.5">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-zinc-200 font-hud">
-                <span>{selectedTicket?.client_name || "Você"}</span>
-                <span className="text-[10px] font-normal text-slate-400">{formatDate(selectedTicket?.created_at)}</span>
-              </div>
-              <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed font-medium">{selectedTicket?.message}</p>
-              {selectedTicket?.evidence_url && (
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => window.open(selectedTicket.evidence_url!, "_blank")}
-                  className="h-7 text-xs font-bold rounded-lg gap-1 mt-1 font-hud"
-                >
-                  <Eye className="h-3 w-3" /> Ver anexo
-                </Button>
-              )}
-            </div>
-
-            {/* Replies */}
-            {(selectedTicket?.replies || []).map((reply, idx) => {
-              const isGestorSender = reply.sender_role === "gestor" || reply.sender_role === "admin";
-
-              return (
-                <div
-                  key={reply.id || idx}
-                  className={`p-3.5 rounded-2xl border space-y-1.5 ${
-                    isGestorSender
-                      ? "bg-blue-50/90 dark:bg-blue-950/40 border-blue-200 dark:border-blue-800 ml-4 text-slate-900 dark:text-white"
-                      : "bg-white dark:bg-zinc-950 border-slate-200 dark:border-zinc-800 mr-4 text-slate-900 dark:text-white"
-                  }`}
-                >
-                  <div className="flex items-center justify-between text-xs font-bold font-hud">
-                    <span className={isGestorSender ? "text-blue-700 dark:text-blue-400 flex items-center gap-1" : "text-slate-800 dark:text-zinc-200"}>
-                      {isGestorSender && <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />}
-                      {reply.sender_name}
-                    </span>
-                    <span className="text-[10px] font-normal text-slate-400">{formatDate(reply.created_at)}</span>
-                  </div>
-                  <p className="text-xs leading-relaxed font-medium">{reply.message}</p>
-                </div>
-              );
-            })}
-          </div>
-
-          <form onSubmit={handleSendChatReply} className="space-y-3 pt-2">
-            <Textarea
-              value={chatReplyMessage}
-              onChange={(e) => setChatReplyMessage(e.target.value)}
-              placeholder="Digite sua resposta para a equipe..."
-              rows={3}
-              className="text-xs rounded-2xl resize-none"
-              required
-            />
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setSelectedTicket(null)}
-                className="h-9 px-4 text-xs font-bold rounded-xl font-hud"
-              >
-                Fechar
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                disabled={sendingReply || !chatReplyMessage.trim()}
-                className="h-9 px-5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-sm flex items-center gap-1.5 cursor-pointer font-hud"
-              >
-                {sendingReply ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
-                {sendingReply ? "Enviando..." : "Enviar Resposta"}
-              </Button>
-            </div>
-          </form>
         </DialogContent>
       </Dialog>
 
