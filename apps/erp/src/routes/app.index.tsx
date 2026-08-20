@@ -166,8 +166,8 @@ function KpiCard({
           <Icon className={`h-4 w-4 ${iconColor}`} strokeWidth={1.75} />
         </div>
       </div>
-      <div className="flex flex-col items-center justify-center py-1">
-        <div className="kpi-value text-foreground text-center">
+      <div className="flex flex-col items-start justify-start py-1">
+        <div className="kpi-value text-foreground text-left">
           {numericValue !== undefined ? (
             <AnimatedNumber
               value={numericValue}
@@ -180,7 +180,7 @@ function KpiCard({
           )}
         </div>
         {sub && (
-          <p className="mt-1 text-xs text-muted-foreground font-medium flex items-center justify-center gap-1">
+          <p className="mt-1 text-xs text-muted-foreground font-medium flex items-center justify-start gap-1">
             {sub}
           </p>
         )}

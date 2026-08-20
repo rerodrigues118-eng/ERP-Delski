@@ -300,23 +300,9 @@ function GestorProfileSettingsPage() {
                 <span className="text-xs uppercase font-semibold tracking-wider text-muted-foreground">
                   Painel de Configurações
                 </span>
-                <span className="bg-purple-500/10 text-purple-600 dark:text-purple-400 text-[11px] font-bold px-2 py-0.5 rounded border border-purple-500/20">
-                  GESTOR
-                </span>
               </div>
               <h1 className="text-2xl font-bold text-foreground mt-0.5">{gestorName}</h1>
               <p className="text-xs text-muted-foreground">{gestorEmail}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <div className="bg-muted/50 border border-border rounded-xl px-4 py-2 text-right">
-              <span className="text-[10px] uppercase font-semibold tracking-wider text-muted-foreground block">
-                Cidade Padrão de Assinatura
-              </span>
-              <span className="text-xs font-bold text-foreground">
-                {companyForm.cidade_padrao_assinatura || companyForm.cidade || "Curitiba"}
-              </span>
             </div>
           </div>
         </div>
@@ -353,10 +339,6 @@ function GestorProfileSettingsPage() {
                 <UserCheck className="h-5 w-5 text-primary" />
                 <CardTitle className="text-lg font-bold text-foreground">Informações do Gestor</CardTitle>
               </div>
-              <CardDescription className="text-xs text-muted-foreground">
-                Estes dados serão utilizados automaticamente na emissão de novos contratos como
-                representante responsável.
-              </CardDescription>
             </CardHeader>
 
             <CardContent className="p-6 sm:p-8">
@@ -468,10 +450,6 @@ function GestorProfileSettingsPage() {
                   Informações da Empresa (Origem: Empresa)
                 </CardTitle>
               </div>
-              <CardDescription className="text-xs text-muted-foreground">
-                Dados oficiais da Delski usados quando as variáveis de modelo estiverem com origem
-                definida como "Empresa".
-              </CardDescription>
             </CardHeader>
 
             <CardContent className="p-6 sm:p-8">
@@ -631,10 +609,6 @@ function GestorProfileSettingsPage() {
                   Valores Padrão do Sistema (Origem: Sistema)
                 </CardTitle>
               </div>
-              <CardDescription className="text-xs text-muted-foreground">
-                Configure os valores preenchidos automaticamente quando a variável do contrato for
-                da origem "Sistema" (ex: Cidade de Assinatura, Método de Pagamento, Data).
-              </CardDescription>
             </CardHeader>
 
             <CardContent className="p-6 sm:p-8">

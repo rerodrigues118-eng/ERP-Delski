@@ -165,11 +165,8 @@ function ClienteLayout() {
                 alt="DELSKI"
                 className="h-7 w-7 object-contain dark:brightness-0 dark:invert transition-transform group-hover:scale-105"
               />
-              <span className="text-sm sm:text-base font-black tracking-tight text-slate-900 dark:text-white font-hud">
-                DELSKI{" "}
-                <span className="text-blue-600 dark:text-blue-400 font-extrabold">
-                  CLOUD
-                </span>
+              <span className="text-sm sm:text-base font-extrabold tracking-tight text-slate-900 dark:text-white">
+                DELSKI <span className="text-[#2563EB] dark:text-blue-500 font-extrabold">CLOUD</span>
               </span>
             </button>
           </div>

@@ -75,9 +75,9 @@ function AguardandoAprovacaoPage() {
             className="h-12 w-12 object-contain"
           />
         </div>
-        <span className="text-xl font-bold tracking-tight text-gray-900 flex items-center gap-1.5">
+        <span className="text-xl font-extrabold tracking-tight text-gray-900 flex items-center gap-1.5">
           DELSKI{" "}
-          <span className="bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent font-extrabold uppercase">
+          <span className="text-[#2563EB] font-extrabold uppercase">
             CLOUD
           </span>
         </span>

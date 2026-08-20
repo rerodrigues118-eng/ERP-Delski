@@ -224,8 +224,8 @@ export function AppSidebar() {
             </div>
             {!isCollapsed && (
               <div className="flex items-baseline gap-1.5 whitespace-nowrap">
-                <span className="text-[16px] font-bold text-foreground tracking-tight">Delski</span>
-                <span className="text-[12px] font-extrabold tracking-wider bg-gradient-to-r from-blue-600 via-sky-500 to-indigo-600 bg-clip-text text-transparent uppercase">
+                <span className="text-[16px] font-extrabold text-foreground tracking-tight uppercase">DELSKI</span>
+                <span className="text-[13px] font-extrabold tracking-wider text-[#2563EB] dark:text-blue-500 uppercase">
                   CLOUD
                 </span>
               </div>

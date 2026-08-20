@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Building2,
@@ -31,6 +31,14 @@ import {
   FileSpreadsheet,
   HelpCircle,
   FileCode,
+  LayoutDashboard,
+  ArrowRight,
+  AlertTriangle,
+  FolderKanban,
+  Search,
+  Filter,
+  Eye,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +62,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
+import { useProjects, type Project } from "@/hooks/useProjects";
 import {
   useCurrentFreelancerProfile,
   useUpdateCurrentFreelancerProfile,
@@ -134,7 +143,23 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
 
 function FreelancerDashboardPage() {
   const { user, profile } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>("cadastrais");
+  const [activeTab, setActiveTab] = useState<string>("dashboard");
+
+  // Synchronize activeTab via CustomEvent with the top floating navbar
+  useEffect(() => {
+    const handleTabSwitch = (e: any) => {
+      if (e.detail && typeof e.detail === "string") {
+        setActiveTab(e.detail);
+      }
+    };
+    window.addEventListener("delski_switch_freelancer_tab", handleTabSwitch);
+    return () => window.removeEventListener("delski_switch_freelancer_tab", handleTabSwitch);
+  }, []);
+
+  const changeTab = (tabName: string) => {
+    setActiveTab(tabName);
+    window.dispatchEvent(new CustomEvent("delski_switch_freelancer_tab", { detail: tabName }));
+  };
 
   // Profile Query & Mutations
   const {
@@ -142,6 +167,9 @@ function FreelancerDashboardPage() {
     isLoading: loadingProfile,
   } = useCurrentFreelancerProfile(user?.id, user?.email || undefined);
   const updateProfile = useUpdateCurrentFreelancerProfile();
+
+  // Projects Query
+  const { data: allProjects = [], isLoading: loadingProjects } = useProjects();
 
   // Documents Query & Mutations
   const freelancerId = freelancer?.id || user?.id || "";
@@ -183,6 +211,73 @@ function FreelancerDashboardPage() {
   const [bankAccount, setBankAccount] = useState("");
   const [pixType, setPixType] = useState("CNPJ");
   const [pixKey, setPixKey] = useState("");
+
+  // Filter projects assigned to this freelancer
+  const assignedProjects = React.useMemo(() => {
+    return allProjects.filter((p) =>
+      p.freelancers?.some((f: any) => {
+        const fId = f?.id || f?.profile?.id;
+        const fEmail = f?.email || f?.profile?.email;
+        return (
+          (user?.id && fId === user.id) ||
+          (freelancerId && fId === freelancerId) ||
+          (user?.email && fEmail?.toLowerCase() === user.email.toLowerCase()) ||
+          (corporateEmail && fEmail?.toLowerCase() === corporateEmail.toLowerCase())
+        );
+      })
+    );
+  }, [allProjects, user, freelancerId, corporateEmail]);
+
+  const activeProjectsCount = assignedProjects.filter(
+    (p) => p.status !== "Concluido" && p.status !== "Cancelado"
+  ).length;
+  const pendingProjectsCount = assignedProjects.filter(
+    (p) => p.status === "Em Andamento" || p.status === "Em Producao" || p.status === "Em Revisao"
+  ).length;
+  const totalHonorarios = assignedProjects.reduce(
+    (acc, p) => acc + Number(p.freelancer_cost || 0),
+    0
+  );
+
+  const hasPendingDocsOrBank =
+    freelancerDocs.length < 3 ||
+    !freelancer?.bank_name ||
+    !freelancer?.pix_key;
+
+  // Projects Tab Filter State
+  const [projectSearchTerm, setProjectSearchTerm] = useState("");
+  const [projectStatusFilter, setProjectStatusFilter] = useState("todos");
+  const [selectedProjectForDetails, setSelectedProjectForDetails] = useState<Project | null>(null);
+
+  const filteredAssignedProjects = useMemo(() => {
+    return assignedProjects.filter((p) => {
+      const q = projectSearchTerm.trim().toLowerCase();
+      const matchSearch =
+        !q ||
+        p.title.toLowerCase().includes(q) ||
+        (p.client?.full_name && p.client.full_name.toLowerCase().includes(q)) ||
+        (p.service_type && p.service_type.toLowerCase().includes(q)) ||
+        (p.id && p.id.toLowerCase().includes(q));
+
+      let matchStatus = true;
+      if (projectStatusFilter === "Em Andamento") {
+        matchStatus = p.status === "Em Andamento" || p.status === "Em Producao";
+      } else if (projectStatusFilter === "Aguardando Inicio") {
+        matchStatus =
+          p.status === "Criado" ||
+          p.status === "Delegado" ||
+          p.status === "Solicitado" ||
+          p.status === "Aguardando Candidaturas" ||
+          p.status === "Em Triagem";
+      } else if (projectStatusFilter === "Em Revisao") {
+        matchStatus = p.status === "Em Revisao" || p.status === "Revisão de Contrato";
+      } else if (projectStatusFilter === "Concluido") {
+        matchStatus = p.status === "Concluido";
+      }
+
+      return matchSearch && matchStatus;
+    });
+  }, [assignedProjects, projectSearchTerm, projectStatusFilter]);
 
   useEffect(() => {
     if (freelancer) {
@@ -331,62 +426,414 @@ function FreelancerDashboardPage() {
   const displayName = companyName || contactName || "Prestador";
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Banner */}
-      <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-800 rounded-2xl p-6 sm:p-8 text-white shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <Badge className="bg-white/20 hover:bg-white/25 text-white border-0 text-xs font-semibold py-1 px-3">
-            Portal do Prestador PJ
-          </Badge>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Olá, {contactName || "Prestador"} 👋
-          </h1>
-          <p className="text-blue-100 text-sm max-w-xl">
-            Gerencie seus dados cadastrais, documentação societária, dados bancários e envie suas Notas Fiscais para liquidação de honorários.
-          </p>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          <Button
-            onClick={() => setOpenInvoiceModal(true)}
-            className="bg-white text-indigo-700 hover:bg-blue-50 font-semibold shadow-sm text-xs sm:text-sm h-10 px-4 flex items-center gap-2"
-          >
-            <Receipt className="h-4 w-4" /> Cadastrar Nota Fiscal
-          </Button>
-        </div>
+    <div className="space-y-6">
+      {/* Welcome Title (Clean & Modern, idêntico ao Portal do Cliente) */}
+      <div className="pt-2 pb-1">
+        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+          Bem-vindo de volta,{" "}
+          <span className="text-blue-600 dark:text-blue-400">
+            {contactName || profile?.full_name || "Prestador"}
+          </span>
+        </h1>
       </div>
 
-      {/* Main Tabs Workspace */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        {/* Navigation Tabs Bar */}
-        <div className="bg-white p-1.5 rounded-2xl border border-gray-200/80 shadow-xs overflow-x-auto">
-          <TabsList className="bg-transparent h-auto p-0 flex gap-1 min-w-max">
-            <TabsTrigger
-              value="cadastrais"
-              className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:font-bold text-gray-600 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
-            >
-              <Building2 className="h-4 w-4" /> 1. Dados Cadastrais
-            </TabsTrigger>
-            <TabsTrigger
-              value="documentacao"
-              className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:font-bold text-gray-600 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" /> 2. Documentação
-            </TabsTrigger>
-            <TabsTrigger
-              value="financeiro"
-              className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:font-bold text-gray-600 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
-            >
-              <CreditCard className="h-4 w-4" /> 3. Dados Financeiros
-            </TabsTrigger>
-            <TabsTrigger
-              value="notas"
-              className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 data-[state=active]:font-bold text-gray-600 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
-            >
-              <Receipt className="h-4 w-4" /> 4. Comprovantes Fiscais (NFs) ({invoices.length})
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      {/* Main Tabs Workspace (Sincronizado com a Navbar Flutuante Superior) */}
+      <Tabs value={activeTab} onValueChange={changeTab} className="space-y-6">
+
+        {/* ── ABA 0: DASHBOARD ────────────────────────────────────────────── */}
+        <TabsContent value="dashboard" className="space-y-6 focus-visible:outline-none">
+          {/* KPI Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Card 1: Projetos Ativos */}
+            <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs hover:border-blue-500/30 transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                  Projetos Ativos
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center">
+                  <Briefcase className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-extrabold text-gray-900">
+                {activeProjectsCount}
+              </div>
+              <p className="text-xs text-gray-400 mt-1 font-medium">
+                {assignedProjects.length} demanda(s) atribuída(s)
+              </p>
+            </div>
+
+            {/* Card 2: Entregas Pendentes */}
+            <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs hover:border-amber-500/30 transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                  Entregas Pendentes
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                  <Clock className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-extrabold text-gray-900">
+                {pendingProjectsCount}
+              </div>
+              <p className="text-xs text-gray-400 mt-1 font-medium">
+                Demandas em produção / revisão
+              </p>
+            </div>
+
+            {/* Card 3: Honorários Alocados */}
+            <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs hover:border-emerald-500/30 transition-all">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                  Honorários Alocados
+                </span>
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                  <DollarSign className="w-4 h-4" />
+                </div>
+              </div>
+              <div className="text-2xl font-extrabold text-emerald-600">
+                {money(totalHonorarios)}
+              </div>
+              <p className="text-xs text-gray-400 mt-1 font-medium">
+                {invoices.length} nota(s) fiscal(is) emitida(s)
+              </p>
+            </div>
+          </div>
+
+          {/* Compliance Banner */}
+          {hasPendingDocsOrBank ? (
+            <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 text-amber-700 flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900">Pendência na Homologação Cadastral</h4>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Mantenha sua documentação societária e dados bancários atualizados para garantir a liquidação pontual de seus honorários.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button
+                  size="sm"
+                  onClick={() => changeTab("documentacao")}
+                  className="bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs gap-1.5 h-9"
+                >
+                  <FileText className="w-3.5 h-3.5" /> Enviar Documentação
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => changeTab("financeiro")}
+                  className="rounded-xl text-xs gap-1.5 h-9 border-amber-300 text-amber-900"
+                >
+                  <CreditCard className="w-3.5 h-3.5" /> Dados Bancários
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-700 flex items-center justify-center shrink-0">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-gray-900">Cadastro Homologado & Em Dia</h4>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Seus dados cadastrais, documentação societária e chave PIX estão verificados pelo Gestor.
+                  </p>
+                </div>
+              </div>
+              <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs px-3 py-1 font-semibold">
+                ✓ Regular
+              </Badge>
+            </div>
+          )}
+
+          {/* Recent Assigned Projects Table / List */}
+          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                  <FolderKanban className="w-4 h-4 text-blue-600" /> Últimos Projetos Delegados
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Demandas e serviços vinculados ao seu perfil de especialista
+                </p>
+              </div>
+            </div>
+
+            {loadingProjects ? (
+              <div className="py-12 text-center text-gray-400">
+                <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-blue-600" />
+                <p className="text-xs">Carregando projetos...</p>
+              </div>
+            ) : assignedProjects.length === 0 ? (
+              <div className="py-12 text-center text-gray-400 space-y-2">
+                <Briefcase className="w-8 h-8 mx-auto text-gray-300" />
+                <p className="text-sm font-medium text-gray-600">Nenhum projeto atribuído no momento</p>
+                <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                  Assim que um novo projeto for delegado a você pelo Gestor, ele aparecerá listado nesta área com prazos e briefing.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                      <th className="pb-3">Projeto</th>
+                      <th className="pb-3">Cliente</th>
+                      <th className="pb-3">Serviço</th>
+                      <th className="pb-3">Prazo</th>
+                      <th className="pb-3 text-right">Honorários</th>
+                      <th className="pb-3 text-center">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {assignedProjects.slice(0, 8).map((p) => (
+                      <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="py-3.5 pr-3 font-semibold text-gray-900">
+                          {p.title}
+                        </td>
+                        <td className="py-3.5 pr-3 text-gray-600">
+                          {p.client?.full_name || "Cliente Delski"}
+                        </td>
+                        <td className="py-3.5 pr-3">
+                          <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px] font-semibold border border-blue-100">
+                            {p.service_type}
+                          </span>
+                        </td>
+                        <td className="py-3.5 pr-3 text-gray-600">
+                          {formatDate(p.deadline)}
+                        </td>
+                        <td className="py-3.5 pr-3 text-right font-bold text-emerald-600">
+                          {money(p.freelancer_cost || 0)}
+                        </td>
+                        <td className="py-3.5 text-center">
+                          <span
+                            className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold border ${
+                              p.status === "Concluido"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : p.status === "Em Andamento" || p.status === "Em Producao"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-gray-50 text-gray-700 border-gray-200"
+                            }`}
+                          >
+                            {p.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </TabsContent>
+
+        {/* ── ABA 0.5: PROJETOS DELEGADOS ─────────────────────────────────── */}
+        <TabsContent value="projetos" className="space-y-6 focus-visible:outline-none">
+          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                  <FolderKanban className="h-5 w-5 text-blue-600" /> Projetos Delegados
+                </h2>
+                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                  Acompanhe os projetos, prazos e escopos atribuídos a você pela equipe Delski Cloud.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-700">
+                  {filteredAssignedProjects.length} de {assignedProjects.length} projeto(s)
+                </span>
+              </div>
+            </div>
+
+            {/* Filter and Search Bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <Input
+                  value={projectSearchTerm}
+                  onChange={(e) => setProjectSearchTerm(e.target.value)}
+                  placeholder="Buscar por projeto, cliente ou serviço..."
+                  className="pl-9 h-10 text-xs sm:text-sm rounded-xl border-gray-200"
+                />
+                {projectSearchTerm && (
+                  <button
+                    onClick={() => setProjectSearchTerm("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                  >
+                    Limpar
+                  </button>
+                )}
+              </div>
+
+              <div className="w-full sm:w-56">
+                <Select value={projectStatusFilter} onValueChange={setProjectStatusFilter}>
+                  <SelectTrigger className="h-10 text-xs sm:text-sm rounded-xl border-gray-200 bg-white">
+                    <div className="flex items-center gap-2">
+                      <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <SelectValue placeholder="Status do Projeto" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos os Status</SelectItem>
+                    <SelectItem value="Em Andamento">Em Andamento</SelectItem>
+                    <SelectItem value="Aguardando Inicio">Aguardando Início</SelectItem>
+                    <SelectItem value="Em Revisao">Em Revisão</SelectItem>
+                    <SelectItem value="Concluido">Concluído</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Projects List / Grid */}
+            {loadingProjects ? (
+              <div className="py-16 text-center text-gray-400 space-y-3">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" />
+                <p className="text-xs font-medium">Carregando seus projetos...</p>
+              </div>
+            ) : filteredAssignedProjects.length === 0 ? (
+              <div className="py-16 text-center space-y-3 border border-dashed border-gray-200 rounded-2xl p-8 bg-gray-50/50">
+                <div className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center mx-auto text-gray-400 shadow-xs">
+                  <FolderKanban className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="text-base font-bold text-gray-800">
+                    {projectSearchTerm || projectStatusFilter !== "todos"
+                      ? "Nenhum projeto encontrado com os filtros selecionados"
+                      : "Nenhum projeto atribuído no momento"}
+                  </h3>
+                  <p className="text-xs text-gray-500 max-w-md mx-auto">
+                    {projectSearchTerm || projectStatusFilter !== "todos"
+                      ? "Tente alterar os termos de busca ou remover o filtro de status."
+                      : "Assim que a equipe gestora delegar um novo projeto a você, ele aparecerá nesta listagem."}
+                  </p>
+                </div>
+                {(projectSearchTerm || projectStatusFilter !== "todos") && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setProjectSearchTerm("");
+                      setProjectStatusFilter("todos");
+                    }}
+                    className="rounded-xl text-xs mt-2"
+                  >
+                    Limpar Filtros
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredAssignedProjects.map((project) => {
+                  const status = project.status;
+                  const isDone = status === "Concluido";
+                  const isInProgress = status === "Em Andamento" || status === "Em Producao";
+                  const isReview = status === "Em Revisao" || status === "Revisão de Contrato";
+
+                  return (
+                    <div
+                      key={project.id}
+                      className="bg-white rounded-2xl border border-gray-200/90 p-5 shadow-xs hover:shadow-md hover:border-blue-500/30 transition-all flex flex-col justify-between space-y-4"
+                    >
+                      <div className="space-y-3">
+                        {/* Card Header: Title + Status */}
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-0.5">
+                              {project.client?.full_name || "Cliente Delski"}
+                            </span>
+                            <h3 className="text-base font-bold text-gray-900 leading-snug">
+                              {project.title}
+                            </h3>
+                          </div>
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border shrink-0 ${
+                              isDone
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : isInProgress
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : isReview
+                                ? "bg-purple-50 text-purple-700 border-purple-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                            }`}
+                          >
+                            {isInProgress && (
+                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                            )}
+                            {isDone && <CheckCircle2 className="w-3 h-3" />}
+                            {project.status}
+                          </span>
+                        </div>
+
+                        {/* Scope / Role Tag */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500 font-medium">Sua Função / Escopo:</span>
+                          <span className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-800 text-xs font-semibold border border-slate-200">
+                            {project.service_type || "Especialista PJ"}
+                          </span>
+                        </div>
+
+                        {/* Briefing preview if available */}
+                        {project.briefing_content && (
+                          <p className="text-xs text-gray-500 line-clamp-2 bg-gray-50/70 p-2.5 rounded-xl border border-gray-100">
+                            {project.briefing_content}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Card Footer: Prazo, Honorários, Botões */}
+                      <div className="border-t border-gray-100 pt-3.5 space-y-3">
+                        <div className="flex items-center justify-between text-xs">
+                          <div className="flex items-center gap-1.5 text-gray-600">
+                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                            <span>
+                              Entrega até:{" "}
+                              <strong className="text-gray-900 font-semibold">
+                                {formatDate(project.deadline)}
+                              </strong>
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 font-bold text-emerald-600">
+                            <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+                            <span>{money(project.freelancer_cost || 0)}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 pt-1">
+                          <Button
+                            size="sm"
+                            onClick={() => setSelectedProjectForDetails(project)}
+                            className="flex-1 bg-slate-900 hover:bg-black text-white text-xs h-9 rounded-xl font-semibold gap-1.5 shadow-xs cursor-pointer"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> Ver Detalhes do Projeto
+                          </Button>
+
+                          {project.google_drive_link && (
+                            <a
+                              href={project.google_drive_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center h-9 px-3 rounded-xl border border-gray-200 text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600 gap-1.5 transition-colors"
+                              title="Abrir Pasta / Entregáveis no Google Drive"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </TabsContent>
 
         {/* ── ABA 1: DADOS CADASTRAIS ──────────────────────────────────────── */}
         <TabsContent value="cadastrais" className="space-y-6 focus-visible:outline-none">
@@ -1299,6 +1746,109 @@ function FreelancerDashboardPage() {
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Project Details Modal Dialog */}
+      <Dialog
+        open={Boolean(selectedProjectForDetails)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedProjectForDetails(null);
+        }}
+      >
+        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto rounded-3xl p-6 sm:p-8">
+          {selectedProjectForDetails && (
+            <div className="space-y-6">
+              <DialogHeader className="space-y-2 text-left">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
+                    {selectedProjectForDetails.service_type || "Projeto"}
+                  </span>
+                  <span
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                      selectedProjectForDetails.status === "Concluido"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                        : selectedProjectForDetails.status === "Em Andamento" ||
+                          selectedProjectForDetails.status === "Em Producao"
+                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        : "bg-amber-50 text-amber-700 border-amber-200"
+                    }`}
+                  >
+                    {selectedProjectForDetails.status}
+                  </span>
+                </div>
+                <DialogTitle className="text-xl font-bold text-gray-900">
+                  {selectedProjectForDetails.title}
+                </DialogTitle>
+                <DialogDescription className="text-xs text-gray-500">
+                  Cliente:{" "}
+                  <strong className="text-gray-700">
+                    {selectedProjectForDetails.client?.full_name || "Cliente Delski"}
+                  </strong>
+                </DialogDescription>
+              </DialogHeader>
+
+              {/* Info Metrics Grid */}
+              <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs">
+                <div>
+                  <span className="text-[11px] text-gray-400 font-semibold uppercase block">
+                    Prazo de Entrega
+                  </span>
+                  <p className="text-sm font-bold text-gray-900 mt-0.5">
+                    {formatDate(selectedProjectForDetails.deadline)}
+                  </p>
+                </div>
+                <div>
+                  <span className="text-[11px] text-gray-400 font-semibold uppercase block">
+                    Honorário Combinado
+                  </span>
+                  <p className="text-sm font-bold text-emerald-600 mt-0.5">
+                    {money(selectedProjectForDetails.freelancer_cost || 0)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Briefing Section */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5 text-blue-600" /> Escopo & Briefing da Demanda
+                </h4>
+                <div className="p-4 rounded-2xl bg-white border border-gray-200 text-xs text-gray-700 leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap">
+                  {selectedProjectForDetails.briefing_content ||
+                    "Nenhuma instrução ou briefing específico foi detalhado para este projeto."}
+                </div>
+              </div>
+
+              {/* Links & Entregáveis */}
+              {selectedProjectForDetails.google_drive_link && (
+                <div className="space-y-2">
+                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                    <ExternalLink className="w-3.5 h-3.5 text-blue-600" /> Pasta de Entregáveis / Drive
+                  </h4>
+                  <a
+                    href={selectedProjectForDetails.google_drive_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-between p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 text-blue-700 hover:bg-blue-100/70 transition-colors text-xs font-semibold"
+                  >
+                    <span className="truncate max-w-sm">
+                      {selectedProjectForDetails.google_drive_link}
+                    </span>
+                    <ExternalLink className="w-4 h-4 shrink-0" />
+                  </a>
+                </div>
+              )}
+
+              <DialogFooter className="pt-2">
+                <Button
+                  onClick={() => setSelectedProjectForDetails(null)}
+                  className="w-full h-10 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-semibold"
+                >
+                  Fechar Detalhes
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

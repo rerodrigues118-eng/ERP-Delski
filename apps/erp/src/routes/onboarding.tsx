@@ -346,7 +346,6 @@ function OnboardingPage() {
               freelancer_id: currentUserId,
               document_type: docType,
               file_path: filePath,
-              file_url: fileUrl || null,
               status: "em_analise",
               uploaded_at: new Date().toISOString(),
             },
@@ -566,9 +565,9 @@ function OnboardingPage() {
     <div className="min-h-screen bg-[#F8FAFC] dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-8 antialiased">
       {/* Brand Header */}
       <div className="mb-6 text-center space-y-1">
-        <div className="flex items-center justify-center gap-2">
-          <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">DELSKI</span>
-          <span className="text-sm font-extrabold text-slate-500 uppercase tracking-wider">CLOUD</span>
+        <div className="flex items-center justify-center gap-1.5 font-extrabold text-xl tracking-tight">
+          <span className="text-[#0F172A] dark:text-white uppercase font-extrabold">DELSKI</span>
+          <span className="text-[#2563EB] uppercase font-extrabold">CLOUD</span>
         </div>
         <p className="text-xs text-slate-500">Ativação de Prestador & Homologação Cadastral</p>
       </div>

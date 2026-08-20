@@ -12,6 +12,20 @@ const SENDER_EMAIL =
 
 const SENDER_NAME = "Delski Gestão";
 
+const EMAIL_HEADER_HTML = `
+      <!-- Header / Logo -->
+      <table align="center" border="0" cellpadding="0" cellspacing="0" style="margin: 0 auto 28px auto;">
+        <tr>
+          <td style="vertical-align: middle; padding-right: 10px;">
+            <img src="https://delski.cloud/logo-icon.png" alt="Delski Logo" width="28" height="28" style="display: block; border: 0;" />
+          </td>
+          <td style="vertical-align: middle; font-family: 'Plus Jakarta Sans', 'Inter', Arial, sans-serif; font-size: 22px; line-height: 1;">
+            <span style="font-weight: 800; color: #0f172a; letter-spacing: -0.3px; text-transform: uppercase;">DELSKI</span><span style="font-weight: 800; color: #2563eb; letter-spacing: 0.2px; text-transform: uppercase; margin-left: 5px;">CLOUD</span>
+          </td>
+        </tr>
+      </table>
+`;
+
 export interface SendEmailResult {
   success: boolean;
   error?: string;
@@ -63,11 +77,7 @@ export async function sendWelcomeEmail(to: { name: string; email: string }, cust
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
-      <!-- Header / Logo -->
-      <div style="text-align: center; margin-bottom: 32px;">
-        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
-        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
-      </div>
+      ${EMAIL_HEADER_HTML}
 
       <!-- Formal Message -->
       <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">
@@ -125,10 +135,7 @@ export async function sendOnboardingEmail(args: {
 }) {
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
-      <div style="text-align: center; margin-bottom: 32px;">
-        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
-        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
-      </div>
+      ${EMAIL_HEADER_HTML}
       <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">Olá, <strong>${args.to.name}</strong>.</p>
       <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 20px 0;">Sua conta de acesso à plataforma Delski Cloud foi configurada pelo gestor responsável.</p>
       <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px;">
@@ -167,10 +174,7 @@ export async function sendClientInvite(args: {
 }) {
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
-      <div style="text-align: center; margin-bottom: 32px;">
-        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
-        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
-      </div>
+      ${EMAIL_HEADER_HTML}
       <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">Olá, <strong>${args.to.name}</strong>.</p>
       <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 20px 0;">O Gestor da Delski vinculou um projeto a você: <strong>${args.projectTitle}</strong>.</p>
       <div style="text-align: center; margin: 32px 0;">
@@ -206,10 +210,7 @@ export async function sendDelegationEmail(args: {
 }) {
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
-      <div style="text-align: center; margin-bottom: 32px;">
-        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
-        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
-      </div>
+      ${EMAIL_HEADER_HTML}
       <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">Olá, <strong>${args.to.name}</strong>.</p>
       <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 20px 0;">Você foi alocado(a) para o projeto de <strong>${args.projectClient}</strong> na Delski.</p>
       ${args.publicLink ? `
@@ -245,10 +246,7 @@ export async function sendStatusChangeEmail(args: {
 }) {
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
-      <div style="text-align: center; margin-bottom: 32px;">
-        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
-        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
-      </div>
+      ${EMAIL_HEADER_HTML}
       <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">Atualização de Projeto</p>
       <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 20px 0;">O status do projeto <strong>${args.projectClient}</strong> mudou para: <strong>${args.status}</strong>.</p>
       <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0 20px 0;"/>
@@ -276,10 +274,7 @@ export async function sendTriageInviteEmail(args: {
 }) {
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
-      <div style="text-align: center; margin-bottom: 32px;">
-        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
-        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
-      </div>
+      ${EMAIL_HEADER_HTML}
       <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">Olá, <strong>${args.to.name}</strong>.</p>
       <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 20px 0;">Você foi convidado(a) para responder à triagem do projeto <strong>${args.projectClient}</strong>.</p>
       <div style="text-align: center; margin: 32px 0;">
@@ -320,11 +315,7 @@ export async function sendClientAccessInviteEmail(args: {
 
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
-      <!-- Header / Logo -->
-      <div style="text-align: center; margin-bottom: 32px;">
-        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
-        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
-      </div>
+      ${EMAIL_HEADER_HTML}
 
       <!-- Formal Message -->
       <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">

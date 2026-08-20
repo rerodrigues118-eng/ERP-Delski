@@ -147,7 +147,7 @@ function DefinirSenhaPage() {
       // Sucesso: resetar rate limit
       resetRateLimit(`definir_senha_${cleanEmail || "anon"}`);
 
-      // 2. Garantir perfil atualizado no Supabase
+      // 2. Garantir perfil atualizado no Supabase com onboarding pendente
       const { data: latestSession } = await supabase.auth.getSession();
       const currentUserId = latestSession.session?.user?.id;
 
@@ -166,9 +166,14 @@ function DefinirSenhaPage() {
             email: cleanEmail,
             role: targetRole,
             approval_status: "approved",
+            onboarding_completed: false,
             status: "ativo",
             updated_at: new Date().toISOString(),
           });
+
+          if (typeof window !== "undefined") {
+            localStorage.removeItem(`delski_onboarding_completed_${currentUserId}`);
+          }
         } catch (pErr) {
           console.warn("Profile upsert fallback:", pErr);
         }
@@ -201,9 +206,9 @@ function DefinirSenhaPage() {
         <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 sm:p-8 space-y-6">
           {/* Logo / Header */}
           <div className="text-center space-y-2">
-            <div className="flex items-center justify-center gap-1.5 mb-1">
-              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">DELSKI</span>
-              <span className="text-sm font-extrabold text-slate-500 uppercase tracking-wider">CLOUD</span>
+            <div className="flex items-center justify-center gap-1.5 mb-1 font-extrabold text-xl tracking-tight">
+              <span className="text-[#0F172A] dark:text-white uppercase font-extrabold">DELSKI</span>
+              <span className="text-[#2563EB] uppercase font-extrabold">CLOUD</span>
             </div>
             <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Criar Senha de Acesso</h1>
             <p className="text-sm text-slate-500 dark:text-zinc-400">
@@ -356,18 +361,15 @@ function DefinirSenhaPage() {
                 <Button
                   type="submit"
                   disabled={loading || !password || password !== confirmPassword}
-                  className="w-full h-11 bg-slate-900 hover:bg-black text-white font-medium rounded-xl shadow-sm transition-all duration-200 gap-2 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-11 bg-slate-900 hover:bg-black text-white font-semibold rounded-xl shadow-sm transition-all duration-200 gap-2 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Ativando Conta...
+                      Ativando conta...
                     </>
                   ) : (
-                    <>
-                      Ativar Conta & Iniciar Onboarding
-                      <ArrowRight className="w-4 h-4" />
-                    </>
+                    "Ativar conta"
                   )}
                 </Button>
               </motion.form>

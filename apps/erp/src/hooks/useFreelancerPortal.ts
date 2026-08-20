@@ -309,22 +309,38 @@ export function useUploadFreelancerPortalDocument() {
         .getPublicUrl(uploadData.path);
       const publicUrl = pubData?.publicUrl || null;
 
-      // 2. Insert into freelancer_documents
-      const { data: docRecord, error: docErr } = await (
-        supabase.from("freelancer_documents") as any
-      )
-        .insert({
-          freelancer_id: freelancerId,
-          document_type: documentType,
-          file_path: uploadData.path,
-          file_url: publicUrl,
-          status: "em_analise",
-          uploaded_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
+      // 2. Insert or Update into freelancer_documents (usando apenas colunas existentes no schema)
+      const docPayload = {
+        freelancer_id: freelancerId,
+        document_type: documentType,
+        file_path: uploadData.path,
+        status: "em_analise",
+        uploaded_at: new Date().toISOString(),
+      };
 
-      if (docErr) throw docErr;
+      const { data: existingDoc } = await (supabase.from("freelancer_documents") as any)
+        .select("id")
+        .eq("freelancer_id", freelancerId)
+        .eq("document_type", documentType)
+        .maybeSingle();
+
+      let docRecord;
+      if (existingDoc?.id) {
+        const { data, error: docErr } = await (supabase.from("freelancer_documents") as any)
+          .update(docPayload)
+          .eq("id", existingDoc.id)
+          .select()
+          .single();
+        if (docErr) throw docErr;
+        docRecord = data;
+      } else {
+        const { data, error: docErr } = await (supabase.from("freelancer_documents") as any)
+          .insert(docPayload)
+          .select()
+          .single();
+        if (docErr) throw docErr;
+        docRecord = data;
+      }
 
       return docRecord;
     },
@@ -412,7 +428,6 @@ export function useUploadFreelancerPaymentReceipt() {
           freelancer_id: freelancerId,
           document_type: "comprovante_pagamento",
           file_path: filePath,
-          file_url: fileUrl,
           status: "aprovado",
           review_notes: notes || "Comprovante de pagamento bancário Delski",
           uploaded_at: new Date().toISOString(),

@@ -389,9 +389,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const isFreelancer = roleLower === "freelancer";
   const isCliente = roleLower === "cliente" || roleLower === "client";
   const isAuthenticated = !isLoading && (isDevMode || (!!session && !!user));
-  const onboardingCompleted = isCliente
-    ? Boolean(effectiveProfile?.onboarding_completed)
-    : true;
+  const onboardingCompleted =
+    isGestor || isDevMode ? true : Boolean(effectiveProfile?.onboarding_completed);
 
   const rawApprovalStatus = effectiveProfile?.approval_status;
   const approvalStatus: ApprovalStatus =
