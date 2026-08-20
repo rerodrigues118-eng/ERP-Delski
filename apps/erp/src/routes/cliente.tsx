@@ -6,11 +6,9 @@ import {
   LogOut,
   LifeBuoy,
   User,
-  ExternalLink,
-  ShieldCheck,
   ChevronDown,
+  Zap,
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -75,10 +73,13 @@ function ClienteLayout() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-zinc-950 text-foreground">
-        <div className="text-center space-y-3.5">
-          <div className="h-10 w-10 animate-spin rounded-full border-3 border-blue-600 border-t-transparent mx-auto shadow-sm" />
-          <p className="text-xs text-slate-500 font-semibold tracking-wide">Carregando DELSKI CLOUD...</p>
+      <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] dark:bg-[#09090B]">
+        <div className="text-center space-y-4">
+          <div className="w-8 h-8 mx-auto relative">
+            <div className="absolute inset-0 rounded-full border border-zinc-200 dark:border-zinc-800" />
+            <div className="absolute inset-0 rounded-full border-t border-blue-600 dark:border-blue-500 animate-spin" />
+          </div>
+          <p className="micro-label">Carregando DELSKI CLOUD</p>
         </div>
       </div>
     );
@@ -88,112 +89,175 @@ function ClienteLayout() {
 
   const displayName = clientData?.company_name || clientData?.full_name || profile?.full_name || user?.email?.split("@")[0] || "Cliente";
   const contactName = clientData?.contact_name || clientData?.full_name || profile?.full_name || "Representante";
+  const initials = displayName.slice(0, 2).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F19] text-slate-900 dark:text-zinc-100 flex flex-col font-sans antialiased selection:bg-blue-600 selection:text-white transition-colors">
-      {/* Top Client Navbar */}
-      <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-zinc-800/80 shadow-xs transition-all">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Brand Logo & Company Badge */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate({ to: "/cliente" })}>
-              <img src="/logo.png" alt="Delski" className="h-8 w-8 object-contain transition-all dark:brightness-0 dark:invert" />
-              <span className="font-extrabold tracking-tight text-slate-900 dark:text-zinc-100 text-lg">
-                DELSKI <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-black">CLOUD</span>
-              </span>
-            </div>
-            <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-zinc-800">
-              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-zinc-800/80 border border-slate-200/80 dark:border-zinc-700/80 text-xs font-semibold text-slate-700 dark:text-zinc-300 flex items-center gap-1.5 truncate max-w-[240px]">
-                <Building2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
-                <span className="truncate">{displayName}</span>
-              </span>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#09090B] text-zinc-900 dark:text-zinc-100 flex flex-col antialiased selection:bg-blue-600 selection:text-white">
 
-          {/* Right: Support button, ThemeToggle, User Menu */}
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs px-3 py-1 rounded-full font-semibold border border-emerald-200/80 dark:border-emerald-800/80">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-              <span>Ambiente Homologado</span>
-            </div>
+      {/* ── Architectural Navbar — Swiss Monochrome Precision ─────── */}
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-sm border-b border-zinc-200 dark:border-zinc-800">
+        {/* Royal blue laser top accent — 1px */}
+        <div className="h-px bg-blue-600 dark:bg-blue-500 opacity-60" />
 
-            <ThemeToggle />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="h-14 flex items-center justify-between gap-4">
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="flex items-center gap-2.5 p-1.5 pr-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs cursor-pointer"
+            {/* LEFT: Brand + Context */}
+            <div className="flex items-center gap-5 min-w-0">
+              <button
+                type="button"
+                onClick={() => navigate({ to: "/cliente" })}
+                className="flex items-center gap-2 shrink-0 group"
+              >
+                <img
+                  src="/logo.png"
+                  alt="Delski"
+                  className="h-6 w-6 object-contain dark:brightness-0 dark:invert transition-opacity group-hover:opacity-70"
+                />
+                <span
+                  className="text-sm font-bold tracking-tight text-zinc-900 dark:text-zinc-100"
+                  style={{ letterSpacing: "-0.02em" }}
                 >
-                  <Avatar className="h-8 w-8 rounded-xl border border-slate-200 dark:border-zinc-700">
-                    <AvatarImage src={profile?.avatar_url || ""} />
-                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white text-xs font-bold rounded-xl">
-                      {displayName.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="text-left hidden sm:block">
-                    <p className="text-xs font-bold text-slate-900 dark:text-zinc-100 leading-tight truncate max-w-[140px]">
-                      {contactName}
-                    </p>
-                    <p className="text-[10px] font-medium text-slate-500 dark:text-zinc-400 truncate max-w-[140px]">
+                  DELSKI{" "}
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono, 'Geist Mono', ui-monospace, monospace)",
+                      color: "#2563eb",
+                      letterSpacing: "-0.01em",
+                      fontWeight: 900,
+                    }}
+                  >
+                    CLOUD
+                  </span>
+                </span>
+              </button>
+
+              <div className="hidden sm:block w-px h-4 bg-zinc-200 dark:bg-zinc-800" />
+
+              <div className="hidden sm:flex items-center gap-1.5 min-w-0">
+                <Building2 className="h-3.5 w-3.5 text-zinc-400 shrink-0" />
+                <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400 truncate max-w-[200px]">
+                  {displayName}
+                </span>
+              </div>
+            </div>
+
+            {/* RIGHT: Status + Controls */}
+            <div className="flex items-center gap-2">
+              <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-md bg-zinc-50 dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800">
+                <div className="laser-dot" style={{ width: "6px", height: "6px" }} />
+                <span className="micro-label">SLA Ativo</span>
+              </div>
+
+              <ThemeToggle />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 pl-2 pr-2.5 py-1 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer"
+                  >
+                    <Avatar className="h-7 w-7 rounded-md border border-zinc-200 dark:border-zinc-700">
+                      <AvatarImage src={profile?.avatar_url || ""} />
+                      <AvatarFallback
+                        className="rounded-md text-white"
+                        style={{ background: "#09090b", fontSize: "10px", fontWeight: 700 }}
+                      >
+                        {initials}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="hidden sm:block text-left min-w-0">
+                      <p className="text-xs font-semibold text-zinc-900 dark:text-zinc-100 leading-none truncate max-w-[120px]">
+                        {contactName}
+                      </p>
+                      <p
+                        className="text-zinc-500 leading-none truncate max-w-[120px] mt-0.5"
+                        style={{
+                          fontFamily: "var(--font-mono, ui-monospace, monospace)",
+                          fontSize: "0.625rem",
+                        }}
+                      >
+                        {user?.email}
+                      </p>
+                    </div>
+                    <ChevronDown className="h-3 w-3 text-zinc-400 shrink-0" />
+                  </button>
+                </DropdownMenuTrigger>
+
+                <DropdownMenuContent
+                  align="end"
+                  className="w-56 p-1.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-xl"
+                >
+                  <DropdownMenuLabel className="px-2 py-1.5">
+                    <p className="text-xs font-bold text-zinc-900 dark:text-zinc-100 truncate">{displayName}</p>
+                    <p
+                      className="text-zinc-500 truncate mt-0.5"
+                      style={{ fontFamily: "var(--font-mono, ui-monospace, monospace)", fontSize: "0.625rem" }}
+                    >
                       {user?.email}
                     </p>
-                  </div>
-                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-60 p-2 rounded-2xl shadow-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800">
-                <DropdownMenuLabel className="font-normal px-2 py-1.5">
-                  <div className="text-xs font-bold text-slate-900 dark:text-zinc-100 truncate">{displayName}</div>
-                  <div className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{user?.email}</div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-slate-100 dark:bg-zinc-800 my-1" />
-                <DropdownMenuItem
-                  onClick={() => {
-                    const event = new CustomEvent("delski_switch_client_tab", { detail: "configuracoes" });
-                    window.dispatchEvent(event);
-                  }}
-                  className="rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-2.5 py-2 px-2.5"
-                >
-                  <User className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Configurações da Conta
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    const event = new CustomEvent("delski_switch_client_tab", { detail: "ocorrencias" });
-                    window.dispatchEvent(event);
-                  }}
-                  className="rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-2.5 py-2 px-2.5"
-                >
-                  <LifeBuoy className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Central de SAC / Suporte
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-slate-100 dark:bg-zinc-800 my-1" />
-                <DropdownMenuItem
-                  onClick={() => signOut()}
-                  className="text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl text-xs font-semibold cursor-pointer flex items-center gap-2.5 py-2 px-2.5"
-                >
-                  <LogOut className="h-4 w-4" /> Encerrar Sessão
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  </DropdownMenuLabel>
+
+                  <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const event = new CustomEvent("delski_switch_client_tab", { detail: "configuracoes" });
+                      window.dispatchEvent(event);
+                    }}
+                    className="rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-2 px-2 py-1.5"
+                  >
+                    <User className="h-3.5 w-3.5 text-zinc-400" />
+                    Configurações da Conta
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const event = new CustomEvent("delski_switch_client_tab", { detail: "ocorrencias" });
+                      window.dispatchEvent(event);
+                    }}
+                    className="rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-2 px-2 py-1.5"
+                  >
+                    <LifeBuoy className="h-3.5 w-3.5 text-zinc-400" />
+                    SAC / Central de Suporte
+                  </DropdownMenuItem>
+
+                  <DropdownMenuSeparator className="bg-zinc-100 dark:bg-zinc-800 my-1" />
+
+                  <DropdownMenuItem
+                    onClick={() => signOut()}
+                    className="rounded-lg text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 cursor-pointer flex items-center gap-2 px-2 py-1.5"
+                  >
+                    <LogOut className="h-3.5 w-3.5" />
+                    Encerrar Sessão
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </header>
 
-      {/* Main Client Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* ── Main Content ─────────────────────────────────────────────── */}
+      <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Outlet />
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 py-6 mt-auto transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-zinc-400">
+      {/* ── Footer — Hairline Precision ──────────────────────────────── */}
+      <footer className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-slate-700 dark:text-zinc-300">DELSKI CLOUD &copy; {new Date().getFullYear()}</span>
-            <span>— Plataforma Corporativa de Gestão de PJ & Demandas.</span>
+            <Zap className="h-3.5 w-3.5 text-blue-600 dark:text-blue-500" />
+            <span className="micro-label">
+              DELSKI CLOUD &copy; {new Date().getFullYear()} — Plataforma Corporativa PJ
+            </span>
           </div>
-          <div className="flex items-center gap-4 text-xs">
-            <span>Canal Oficial de Atendimento: <a href="mailto:contato@delski.co" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">contato@delski.co</a></span>
-          </div>
+          <span className="micro-label">
+            Suporte:{" "}
+            <a href="mailto:contato@delski.co" className="accent-laser-text hover:underline">
+              contato@delski.co
+            </a>
+          </span>
         </div>
       </footer>
     </div>

@@ -605,355 +605,435 @@ function ClienteDashboardPage() {
   const availableDocsCount = clientDocs.length + emittedNfses.length;
 
   return (
-    <div className="space-y-8 pb-16 max-w-7xl mx-auto">
-      {/* ── Executive Hero Card ──────────────────────────────────────────────── */}
+    <div className="space-y-6 pb-16">
+
+      {/* ── Monochrome Hero Band ──────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: -12 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white p-7 sm:p-9 shadow-xl border border-slate-800/90"
+        transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+        className="bento-block overflow-visible"
+        style={{
+          background: "#09090b",
+          border: "1px solid #27272a",
+          borderRadius: "0.875rem",
+        }}
       >
-        {/* Top Accent Line */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-400 to-cyan-400" />
+        {/* Laser top accent line */}
+        <div className="h-px w-full bg-blue-600 opacity-70" />
 
-        {/* Ambient Decorative Lighting */}
-        <div className="absolute -right-16 -top-16 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -left-16 -bottom-16 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="flex items-start sm:items-center gap-5">
-            <div className="relative">
-              <Avatar className="h-18 w-18 sm:h-20 sm:w-20 rounded-2xl border-2 border-white/20 shadow-lg ring-4 ring-blue-500/20">
+        <div className="px-6 py-5 sm:px-8 sm:py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          {/* Left: Identity */}
+          <div className="flex items-center gap-4 min-w-0">
+            <div className="relative shrink-0">
+              <Avatar className="h-12 w-12 rounded-lg border border-zinc-700">
                 <AvatarImage src={avatarPreview || profile?.avatar_url || ""} />
-                <AvatarFallback className="bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-800 text-white text-2xl font-black rounded-2xl">
+                <AvatarFallback
+                  className="rounded-lg text-white font-black"
+                  style={{ background: "#1d4ed8", fontSize: "14px" }}
+                >
                   {(client?.company_name || client?.contact_name || "CL").slice(0, 2).toUpperCase()}
                 </AvatarFallback>
               </Avatar>
-              <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-slate-900" />
+              {/* Precision online dot */}
+              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full bg-zinc-950 border-2 border-zinc-950 flex items-center justify-center">
+                <span className="laser-dot" style={{ width: "6px", height: "6px" }} />
               </span>
             </div>
 
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30 backdrop-blur-md">
-                  <ShieldCheck className="h-3.5 w-3.5 text-blue-400" /> Portal Corporativo Oficial
-                </span>
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-slate-300 border border-white/10">
-                  CNPJ Homologado
-                </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="chip chip-blue">Portal Corporativo</span>
+                {client?.cnpj && (
+                  <span className="chip chip-neutral">CNPJ Homologado</span>
+                )}
               </div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
-                Olá, {contactName || "Cliente"}
+              <h1
+                className="text-lg sm:text-xl font-bold text-white truncate"
+                style={{ letterSpacing: "-0.025em", lineHeight: 1.2 }}
+              >
+                {client?.company_name || client?.full_name || profile?.full_name || "Portal do Cliente"}
               </h1>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
-                Gestão centralizada de demandas contratadas, cronogramas de entrega, governança de contratos e suporte executivo.
+              <p className="micro-label mt-0.5 text-zinc-500">
+                {client?.contact_name || profile?.full_name || user?.email}
               </p>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0 pt-2 lg:pt-0">
-            <Button
+          {/* Right: CTA */}
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
               onClick={() => setOpenTicketModal(true)}
-              className="h-11 px-6 text-xs sm:text-sm font-bold rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30 flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95"
+              className="btn-mono-primary"
+              style={{ background: "#2563eb", borderColor: "#2563eb" }}
             >
-              <Plus className="h-4 w-4" /> Abrir Chamado no SAC
-            </Button>
+              <Plus className="h-3.5 w-3.5" />
+              Abrir Chamado SAC
+            </button>
           </div>
         </div>
       </motion.div>
 
-      {/* ── Luxury Segmented Navigation Tabs ─────────────────────────────────── */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="bg-white dark:bg-zinc-900 p-2 rounded-2xl border border-slate-200/90 dark:border-zinc-800 shadow-sm overflow-x-auto">
-          <TabsList className="bg-transparent h-auto p-0 flex gap-1.5 min-w-max">
-            <TabsTrigger
-              value="dashboard"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
-            >
-              <Sparkles className="h-4 w-4" /> Dashboard
-            </TabsTrigger>
-            <TabsTrigger
-              value="projetos"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
-            >
-              <Briefcase className="h-4 w-4" /> Meus Projetos
-              <span className="ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                {clientProjects.length}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="ocorrencias"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
-            >
-              <LifeBuoy className="h-4 w-4" /> SAC / Suporte
-              <span className="ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                {tickets.length}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="documentos"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
-            >
-              <FileText className="h-4 w-4" /> Documentos & Faturas
-              <span className="ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 data-[state=active]:bg-white/20 data-[state=active]:text-white">
-                {availableDocsCount}
-              </span>
-            </TabsTrigger>
-            <TabsTrigger
-              value="configuracoes"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
-            >
-              <User className="h-4 w-4" /> Configurações da Conta
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        {/* ═══════════════════════════════════════════════════════════════════════
-            ABA 1: DASHBOARD ANIMADO (FRAMER MOTION STAGGERED)
-        ═══════════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="dashboard" className="space-y-6 focus-visible:outline-none">
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="space-y-6"
+      {/* ── Linear-style Segmented Tab Navigation ──────────────────────────── */}
+      <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1">
+        {[
+          { value: "dashboard", icon: <Sparkles className="h-3.5 w-3.5" />, label: "Dashboard" },
+          { value: "projetos", icon: <Briefcase className="h-3.5 w-3.5" />, label: "Projetos", count: clientProjects.length },
+          { value: "ocorrencias", icon: <LifeBuoy className="h-3.5 w-3.5" />, label: "SAC / Suporte", count: tickets.length },
+          { value: "documentos", icon: <FileText className="h-3.5 w-3.5" />, label: "Documentos & Faturas", count: availableDocsCount },
+          { value: "configuracoes", icon: <User className="h-3.5 w-3.5" />, label: "Configurações" },
+        ].map((tab) => (
+          <button
+            key={tab.value}
+            type="button"
+            onClick={() => setActiveTab(tab.value)}
+            className={`portal-tab${activeTab === tab.value ? " active" : ""}`}
           >
-            {/* Executive Metric KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {/* Card 1: Projetos Ativos */}
-              <motion.div
-                variants={itemVariants}
-                whileHover={{ y: -4 }}
-                onClick={() => setActiveTab("projetos")}
-                className="bg-white dark:bg-zinc-900 p-6 sm:p-7 rounded-3xl border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:border-blue-500/40 transition-all duration-300 cursor-pointer relative overflow-hidden group space-y-5"
+            {tab.icon}
+            <span>{tab.label}</span>
+            {tab.count !== undefined && (
+              <span className="portal-tab-count">{tab.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {/* ── Tab Panels ────────────────────────────────────────────────────────── */}
+      <AnimatePresence mode="wait">
+        {activeTab === "dashboard" && (
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="space-y-4"
+            >
+              {/* ── Asymmetric 12-col Bento KPI Row ────────────────────────── */}
+              {/* Uses CSS grid with asymmetric columns: 5 / 4 / 3 on large */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4"
+                style={{ gridTemplateColumns: "repeat(3, 1fr)" }}
               >
-                <div className="absolute -top-6 -right-6 w-28 h-28 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all pointer-events-none" />
-
-                <div className="flex items-center justify-between">
-                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-                    <Briefcase className="h-6 w-6" />
-                  </div>
-                  <Badge className="bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-xs font-bold px-3 py-1 rounded-full">
-                    {activeProjectsCount} Em Andamento
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-4xl font-black text-slate-900 dark:text-zinc-100 tracking-tight">{clientProjects.length}</p>
-                  <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">Projetos Contratados</p>
-                </div>
-                <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-bold pt-3 border-t border-slate-100 dark:border-zinc-800 group-hover:text-blue-700">
-                  <span>Acompanhar entregas & escopo</span>
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </motion.div>
-
-              {/* Card 2: Chamados SAC */}
-              <motion.div
-                variants={itemVariants}
-                whileHover={{ y: -4 }}
-                onClick={() => setActiveTab("ocorrencias")}
-                className="bg-white dark:bg-zinc-900 p-6 sm:p-7 rounded-3xl border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:border-indigo-500/40 transition-all duration-300 cursor-pointer relative overflow-hidden group space-y-5"
-              >
-                <div className="absolute -top-6 -right-6 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
-
-                <div className="flex items-center justify-between">
-                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-700 text-white flex items-center justify-center shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-                    <LifeBuoy className="h-6 w-6" />
-                  </div>
-                  <Badge className={openTicketsCount > 0 ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 font-bold text-xs px-3 py-1 rounded-full" : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 font-bold text-xs px-3 py-1 rounded-full"}>
-                    {openTicketsCount > 0 ? `${openTicketsCount} Em Aberto` : "Atendimento em Dia"}
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-4xl font-black text-slate-900 dark:text-zinc-100 tracking-tight">{tickets.length}</p>
-                  <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">Chamados de Suporte & SAC</p>
-                </div>
-                <div className="flex items-center justify-between text-xs text-indigo-600 dark:text-indigo-400 font-bold pt-3 border-t border-slate-100 dark:border-zinc-800 group-hover:text-indigo-700">
-                  <span>Abrir chamado com SLA de 2h</span>
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </motion.div>
-
-              {/* Card 3: Documentos & NF-e */}
-              <motion.div
-                variants={itemVariants}
-                whileHover={{ y: -4 }}
-                onClick={() => setActiveTab("documentos")}
-                className="bg-white dark:bg-zinc-900 p-6 sm:p-7 rounded-3xl border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:border-slate-400 dark:hover:border-zinc-600 transition-all duration-300 cursor-pointer relative overflow-hidden group space-y-5"
-              >
-                <div className="absolute -top-6 -right-6 w-28 h-28 bg-slate-500/10 rounded-full blur-xl group-hover:bg-slate-500/20 transition-all pointer-events-none" />
-
-                <div className="flex items-center justify-between">
-                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white flex items-center justify-center shadow-md shadow-slate-900/20 group-hover:scale-105 transition-transform">
-                    <FileText className="h-6 w-6" />
-                  </div>
-                  <Badge className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 text-xs font-bold px-3 py-1 rounded-full">
-                    Acesso Imediato
-                  </Badge>
-                </div>
-                <div>
-                  <p className="text-4xl font-black text-slate-900 dark:text-zinc-100 tracking-tight">{availableDocsCount}</p>
-                  <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">Documentos & Notas Fiscais</p>
-                </div>
-                <div className="flex items-center justify-between text-xs text-slate-700 dark:text-zinc-300 font-bold pt-3 border-t border-slate-100 dark:border-zinc-800 group-hover:text-slate-900">
-                  <span>Baixar contratos assinados e NFS-e</span>
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Quick Actions & Timeline Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Left 2 Cols: Linha do Tempo dos Projetos */}
-              <motion.div
-                variants={itemVariants}
-                className="lg:col-span-2 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/90 dark:border-zinc-800 p-6 sm:p-7 shadow-sm space-y-6"
-              >
-                <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-4">
-                  <div className="space-y-0.5">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Linha do Tempo dos Projetos
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400">Últimos eventos e marcos registrados nos seus serviços contratados.</p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setActiveTab("projetos")}
-                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-xl"
-                  >
-                    Ver todos
-                  </Button>
-                </div>
-
-                {clientProjects.length === 0 ? (
-                  <div className="py-12 text-center space-y-3">
-                    <div className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-400 flex items-center justify-center mx-auto">
-                      <Briefcase className="h-6 w-6" />
+                {/* KPI 1: Projetos Contratados — tallest, leftmost */}
+                <motion.button
+                  type="button"
+                  variants={itemVariants}
+                  whileHover={{ y: -2 }}
+                  onClick={() => setActiveTab("projetos")}
+                  className="bento-block bento-block-interactive text-left p-5 flex flex-col justify-between cursor-pointer"
+                  style={{ minHeight: "148px" }}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="w-8 h-8 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                      <Briefcase className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
                     </div>
-                    <p className="text-sm font-bold text-slate-800 dark:text-zinc-200">Nenhum projeto registrado no momento</p>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
-                      Assim que um projeto for iniciado pela equipe Delski, o progresso aparecerá aqui em tempo real.
+                    <span className="chip chip-blue">{activeProjectsCount} ativos</span>
+                  </div>
+                  <div>
+                    <p
+                      className="num-mono text-zinc-900 dark:text-zinc-100"
+                      style={{ fontSize: "2.25rem", lineHeight: 1 }}
+                    >
+                      {clientProjects.length}
                     </p>
+                    <p className="micro-label mt-1.5">Projetos Contratados</p>
                   </div>
-                ) : (
-                  <div className="space-y-3.5">
-                    {clientProjects.slice(0, 4).map((p, idx) => {
-                      const tag = SERVICE_TAG_STYLES[p.service_type] || {
-                        label: p.service_type,
-                        bg: "bg-slate-100",
-                        text: "text-slate-700",
-                        border: "border-slate-200",
-                      };
-                      const statusInfo = STATUS_BADGE_STYLES[p.status] || {
-                        label: p.status,
-                        bg: "bg-blue-50",
-                        text: "text-blue-700",
-                        border: "border-blue-200",
-                      };
-
-                      return (
-                        <div
-                          key={p.id || idx}
-                          onClick={() => {
-                            setSelectedProject(p);
-                            setProjectModalOpen(true);
-                          }}
-                          className="flex items-start gap-4 p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-slate-50/50 dark:hover:bg-zinc-800/40 transition-all cursor-pointer group"
-                        >
-                          <div className="mt-1 h-3 w-3 rounded-full bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-950/80 flex-shrink-0" />
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex flex-wrap items-center gap-2 justify-between">
-                              <p className="text-sm font-bold text-slate-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
-                                {p.title}
-                              </p>
-                              <Badge className={`${statusInfo.bg} ${statusInfo.text} ${statusInfo.border} text-[11px] font-bold rounded-full`}>
-                                {statusInfo.label}
-                              </Badge>
-                            </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-zinc-400">
-                              <span className={`px-2 py-0.5 rounded-md ${tag.bg} ${tag.text} font-semibold text-[10px]`}>
-                                {tag.label}
-                              </span>
-                              {p.deadline && (
-                                <span className="flex items-center gap-1">
-                                  <Calendar className="h-3.5 w-3.5 text-slate-400" /> Entrega: {formatDate(p.deadline)}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all self-center" />
-                        </div>
-                      );
-                    })}
+                  <div className="flex items-center gap-1.5 mt-3">
+                    <span className="accent-laser-text text-xs font-medium">Ver projetos</span>
+                    <ArrowRight className="h-3.5 w-3.5 accent-laser-text" />
                   </div>
-                )}
-              </motion.div>
+                </motion.button>
 
-              {/* Right Col: Atalhos Rápidos */}
-              <motion.div
-                variants={itemVariants}
-                className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/90 dark:border-zinc-800 p-6 sm:p-7 shadow-sm space-y-5 flex flex-col justify-between"
-              >
-                <div className="space-y-4">
-                  <div className="border-b border-slate-100 dark:border-zinc-800 pb-3">
-                    <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Atalhos Rápidos
-                    </h2>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Ações essenciais do seu dia a dia.</p>
+                {/* KPI 2: Chamados SAC */}
+                <motion.button
+                  type="button"
+                  variants={itemVariants}
+                  whileHover={{ y: -2 }}
+                  onClick={() => setActiveTab("ocorrencias")}
+                  className="bento-block bento-block-interactive text-left p-5 flex flex-col justify-between cursor-pointer"
+                  style={{ minHeight: "148px" }}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="w-8 h-8 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                      <LifeBuoy className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                    </div>
+                    <span className={openTicketsCount > 0 ? "chip chip-amber" : "chip chip-green"}>
+                      {openTicketsCount > 0 ? `${openTicketsCount} aberto(s)` : "Em dia"}
+                    </span>
                   </div>
-
-                  <div className="space-y-2.5">
-                    <Button
-                      onClick={() => setOpenTicketModal(true)}
-                      variant="outline"
-                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:text-blue-600 hover:border-blue-300 dark:border-zinc-700 rounded-xl transition-all"
+                  <div>
+                    <p
+                      className="num-mono text-zinc-900 dark:text-zinc-100"
+                      style={{ fontSize: "2.25rem", lineHeight: 1 }}
                     >
-                      <LifeBuoy className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Abrir Novo Chamado no SAC
-                    </Button>
-                    <Button
+                      {tickets.length}
+                    </p>
+                    <p className="micro-label mt-1.5">Chamados SAC / Suporte</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-3">
+                    <span className="accent-laser-text text-xs font-medium">Acessar SAC</span>
+                    <ArrowRight className="h-3.5 w-3.5 accent-laser-text" />
+                  </div>
+                </motion.button>
+
+                {/* KPI 3: Documentos & NF-e */}
+                <motion.button
+                  type="button"
+                  variants={itemVariants}
+                  whileHover={{ y: -2 }}
+                  onClick={() => setActiveTab("documentos")}
+                  className="bento-block bento-block-interactive text-left p-5 flex flex-col justify-between cursor-pointer"
+                  style={{ minHeight: "148px" }}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="w-8 h-8 rounded-md bg-zinc-100 dark:bg-zinc-800 flex items-center justify-center">
+                      <FileText className="h-4 w-4 text-zinc-600 dark:text-zinc-400" />
+                    </div>
+                    <span className="chip chip-neutral">Acesso imediato</span>
+                  </div>
+                  <div>
+                    <p
+                      className="num-mono text-zinc-900 dark:text-zinc-100"
+                      style={{ fontSize: "2.25rem", lineHeight: 1 }}
+                    >
+                      {availableDocsCount}
+                    </p>
+                    <p className="micro-label mt-1.5">Documentos & Notas Fiscais</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-3">
+                    <span className="accent-laser-text text-xs font-medium">Baixar arquivos</span>
+                    <ArrowRight className="h-3.5 w-3.5 accent-laser-text" />
+                  </div>
+                </motion.button>
+              </div>
+
+              {/* ── Asymmetric 2-col Bento: Timeline (wide) + Quick Actions (narrow) */}
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+
+                {/* Timeline — 3 of 5 cols */}
+                <motion.div
+                  variants={itemVariants}
+                  className="lg:col-span-3 bento-block p-0 overflow-hidden"
+                >
+                  {/* Panel header */}
+                  <div className="px-5 pt-5 pb-4 border-b border-zinc-100 dark:border-zinc-800 flex items-center justify-between">
+                    <div>
+                      <p className="micro-label">Projetos</p>
+                      <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">
+                        Linha do Tempo
+                      </h2>
+                    </div>
+                    <button
+                      type="button"
                       onClick={() => setActiveTab("projetos")}
-                      variant="outline"
-                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:text-blue-600 hover:border-blue-300 dark:border-zinc-700 rounded-xl transition-all"
+                      className="btn-mono-ghost"
+                      style={{ height: "1.875rem", padding: "0 0.625rem", fontSize: "0.6875rem" }}
                     >
-                      <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Acessar Meus Projetos
-                    </Button>
-                    <Button
-                      onClick={() => setActiveTab("documentos")}
-                      variant="outline"
-                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:text-blue-600 hover:border-blue-300 dark:border-zinc-700 rounded-xl transition-all"
-                    >
-                      <FileCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Baixar Contratos & Notas Fiscais
-                    </Button>
-                    <Button
-                      onClick={() => setActiveTab("configuracoes")}
-                      variant="outline"
-                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:text-blue-600 hover:border-blue-300 dark:border-zinc-700 rounded-xl transition-all"
-                    >
-                      <User className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Atualizar Dados & Senha
-                    </Button>
+                      Ver todos
+                      <ChevronRight className="h-3 w-3" />
+                    </button>
                   </div>
-                </div>
 
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-slate-600 dark:text-zinc-300 space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-blue-900 dark:text-blue-300">
-                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Atendimento Exclusivo
+                  {/* Timeline items */}
+                  <div className="p-5">
+                    {clientProjects.length === 0 ? (
+                      <div className="py-10 text-center space-y-2">
+                        <div className="w-10 h-10 rounded-lg bg-zinc-100 dark:bg-zinc-800 mx-auto flex items-center justify-center">
+                          <Briefcase className="h-5 w-5 text-zinc-400" />
+                        </div>
+                        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                          Nenhum projeto registrado
+                        </p>
+                        <p className="micro-label">
+                          Projetos contratados aparecerão aqui em tempo real.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="relative space-y-0">
+                        {/* Vertical axis line */}
+                        <div className="timeline-axis" />
+                        {clientProjects.slice(0, 5).map((p, idx) => {
+                          const statusInfo = STATUS_BADGE_STYLES[p.status] || {
+                            label: p.status,
+                            bg: "bg-blue-50",
+                            text: "text-blue-700",
+                            border: "border-blue-200",
+                          };
+                          const isActive = !["Concluido", "Concluida", "Aprovado pelo Cliente", "Cancelado"].includes(p.status);
+
+                          return (
+                            <motion.div
+                              key={p.id || idx}
+                              initial={{ opacity: 0, x: -8 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ delay: idx * 0.07, duration: 0.3 }}
+                              onClick={() => {
+                                setSelectedProject(p);
+                                setProjectModalOpen(true);
+                              }}
+                              className="relative pl-8 pb-5 cursor-pointer group"
+                            >
+                              {/* Timeline dot */}
+                              <div
+                                className="absolute left-0 top-0.5 w-[0.9375rem] h-[0.9375rem] rounded-full border-2 flex items-center justify-center transition-colors"
+                                style={{
+                                  borderColor: isActive ? "#2563eb" : "#d4d4d8",
+                                  background: isActive ? "#eff6ff" : "#f4f4f5",
+                                }}
+                              >
+                                {isActive && (
+                                  <div
+                                    className="w-[6px] h-[6px] rounded-full"
+                                    style={{ background: "#2563eb" }}
+                                  />
+                                )}
+                              </div>
+
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0 flex-1">
+                                  <p className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate leading-tight">
+                                    {p.title}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                                    <span className={`chip ${
+                                      p.service_type === "IA" ? "chip-blue" :
+                                      p.service_type === "Trafego" ? "chip-amber" :
+                                      p.service_type === "Sites" ? "chip-green" :
+                                      "chip-neutral"
+                                    }`}>
+                                      {SERVICE_TAG_STYLES[p.service_type]?.label || p.service_type}
+                                    </span>
+                                    {p.deadline && (
+                                      <span className="micro-label flex items-center gap-1">
+                                        <Calendar className="h-2.5 w-2.5" />
+                                        {formatDate(p.deadline)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <span
+                                  className={`chip shrink-0 ${
+                                    statusInfo.text.includes("emerald") || statusInfo.text.includes("green") ? "chip-green" :
+                                    statusInfo.text.includes("blue") || statusInfo.text.includes("indigo") ? "chip-blue" :
+                                    statusInfo.text.includes("amber") || statusInfo.text.includes("yellow") ? "chip-amber" :
+                                    statusInfo.text.includes("red") ? "chip-red" :
+                                    "chip-neutral"
+                                  }`}
+                                >
+                                  {statusInfo.label}
+                                </span>
+                              </div>
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
-                  <p className="text-[11px] leading-relaxed text-slate-600 dark:text-zinc-400">
-                    Precisa de um suporte emergencial? Nosso SAC responde seus chamados em até 2 horas úteis.
-                  </p>
-                </div>
-              </motion.div>
-            </div>
+                </motion.div>
+
+                {/* Quick Actions — 2 of 5 cols */}
+                <motion.div
+                  variants={itemVariants}
+                  className="lg:col-span-2 flex flex-col gap-4"
+                >
+                  {/* Concierge shortcuts */}
+                  <div className="bento-block p-0 overflow-hidden flex-1">
+                    <div className="px-5 pt-5 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                      <p className="micro-label">Acesso Rápido</p>
+                      <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 mt-0.5">
+                        Atalhos
+                      </h2>
+                    </div>
+                    <div className="p-3 space-y-1.5">
+                      {[
+                        {
+                          icon: <Plus className="h-3.5 w-3.5" />,
+                          label: "Abrir Chamado no SAC",
+                          action: () => setOpenTicketModal(true),
+                          highlight: true,
+                        },
+                        {
+                          icon: <Briefcase className="h-3.5 w-3.5" />,
+                          label: "Acessar Meus Projetos",
+                          action: () => setActiveTab("projetos"),
+                        },
+                        {
+                          icon: <FileCheck className="h-3.5 w-3.5" />,
+                          label: "Baixar Contratos & NF-e",
+                          action: () => setActiveTab("documentos"),
+                        },
+                        {
+                          icon: <User className="h-3.5 w-3.5" />,
+                          label: "Atualizar Dados & Senha",
+                          action: () => setActiveTab("configuracoes"),
+                        },
+                        {
+                          icon: <CreditCard className="h-3.5 w-3.5" />,
+                          label: "Enviar Comprovante",
+                          action: () => setOpenReceiptModal(true),
+                        },
+                      ].map((item, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          onClick={item.action}
+                          className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors text-xs font-medium ${
+                            item.highlight
+                              ? "bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 hover:bg-zinc-700 dark:hover:bg-zinc-200"
+                              : "text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/60"
+                          }`}
+                        >
+                          <span className={item.highlight ? "text-white dark:text-zinc-900" : "text-zinc-400"}>
+                            {item.icon}
+                          </span>
+                          {item.label}
+                          <ChevronRight className="h-3 w-3 ml-auto opacity-50" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* SLA Callout block */}
+                  <div
+                    className="bento-block p-5 flex flex-col gap-2"
+                    style={{
+                      background: "#eff6ff",
+                      border: "1px solid #bfdbfe",
+                    }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="laser-dot" style={{ width: "6px", height: "6px" }} />
+                      <p className="micro-label" style={{ color: "#1d4ed8" }}>Atendimento Exclusivo</p>
+                    </div>
+                    <p className="text-xs font-medium text-blue-900 dark:text-blue-900 leading-relaxed">
+                      SLA de <span className="font-bold">2h</span> para chamados críticos. Nossa equipe está disponível para suporte executivo.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setOpenTicketModal(true)}
+                      className="mt-1 text-[0.6875rem] font-bold accent-laser-text flex items-center gap-1 self-start hover:underline"
+                    >
+                      Abrir chamado agora
+                      <ArrowRight className="h-3 w-3" />
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
+            </motion.div>
           </motion.div>
-        </TabsContent>
+        )}
+
 
         {/* ═══════════════════════════════════════════════════════════════════════
             ABA 2: MEUS PROJETOS (SEM KANBAN - GRADE DE CARDS ELEGANTES)
         ═══════════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="projetos" className="space-y-6 focus-visible:outline-none">
+        {activeTab === "projetos" && (
           <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
             {/* Header & Filters */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
@@ -1082,12 +1162,12 @@ function ClienteDashboardPage() {
               </div>
             )}
           </div>
-        </TabsContent>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════════════
             ABA 3: CENTRAL DE ATENDIMENTO / SAC
         ═══════════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="ocorrencias" className="space-y-6 focus-visible:outline-none">
+        {activeTab === "ocorrencias" && (
           <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-zinc-800 p-6 sm:p-8 shadow-xs space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800 pb-5">
               <div>
@@ -1173,12 +1253,12 @@ function ClienteDashboardPage() {
               </div>
             )}
           </div>
-        </TabsContent>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════════════
             ABA 4: DOCUMENTOS & FATURAS
         ═══════════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="documentos" className="space-y-6 focus-visible:outline-none">
+        {activeTab === "documentos" && (
           <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-zinc-800 p-6 sm:p-8 shadow-xs space-y-8">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800 pb-5">
               <div>
@@ -1321,12 +1401,12 @@ function ClienteDashboardPage() {
               )}
             </div>
           </div>
-        </TabsContent>
+        )}
 
         {/* ═══════════════════════════════════════════════════════════════════════
             ABA 5: CONFIGURAÇÕES DA CONTA DO CLIENTE
         ═══════════════════════════════════════════════════════════════════════ */}
-        <TabsContent value="configuracoes" className="space-y-6 focus-visible:outline-none">
+        {activeTab === "configuracoes" && (
           <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-zinc-800 p-6 sm:p-8 shadow-xs space-y-8">
             <div className="border-b border-slate-100 dark:border-zinc-800 pb-5">
               <h2 className="text-xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight flex items-center gap-2.5">
@@ -1588,8 +1668,8 @@ function ClienteDashboardPage() {
               </div>
             </form>
           </div>
-        </TabsContent>
-      </Tabs>
+        )}
+      </AnimatePresence>
 
       {/* ═══════════════════════════════════════════════════════════════════════
           MODAL: DETALHES DO PROJETO & DOCUMENTAÇÕES / ANEXOS
