@@ -510,7 +510,7 @@ export function useCurrentClientProfile(userId?: string, userEmail?: string) {
       if (userId || emailLower) {
         const { data } = await (supabase.from("clients") as any)
           .select("*")
-          .or(`auth_user_id.eq.${userId},email.ilike.${emailLower}`)
+          .or(`auth_user_id.eq.${userId},id.eq.${userId},email.ilike.${emailLower}`)
           .limit(1)
           .maybeSingle();
         clientRow = data;
@@ -534,14 +534,19 @@ export function useCurrentClientProfile(userId?: string, userEmail?: string) {
           auth_user_id: profileRow.id,
           full_name: profileRow.full_name,
           email: profileRow.email,
-          company_name: "",
-          corporate_name: "",
+          company_name: (profileRow as any).company_name || "",
+          corporate_name: (profileRow as any).company_name || "",
+          cnpj: profileRow.cpf_cnpj || "",
           phone: profileRow.phone || "",
+          avatar_url: profileRow.avatar_url || "",
           onboarding_completed: profileRow.onboarding_completed || false,
           status: "ativo",
           created_at: profileRow.created_at,
         };
       }
+
+      // Merge avatar_url if available
+      const avatarUrl = clientRow?.avatar_url || profileRow?.avatar_url || "";
 
       // Fetch linked projects
       const resolvedId = clientRow?.id || userId;
@@ -575,6 +580,7 @@ export function useCurrentClientProfile(userId?: string, userEmail?: string) {
 
       return {
         ...clientRow,
+        avatar_url: avatarUrl,
         projects,
       };
     },
@@ -595,30 +601,58 @@ export function useUpdateCurrentClientProfile() {
       userId?: string;
       patch: Record<string, any>;
     }) => {
-      // 1. Update clients table
-      if (clientId) {
-        const { error: cErr } = await (supabase.from("clients") as any)
-          .update({
+      const targetClientId = clientId || userId;
+      const targetUserId = userId || clientId;
+
+      // 1. Update/Upsert clients table
+      if (targetClientId) {
+        const clientPayload = {
+          ...patch,
+          auth_user_id: targetUserId,
+          updated_at: new Date().toISOString(),
+        };
+
+        // Try update first
+        const { data: updatedRows, error: cErr } = await (supabase.from("clients") as any)
+          .update(clientPayload)
+          .or(`id.eq.${targetClientId},auth_user_id.eq.${targetUserId}`)
+          .select();
+
+        if (cErr) {
+          console.warn("Aviso ao atualizar clients:", cErr);
+        }
+
+        // If no rows existed, insert new client row
+        if (!updatedRows || updatedRows.length === 0) {
+          await (supabase.from("clients") as any).upsert({
+            id: targetClientId,
+            auth_user_id: targetUserId,
+            full_name: patch.contact_name || patch.full_name || "Cliente",
+            email: patch.email || "",
             ...patch,
             updated_at: new Date().toISOString(),
-          })
-          .eq("id", clientId);
-        if (cErr) console.warn("Error updating clients:", cErr);
+          });
+        }
       }
 
-      // 2. Update profiles table if name or phone changed
-      if (userId) {
+      // 2. Update profiles table if relevant fields changed
+      if (targetUserId) {
         const profilePatch: any = {};
         if (patch.full_name || patch.contact_name) {
-          profilePatch.full_name = patch.full_name || patch.contact_name;
+          profilePatch.full_name = patch.contact_name || patch.full_name;
         }
         if (patch.phone) profilePatch.phone = patch.phone;
+        if (patch.cnpj) profilePatch.cpf_cnpj = patch.cnpj;
+        if (patch.company_name) profilePatch.company_name = patch.company_name;
+        if (patch.avatar_url) profilePatch.avatar_url = patch.avatar_url;
         if (typeof patch.onboarding_completed === "boolean") {
           profilePatch.onboarding_completed = patch.onboarding_completed;
         }
+        profilePatch.updated_at = new Date().toISOString();
 
         if (Object.keys(profilePatch).length > 0) {
-          await supabase.from("profiles").update(profilePatch).eq("id", userId);
+          const { error: pErr } = await supabase.from("profiles").update(profilePatch).eq("id", targetUserId);
+          if (pErr) console.warn("Aviso ao atualizar profiles:", pErr);
         }
       }
 
@@ -628,6 +662,7 @@ export function useUpdateCurrentClientProfile() {
       qc.invalidateQueries({ queryKey: ["current-client-profile"] });
       qc.invalidateQueries({ queryKey: ["client-detail", v.clientId] });
       qc.invalidateQueries({ queryKey: ["clients-list"] });
+      qc.invalidateQueries({ queryKey: ["profile"] });
       toast.success("Dados cadastrais atualizados com sucesso!");
     },
     onError: (e: Error) => toast.error(`Erro ao atualizar dados: ${e.message}`),

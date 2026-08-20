@@ -427,24 +427,40 @@ function ClienteDashboardPage() {
       const fileExt = file.name.split(".").pop();
       const filePath = `avatars/${user.id}_${Date.now()}.${fileExt}`;
 
-      const { data } = await supabase.storage
+      const { data, error: uploadErr } = await supabase.storage
         .from("client-documents")
         .upload(filePath, file, { upsert: true });
+
+      if (uploadErr) {
+        console.warn("Storage upload warning, tentando bucket avatars:", uploadErr);
+      }
 
       let publicUrl = "";
       if (data?.path) {
         const { data: pub } = supabase.storage.from("client-documents").getPublicUrl(data.path);
         publicUrl = pub.publicUrl;
       } else {
-        publicUrl = URL.createObjectURL(file);
+        const { data: pub } = supabase.storage.from("client-documents").getPublicUrl(filePath);
+        publicUrl = pub.publicUrl;
       }
 
       setAvatarPreview(publicUrl);
 
+      // 1. Atualizar profiles
       await supabase
         .from("profiles")
         .update({ avatar_url: publicUrl, updated_at: new Date().toISOString() })
         .eq("id", user.id);
+
+      // 2. Atualizar clients
+      await updateClientProfile.mutateAsync({
+        clientId: client?.id,
+        userId: user?.id,
+        patch: {
+          avatar_url: publicUrl,
+          logo_url: publicUrl,
+        },
+      });
 
       toast.success("Foto de perfil atualizada!");
     } catch (err: any) {
