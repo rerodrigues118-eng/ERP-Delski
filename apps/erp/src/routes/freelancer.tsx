@@ -260,18 +260,6 @@ function FreelancerLayout() {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
         <Outlet />
       </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200/80 dark:border-zinc-800/80 bg-white/50 dark:bg-zinc-900/50 backdrop-blur-md py-6 mt-auto transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div className="flex items-center gap-2">
-            <span>DELSKI &copy; {new Date().getFullYear()} — Portal do Prestador de Serviços.</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span>Suporte Financeiro: financeiro@delski.co</span>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -427,10 +427,35 @@ function FreelancerDashboardPage() {
       .slice(0, 5);
   }, [assignedProjects]);
 
+  const getDeadlineInfo = (deadlineStr?: string | null) => {
+    if (!deadlineStr) return { text: "Sem prazo", cls: "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700" };
+    const d = new Date(deadlineStr);
+    if (isNaN(d.getTime())) return { text: "Sem prazo", cls: "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700" };
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    d.setHours(0, 0, 0, 0);
+    const diffTime = d.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) return { text: `Vencido há ${Math.abs(diffDays)}d`, cls: "bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-800/60" };
+    if (diffDays === 0) return { text: "Entrega hoje", cls: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/60 font-bold" };
+    if (diffDays === 1) return { text: "Entrega amanhã", cls: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 border-amber-200 dark:border-amber-800/60" };
+    return { text: `Entregar em ${diffDays} dias`, cls: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800/60" };
+  };
+
   const hasPendingDocsOrBank =
-    freelancerDocs.length < 3 ||
-    !freelancer?.bank_name ||
-    !freelancer?.pix_key;
+    freelancerDocs.length === 0 &&
+    freelancer?.documents_status !== "em_analise" &&
+    freelancer?.documents_status !== "aprovado";
+
+  const docStatusBadge = useMemo(() => {
+    if (freelancer?.documents_status === "aprovado") {
+      return { label: "Homologado", color: "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60", icon: CheckCircle2 };
+    }
+    if (freelancerDocs.length > 0 || freelancer?.documents_status === "em_analise") {
+      return { label: "Em Análise", color: "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60", icon: Clock };
+    }
+    return { label: "Pendente", color: "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60", icon: AlertTriangle };
+  }, [freelancer?.documents_status, freelancerDocs.length]);
 
   // Projects Tab Filter State
   const [projectSearchTerm, setProjectSearchTerm] = useState("");
@@ -630,152 +655,267 @@ function FreelancerDashboardPage() {
 
         {/* ── ABA 0: DASHBOARD ────────────────────────────────────────────── */}
         <TabsContent value="dashboard" className="space-y-6 focus-visible:outline-none">
-          {/* KPI Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* KPI Summary Cards (4 Cards) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* Card 1: Projetos Ativos */}
-            <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs hover:border-blue-500/30 transition-all">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs hover:border-blue-500/30 transition-all">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
                   Projetos Ativos
                 </span>
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                   <Briefcase className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-extrabold text-gray-900">
+              <div className="text-2xl font-extrabold text-gray-900 dark:text-white">
                 {activeProjectsCount}
               </div>
-              <p className="text-xs text-gray-400 mt-1 font-medium">
+              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1 font-medium">
                 {assignedProjects.length} demanda(s) atribuída(s)
               </p>
             </div>
 
             {/* Card 2: Entregas Pendentes */}
-            <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs hover:border-amber-500/30 transition-all">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs hover:border-amber-500/30 transition-all">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
                   Entregas Pendentes
                 </span>
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
                   <Clock className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-extrabold text-gray-900">
+              <div className="text-2xl font-extrabold text-gray-900 dark:text-white">
                 {pendingProjectsCount}
               </div>
-              <p className="text-xs text-gray-400 mt-1 font-medium">
+              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1 font-medium">
                 Demandas em produção / revisão
               </p>
             </div>
 
             {/* Card 3: Honorários Alocados */}
-            <div className="bg-white rounded-2xl border border-gray-200/80 p-5 shadow-xs hover:border-emerald-500/30 transition-all">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs hover:border-emerald-500/30 transition-all">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">
+                <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
                   Honorários Alocados
                 </span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
                   <DollarSign className="w-4 h-4" />
                 </div>
               </div>
-              <div className="text-2xl font-extrabold text-emerald-600">
+              <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
                 {money(totalHonorarios)}
               </div>
-              <p className="text-xs text-gray-400 mt-1 font-medium">
+              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1 font-medium">
                 {invoices.length} nota(s) fiscal(is) emitida(s)
+              </p>
+            </div>
+
+            {/* Card 4: Documentação (Status Badge) */}
+            <div
+              onClick={() => changeTab("documentacao")}
+              className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs hover:border-indigo-500/40 transition-all cursor-pointer group flex flex-col justify-between"
+            >
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
+                    Documentação
+                  </span>
+                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                    <ShieldCheck className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${docStatusBadge.color}`}>
+                    <docStatusBadge.icon className="w-3.5 h-3.5" />
+                    {docStatusBadge.label}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs text-blue-600 dark:text-blue-400 mt-3 font-semibold group-hover:underline flex items-center gap-1">
+                {freelancerDocs.length} documento(s) anexado(s) &rarr;
               </p>
             </div>
           </div>
 
-          {/* ── SEÇÃO: Próximas Entregas & Distribuição de Demandas ─────────── */}
+          {/* ── SEÇÃO PRINCIPAL: Próximas Entregas & Painel Lateral ─────────── */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
             {/* Widget 1: Próximas Entregas & Prazos (7 colunas) */}
-            <div className="lg:col-span-7 bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 pb-3.5">
-                <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-600" /> Próximas Entregas & Prazos
+            <div className="lg:col-span-7 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
+              <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800/80 pb-3.5">
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Próximas Entregas & Prazos
                 </h4>
-                <span className="text-xs font-semibold text-gray-400">
+                <span className="text-xs font-semibold text-gray-400 dark:text-zinc-500">
                   {upcomingDeliveries.length} agendada(s)
                 </span>
               </div>
 
-              <div className="space-y-2.5 flex-1 overflow-y-auto max-h-64 pr-1">
+              <div className="space-y-3 flex-1 overflow-y-auto max-h-80 pr-1">
                 {upcomingDeliveries.length === 0 ? (
-                  <div className="py-12 text-center text-gray-400 space-y-1">
-                    <Clock className="w-8 h-8 mx-auto text-gray-300 mb-1" />
-                    <p className="text-xs font-semibold text-gray-600">Nenhum prazo pendente</p>
-                    <p className="text-[11px] text-gray-400">Todas as suas demandas estão em dia.</p>
+                  <div className="py-12 text-center text-gray-400 dark:text-zinc-500 space-y-1">
+                    <Clock className="w-8 h-8 mx-auto text-gray-300 dark:text-zinc-600 mb-1" />
+                    <p className="text-xs font-semibold text-gray-600 dark:text-zinc-300">Nenhum prazo pendente</p>
+                    <p className="text-[11px] text-gray-400 dark:text-zinc-500">Todas as suas demandas estão em dia.</p>
                   </div>
                 ) : (
-                  upcomingDeliveries.map((p) => (
-                    <div
-                      key={p.id}
-                      onClick={() => setSelectedProjectForDetails(p)}
-                      className="p-3 sm:p-3.5 rounded-xl border border-gray-100 hover:border-blue-200 bg-gray-50/50 hover:bg-blue-50/20 transition-all flex items-center justify-between gap-3 cursor-pointer group"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-gray-900 group-hover:text-blue-600 truncate transition-colors">
-                            {p.title}
-                          </span>
-                          {p.service_type && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 border border-blue-100">
-                              {p.service_type}
+                  upcomingDeliveries.map((p) => {
+                    const deadlineInfo = getDeadlineInfo(p.deadline);
+                    return (
+                      <div
+                        key={p.id}
+                        onClick={() => setSelectedProjectForDetails(p)}
+                        className="p-3.5 sm:p-4 rounded-xl border border-gray-100 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-700 bg-gray-50/50 dark:bg-zinc-800/40 hover:bg-blue-50/20 dark:hover:bg-zinc-800/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer group"
+                      >
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate transition-colors">
+                              {p.title}
                             </span>
-                          )}
+                            {p.service_type && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/60">
+                                {p.service_type}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2.5 text-[11px]">
+                            {/* Deadline Countdown Tag */}
+                            <span className={`inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded-md border text-[10px] ${deadlineInfo.cls}`}>
+                              <Clock className="w-3 h-3" />
+                              {deadlineInfo.text}
+                            </span>
+                            {/* Honorário Tag */}
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-md text-[10px]">
+                              {money(p.freelancer_cost || 0)}
+                            </span>
+                            {p.deadline && (
+                              <span className="text-gray-400 dark:text-zinc-500">
+                                Prazo: <strong className="text-gray-700 dark:text-zinc-300">{formatDate(p.deadline)}</strong>
+                              </span>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 text-[11px] text-gray-400 mt-1">
-                          <span className="flex items-center gap-1 font-medium">
-                            <Clock className="w-3 h-3 text-gray-400" /> Prazo:{" "}
-                            <strong className="text-gray-700">{formatDate(p.deadline)}</strong>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span
+                            className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 border ${
+                              p.status === "Concluido"
+                                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60"
+                                : p.status === "Em Andamento" || p.status === "Em Producao"
+                                ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60"
+                                : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60"
+                            }`}
+                          >
+                            {p.status}
                           </span>
-                          <span className="font-semibold text-emerald-600">
-                            {money(p.freelancer_cost || 0)}
-                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedProjectForDetails(p);
+                            }}
+                            className="h-8 px-2.5 text-xs rounded-xl gap-1 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 shrink-0"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> Ver Detalhes
+                          </Button>
                         </div>
                       </div>
-
-                      <span
-                        className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 border ${
-                          p.status === "Concluido"
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : p.status === "Em Andamento" || p.status === "Em Producao"
-                            ? "bg-blue-50 text-blue-700 border-blue-200"
-                            : "bg-amber-50 text-amber-700 border-amber-200"
-                        }`}
-                      >
-                        {p.status}
-                      </span>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
 
-              <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
-                <span className="flex items-center gap-1 text-gray-500">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600" /> Sincronizado com o cronograma
+              <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-gray-400 dark:text-zinc-500">
+                <span className="flex items-center gap-1 text-gray-500 dark:text-zinc-400">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Sincronizado com o cronograma
                 </span>
                 <button
                   type="button"
                   onClick={() => changeTab("projetos")}
-                  className="font-bold text-blue-600 hover:underline cursor-pointer"
+                  className="font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
                 >
                   Ver todos os projetos &rarr;
                 </button>
               </div>
             </div>
 
-            {/* Gráfico 2: Distribuição de Projetos & Demandas (5 colunas) */}
-            <div className="lg:col-span-5 bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
-                <div className="border-b border-gray-100 pb-3.5 flex items-center justify-between">
+            {/* Widget 2: Painel Lateral com Ações Rápidas & Distribuição (5 colunas) */}
+            <div className="lg:col-span-5 space-y-5 flex flex-col justify-between">
+              {/* Card de Ações Rápidas */}
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs">
+                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-500" /> Ações Rápidas
+                </h4>
+                <div className="grid grid-cols-1 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => changeTab("notas")}
+                    className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/60 dark:bg-zinc-800/50 hover:bg-blue-50/30 dark:hover:bg-zinc-800 hover:border-blue-200 dark:hover:border-blue-700 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                        <Receipt className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                          Enviar Nota Fiscal (NFS-e)
+                        </span>
+                        <p className="text-[11px] text-gray-400 dark:text-zinc-500">Anexe comprovantes para liquidação</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => changeTab("financeiro")}
+                    className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/60 dark:bg-zinc-800/50 hover:bg-emerald-50/30 dark:hover:bg-zinc-800 hover:border-emerald-200 dark:hover:border-emerald-700 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                        <CreditCard className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                          Atualizar Dados Bancários
+                        </span>
+                        <p className="text-[11px] text-gray-400 dark:text-zinc-500">Chave PIX e conta corrente</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
+                  </button>
+
+                  <a
+                    href="mailto:suporte@delski.co?subject=Suporte%20Direto%20Prestador"
+                    className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/60 dark:bg-zinc-800/50 hover:bg-purple-50/30 dark:hover:bg-zinc-800 hover:border-purple-200 dark:hover:border-purple-700 transition-all text-left group"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                        <HelpCircle className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
+                          Suporte Direct
+                        </span>
+                        <p className="text-[11px] text-gray-400 dark:text-zinc-500">Fale com a gestão de operações</p>
+                      </div>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
+                  </a>
+                </div>
+              </div>
+
+              {/* Card Distribuição de Demandas */}
+              <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs flex-1 flex flex-col justify-between">
+                <div className="border-b border-gray-100 dark:border-zinc-800/80 pb-3 flex items-center justify-between">
                   <div>
-                    <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
-                      <PieChartIcon className="w-4 h-4 text-blue-600" /> Distribuição de Demandas
+                    <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                      <PieChartIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Distribuição de Demandas
                     </h4>
-                    <p className="text-xs text-gray-500">Proporção por status de execução</p>
+                    <p className="text-xs text-gray-500 dark:text-zinc-400">Proporção por status</p>
                   </div>
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
                     {assignedProjects.length} Total
                   </span>
                 </div>
@@ -783,15 +923,15 @@ function FreelancerDashboardPage() {
                 {projectDistributionData.hasData ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center py-2">
                     {/* Donut Chart */}
-                    <div className="h-48 w-full relative flex items-center justify-center">
+                    <div className="h-36 w-full relative flex items-center justify-center">
                       <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                           <Pie
                             data={projectDistributionData.list.filter((d) => d.value > 0)}
                             cx="50%"
                             cy="50%"
-                            innerRadius={48}
-                            outerRadius={70}
+                            innerRadius={36}
+                            outerRadius={54}
                             paddingAngle={4}
                             dataKey="value"
                           >
@@ -805,36 +945,36 @@ function FreelancerDashboardPage() {
                         </PieChart>
                       </ResponsiveContainer>
                       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-2xl font-black text-gray-900">
+                        <span className="text-xl font-black text-gray-900 dark:text-white">
                           {assignedProjects.length}
                         </span>
-                        <span className="text-[10px] uppercase font-bold text-gray-400">
+                        <span className="text-[9px] uppercase font-bold text-gray-400 dark:text-zinc-500">
                           Projetos
                         </span>
                       </div>
                     </div>
 
                     {/* Custom Legend with Badges & Percentages */}
-                    <div className="space-y-2">
+                    <div className="space-y-1.5">
                       {projectDistributionData.list.map((item) => (
                         <div
                           key={item.name}
-                          className="flex items-center justify-between text-xs p-1.5 rounded-xl hover:bg-gray-50 transition-colors"
+                          className="flex items-center justify-between text-xs p-1 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
                         >
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
                             <span
                               className="w-2.5 h-2.5 rounded-full shrink-0"
                               style={{ backgroundColor: item.color }}
                             />
-                            <span className="font-semibold text-gray-700">
+                            <span className="font-semibold text-gray-700 dark:text-zinc-300 text-[11px]">
                               {item.name}
                             </span>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-gray-900">
+                          <div className="flex items-center gap-1">
+                            <span className="font-bold text-gray-900 dark:text-white text-[11px]">
                               {item.value}
                             </span>
-                            <span className="text-[10px] text-gray-400 font-medium">
+                            <span className="text-[10px] text-gray-400 dark:text-zinc-500">
                               ({item.percent}%)
                             </span>
                           </div>
@@ -843,21 +983,21 @@ function FreelancerDashboardPage() {
                     </div>
                   </div>
                 ) : (
-                  <div className="py-12 text-center text-gray-400 space-y-1">
-                    <Briefcase className="w-8 h-8 mx-auto text-gray-300 mb-1" />
-                    <p className="text-xs font-semibold text-gray-600">Sem demandas registradas</p>
-                    <p className="text-[11px] text-gray-400">O gráfico será atualizado assim que houver projetos atribuídos.</p>
+                  <div className="py-6 text-center text-gray-400 dark:text-zinc-500 space-y-1">
+                    <Briefcase className="w-6 h-6 mx-auto text-gray-300 dark:text-zinc-600 mb-1" />
+                    <p className="text-xs font-semibold text-gray-600 dark:text-zinc-300">Sem demandas registradas</p>
                   </div>
                 )}
 
-                <div className="pt-2 border-t border-gray-100 text-[11px] text-gray-400 flex items-center justify-between">
+                <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80 text-[11px] text-gray-400 dark:text-zinc-500 flex items-center justify-between">
                   <span>Taxa de conclusão</span>
-                  <span className="font-bold text-emerald-600">
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
                     {projectDistributionData.list.find((d) => d.name === "Concluídos")?.percent || 0}%
                   </span>
                 </div>
               </div>
             </div>
+          </div>
 
           {/* Compliance Banner */}
           {hasPendingDocsOrBank ? (

@@ -253,10 +253,10 @@ function ContractGeneratorPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between border-b border-border pb-5">
         <div>
-          <h1 className="font-serif text-3xl font-bold tracking-tight text-stone-900">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
             Gerador de Contratos
           </h1>
-          <p className="text-sm text-stone-500 mt-1 max-w-2xl">
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-2xl">
             Selecione um modelo, preencha os campos automáticos e manuais e gere um contrato em
             formato .docx para revisão e envio manual.
           </p>

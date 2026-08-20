@@ -14,7 +14,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Plus, Mail, Loader2, ShieldCheck, CheckCircle2, AlertCircle, Ban, Trash2, Users } from "lucide-react";
+import { Plus, Mail, Loader2, ShieldCheck, CheckCircle2, AlertCircle, Ban, Trash2, Users, Search } from "lucide-react";
 import { sendWelcomeEmail } from "@/integrations/brevo";
 import { toast } from "sonner";
 import { TableSkeleton } from "@/components/ui/table-skeleton";
@@ -48,7 +48,18 @@ function FreelancersPage() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const filteredFreelancers = useMemo(() => {
+    if (!searchTerm.trim()) return freelancers;
+    const term = searchTerm.toLowerCase().trim();
+    return freelancers.filter(
+      (f) =>
+        (f.full_name && f.full_name.toLowerCase().includes(term)) ||
+        (f.email && f.email.toLowerCase().includes(term))
+    );
+  }, [freelancers, searchTerm]);
 
   useEffect(() => {
     // Only redirect AFTER auth has finished loading and confirmed user is not Gestor
@@ -203,11 +214,23 @@ function FreelancersPage() {
       </div>
 
       <div className="bg-card rounded-2xl border border-border overflow-hidden shadow-subtle">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-border/70">
-          <h2 className="text-[14px] font-bold text-foreground">Time de Freelancers</h2>
-          <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-lg">
-            {freelancers.length} registros
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between px-6 py-4 border-b border-border/70 gap-3">
+          <div className="flex items-center gap-3">
+            <h2 className="text-[14px] font-bold text-foreground">Time de Freelancers</h2>
+            <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-lg">
+              {filteredFreelancers.length} {filteredFreelancers.length === 1 ? "registro" : "registros"}
+            </span>
+          </div>
+
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Buscar por nome ou e-mail..."
+              className="pl-9 h-9 text-xs rounded-xl bg-background"
+            />
+          </div>
         </div>
 
         {isLoading ? (
@@ -225,6 +248,11 @@ function FreelancersPage() {
               }}
             />
           </div>
+        ) : filteredFreelancers.length === 0 ? (
+          <div className="p-12 text-center text-muted-foreground space-y-2">
+            <p className="text-sm font-semibold">Nenhum resultado para "{searchTerm}"</p>
+            <p className="text-xs">Tente buscar por outro termo ou limpe o campo de busca.</p>
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="data-table w-full">
@@ -238,7 +266,7 @@ function FreelancersPage() {
                 </tr>
               </thead>
               <tbody>
-                {freelancers.map((f) => {
+                {filteredFreelancers.map((f) => {
                   const count = projects.filter((p) =>
                     p.freelancers?.some((pf: any) => {
                       const pfId = pf?.id || pf?.profile?.id;

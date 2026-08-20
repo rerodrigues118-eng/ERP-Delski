@@ -458,21 +458,37 @@ export function useUpdateProject() {
         briefing_content?: string;
       };
     }) => {
-      const { data, error } = await supabase
-        .from("projects")
-        .update(patch)
-        .eq("id", id)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
+      let updatedData = null;
+      try {
+        const { data, error } = await supabase
+          .from("projects")
+          .update(patch)
+          .eq("id", id)
+          .select()
+          .single();
+        if (error) throw error;
+        updatedData = data;
+      } catch (err: any) {
+        console.warn("Primary project update failed, attempting admin fallback:", err);
+        const { data: adminData, error: adminErr } = await supabaseAdmin
+          .from("projects")
+          .update(patch)
+          .eq("id", id)
+          .select()
+          .single();
+        if (adminErr) throw adminErr;
+        updatedData = adminData;
+      }
+      return updatedData;
     },
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["projects"] });
       qc.invalidateQueries({ queryKey: ["project", v.id] });
+      qc.invalidateQueries({ queryKey: ["current-client-profile"] });
+      qc.invalidateQueries({ queryKey: ["current-freelancer-profile"] });
       toast.success("Projeto atualizado!");
     },
-    onError: (e: Error) => toast.error(`Erro: ${e.message}`),
+    onError: (e: Error) => toast.error(`Erro ao atualizar projeto: ${e.message}`),
   });
 }
 

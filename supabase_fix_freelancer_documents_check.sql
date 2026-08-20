@@ -1,6 +1,6 @@
 -- ==============================================================================
--- CORREÇÃO DEFINITIVA DE CONSTRAINTS, COLUNAS E STORAGE BUCKETS
--- Execute no SQL Editor do Supabase para destravar aprovação e upload de documentos
+-- CORREÇÃO DEFINITIVA DE CONSTRAINTS, KANBAN, COLUNAS E STORAGE BUCKETS
+-- Execute no SQL Editor do Supabase para destravar o Kanban, Documentos e Contratos
 -- ==============================================================================
 
 -- 1. Remove qualquer constraint restritiva anterior de document_type
@@ -21,7 +21,7 @@ CHECK (document_type IN (
   'outro'
 ));
 
--- 3. Remove qualquer constraint restritiva anterior de status
+-- 3. Remove qualquer constraint restritiva anterior de status em documentos
 ALTER TABLE public.freelancer_documents 
 DROP CONSTRAINT IF EXISTS freelancer_documents_status_check;
 
@@ -49,3 +49,33 @@ ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS reviewed_at TIM
 UPDATE storage.buckets
 SET allowed_mime_types = NULL
 WHERE id IN ('freelancer-docs', 'freelancer-invoices', 'client-documents');
+
+-- 9. CORREÇÃO DEFINITIVA DO DRAG-AND-DROP DO KANBAN (projects_status_check)
+ALTER TABLE public.projects 
+DROP CONSTRAINT IF EXISTS projects_status_check;
+
+ALTER TABLE public.projects 
+ADD CONSTRAINT projects_status_check 
+CHECK (status IN (
+  'Criado', 'criado',
+  'Solicitado', 'solicitado',
+  'Aguardando Candidaturas', 'aguardando_candidaturas',
+  'Emitir contrato', 'Emitir Contrato', 'emitir_contrato',
+  'Revisão de Contrato', 'Revisao de Contrato', 'revisao_contrato',
+  'Delegado', 'delegado',
+  'Em Producao', 'Em Produção', 'em_producao',
+  'Em Andamento', 'em_andamento', 'execucao',
+  'Em Revisao', 'Em Revisão', 'em_revisao', 'revisao',
+  'Concluido', 'Concluído', 'concluido',
+  'Cancelado', 'cancelado',
+  'Planejamento', 'planejamento',
+  'Em Triagem', 'em_triagem'
+));
+
+-- 10. Garante suporte a todos os tipos de serviço nos projetos
+ALTER TABLE public.projects 
+DROP CONSTRAINT IF EXISTS projects_service_type_check;
+
+ALTER TABLE public.projects 
+ADD CONSTRAINT projects_service_type_check 
+CHECK (service_type IN ('IA', 'Trafego', 'Sites', 'Social Media'));
