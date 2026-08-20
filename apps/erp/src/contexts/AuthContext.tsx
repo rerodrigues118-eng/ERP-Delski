@@ -324,7 +324,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               .maybeSingle()
           : { data: null };
 
-        const isOnboardingDone = Boolean(dbProfile?.onboarding_completed || clientRow?.onboarding_completed);
+        const localCompleted =
+          typeof window !== "undefined" &&
+          localStorage.getItem(`delski_onboarding_completed_${currentUser.id}`) === "true";
+
+        const isOnboardingDone = Boolean(
+          dbProfile?.onboarding_completed ||
+          clientRow?.onboarding_completed ||
+          (currentUser.user_metadata as any)?.onboarding_completed ||
+          localCompleted
+        );
 
         if (dbProfile) {
           const avatar = dbProfile.avatar_url || (currentUser.user_metadata as any)?.avatar_url || undefined;

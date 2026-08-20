@@ -931,7 +931,7 @@ function OnboardingPage() {
                           </p>
                           <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
                             <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-600" />
-                            <span>{uploaded.size ? `${(uploaded.size / (1024 * 1024)).toFixed(2)} MB • Salvo no Banco` : "Salvo no Banco de Dados"}</span>
+                            <span>{uploaded.size ? `${(uploaded.size / (1024 * 1024)).toFixed(2)} MB` : "Documento Anexado"}</span>
                           </div>
                         </div>
                       </div>
@@ -980,7 +980,7 @@ function OnboardingPage() {
                         ) : (
                           <Pencil className="h-3.5 w-3.5 text-blue-600" />
                         )}
-                        <span>{isUploading ? "Enviando ao banco..." : "Alterar Documento"}</span>
+                        <span>{isUploading ? "Carregando..." : "Alterar Documento"}</span>
                       </label>
                     </div>
                   </div>
@@ -998,7 +998,7 @@ function OnboardingPage() {
                     />
                     {isUploading ? (
                       <>
-                        <Loader2 className="h-4 w-4 animate-spin text-white" /> Enviando ao banco de dados...
+                        <Loader2 className="h-4 w-4 animate-spin text-white" /> Carregando...
                       </>
                     ) : (
                       <>

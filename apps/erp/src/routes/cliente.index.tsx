@@ -607,30 +607,31 @@ function ClienteDashboardPage() {
   return (
     <div className="space-y-8 pb-16 max-w-7xl mx-auto">
       {/* ── Welcome Header & Quick Action ──────────────────────────────────── */}
+      {/* ── Welcome Header & Quick Action ──────────────────────────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white border border-slate-200/90 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden"
+        className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden"
       >
         <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16 rounded-2xl border-2 border-blue-600/20 shadow-xs">
+          <Avatar className="h-16 w-16 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-xs">
             <AvatarImage src={avatarPreview || profile?.avatar_url || ""} />
-            <AvatarFallback className="bg-gradient-to-br from-blue-600 to-blue-800 text-white text-lg font-bold rounded-2xl">
+            <AvatarFallback className="bg-gradient-to-br from-blue-700 to-indigo-800 text-white text-lg font-bold rounded-2xl">
               {(client?.company_name || client?.contact_name || "CL").slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                <ShieldCheck className="h-3 w-3 text-blue-600" /> Portal Oficial
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200/80 dark:border-zinc-700">
+                <ShieldCheck className="h-3 w-3 text-blue-600 dark:text-blue-400" /> Portal Corporativo
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              Olá, {contactName || "Cliente"} 👋
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight">
+              Olá, {contactName || "Cliente"}
             </h1>
-            <p className="text-xs sm:text-sm text-slate-500 max-w-xl">
-              Acompanhe o andamento dos seus projetos, solicite suporte no SAC e acesse seus documentos e notas fiscais.
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 max-w-xl">
+              Painel corporativo para acompanhamento de demandas, chamados de suporte, faturas e governança contratual.
             </p>
           </div>
         </div>
@@ -638,7 +639,7 @@ function ClienteDashboardPage() {
         <div className="flex flex-wrap items-center gap-3">
           <Button
             onClick={() => setOpenTicketModal(true)}
-            className="h-10 px-5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs flex items-center gap-2 cursor-pointer transition-transform active:scale-95"
+            className="h-10 px-5 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs flex items-center gap-2 cursor-pointer transition-all active:scale-95"
           >
             <Plus className="h-4 w-4" /> Abrir Chamado SAC
           </Button>
@@ -647,35 +648,35 @@ function ClienteDashboardPage() {
 
       {/* ── Main Navigation Tabs ────────────────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="bg-white p-1.5 rounded-2xl border border-slate-200 shadow-xs overflow-x-auto">
+        <div className="bg-white dark:bg-zinc-900 p-1.5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs overflow-x-auto">
           <TabsList className="bg-transparent h-auto p-0 flex gap-1 min-w-max">
             <TabsTrigger
               value="dashboard"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:font-bold text-slate-600 hover:text-slate-900 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
             >
               <Sparkles className="h-4 w-4" /> Dashboard
             </TabsTrigger>
             <TabsTrigger
               value="projetos"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:font-bold text-slate-600 hover:text-slate-900 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
             >
               <Briefcase className="h-4 w-4" /> Meus Projetos ({clientProjects.length})
             </TabsTrigger>
             <TabsTrigger
               value="ocorrencias"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:font-bold text-slate-600 hover:text-slate-900 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
             >
               <LifeBuoy className="h-4 w-4" /> SAC / Suporte ({tickets.length})
             </TabsTrigger>
             <TabsTrigger
               value="documentos"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:font-bold text-slate-600 hover:text-slate-900 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
             >
               <FileText className="h-4 w-4" /> Documentos & Faturas ({availableDocsCount})
             </TabsTrigger>
             <TabsTrigger
               value="configuracoes"
-              className="data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=active]:font-bold text-slate-600 hover:text-slate-900 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
             >
               <User className="h-4 w-4" /> Configurações da Conta
             </TabsTrigger>
@@ -699,21 +700,21 @@ function ClienteDashboardPage() {
                 variants={itemVariants}
                 whileHover={{ y: -3 }}
                 onClick={() => setActiveTab("projetos")}
-                className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md hover:border-blue-300 transition-all cursor-pointer space-y-4"
+                className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-zinc-700 transition-all cursor-pointer space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <span className="p-3 bg-blue-50 text-blue-700 rounded-2xl border border-blue-100">
-                    <Briefcase className="h-6 w-6" />
+                  <span className="p-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-xl border border-slate-200/60 dark:border-zinc-700">
+                    <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </span>
-                  <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-xs font-bold">
-                    {activeProjectsCount} Ativo{activeProjectsCount !== 1 ? "s" : ""}
+                  <Badge className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200/80 dark:border-zinc-700 text-xs font-semibold">
+                    {activeProjectsCount} Em Andamento
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-3xl font-extrabold text-slate-900">{clientProjects.length}</p>
-                  <p className="text-xs font-semibold text-slate-500 mt-0.5">Projetos Contratados</p>
+                  <p className="text-3xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight">{clientProjects.length}</p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 mt-0.5">Projetos Contratados</p>
                 </div>
-                <div className="flex items-center justify-between text-xs text-blue-600 font-bold pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-bold pt-2 border-t border-slate-100 dark:border-zinc-800">
                   <span>Ver projetos e documentos</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </div>
@@ -724,21 +725,21 @@ function ClienteDashboardPage() {
                 variants={itemVariants}
                 whileHover={{ y: -3 }}
                 onClick={() => setActiveTab("ocorrencias")}
-                className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md hover:border-blue-300 transition-all cursor-pointer space-y-4"
+                className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-zinc-700 transition-all cursor-pointer space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <span className="p-3 bg-amber-50 text-amber-700 rounded-2xl border border-amber-100">
-                    <LifeBuoy className="h-6 w-6" />
+                  <span className="p-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-xl border border-slate-200/60 dark:border-zinc-700">
+                    <LifeBuoy className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                   </span>
-                  <Badge className={openTicketsCount > 0 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-emerald-50 text-emerald-700 border-emerald-200"}>
-                    {openTicketsCount > 0 ? `${openTicketsCount} Em Aberto` : "Tudo Resolvido ✓"}
+                  <Badge className={openTicketsCount > 0 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-700 border-slate-200"}>
+                    {openTicketsCount > 0 ? `${openTicketsCount} Em Aberto` : "Regular / Em Dia"}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-3xl font-extrabold text-slate-900">{tickets.length}</p>
-                  <p className="text-xs font-semibold text-slate-500 mt-0.5">Chamados de Suporte & SAC</p>
+                  <p className="text-3xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight">{tickets.length}</p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 mt-0.5">Chamados de Suporte & SAC</p>
                 </div>
-                <div className="flex items-center justify-between text-xs text-blue-600 font-bold pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-bold pt-2 border-t border-slate-100 dark:border-zinc-800">
                   <span>Abrir ou responder chamado</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </div>
@@ -749,21 +750,21 @@ function ClienteDashboardPage() {
                 variants={itemVariants}
                 whileHover={{ y: -3 }}
                 onClick={() => setActiveTab("documentos")}
-                className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs hover:shadow-md hover:border-blue-300 transition-all cursor-pointer space-y-4"
+                className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-zinc-700 transition-all cursor-pointer space-y-4"
               >
                 <div className="flex items-center justify-between">
-                  <span className="p-3 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100">
-                    <FileCheck className="h-6 w-6" />
+                  <span className="p-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-xl border border-slate-200/60 dark:border-zinc-700">
+                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                   </span>
-                  <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-xs font-bold">
-                    Prontos para Download
+                  <Badge className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200/80 dark:border-zinc-700 text-xs font-semibold">
+                    Disponíveis para Consulta
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-3xl font-extrabold text-slate-900">{availableDocsCount}</p>
-                  <p className="text-xs font-semibold text-slate-500 mt-0.5">Documentos, Contratos & NF-e</p>
+                  <p className="text-3xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight">{availableDocsCount}</p>
+                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 mt-0.5">Documentos, Contratos & NF-e</p>
                 </div>
-                <div className="flex items-center justify-between text-xs text-blue-600 font-bold pt-2 border-t border-slate-100">
+                <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-bold pt-2 border-t border-slate-100 dark:border-zinc-800">
                   <span>Acessar pasta digital</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </div>
@@ -1034,7 +1035,7 @@ function ClienteDashboardPage() {
                               setSelectedProject(p);
                               setProjectModalOpen(true);
                             }}
-                            className="h-8 px-3 text-xs font-bold bg-blue-50 text-blue-700 hover:bg-blue-600 hover:text-white border border-blue-200/80 rounded-xl transition-all"
+                            className="h-8 px-3 text-xs font-bold bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 hover:bg-gradient-to-r hover:from-blue-600 hover:to-indigo-600 hover:text-white border border-slate-200/80 dark:border-zinc-700 rounded-xl transition-all"
                           >
                             Ver Detalhes & Documentos
                           </Button>
@@ -1052,20 +1053,20 @@ function ClienteDashboardPage() {
             ABA 3: CENTRAL DE ATENDIMENTO / SAC
         ═══════════════════════════════════════════════════════════════════════ */}
         <TabsContent value="ocorrencias" className="space-y-6 focus-visible:outline-none">
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-zinc-800 p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800 pb-5">
               <div>
-                <h2 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-                  <LifeBuoy className="h-5 w-5 text-blue-600" /> Central de Atendimento & SAC
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight flex items-center gap-2.5">
+                  <LifeBuoy className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Central de Atendimento & SAC
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-0.5">
                   Abra solicitações de suporte, tire dúvidas de faturamento ou escopo e converse diretamente com a gestão.
                 </p>
               </div>
 
               <Button
                 onClick={() => setOpenTicketModal(true)}
-                className="h-9 px-4 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs flex items-center gap-2"
+                className="h-9 px-4 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
               >
                 <Plus className="h-4 w-4" /> Novo Chamado
               </Button>
@@ -1075,8 +1076,8 @@ function ClienteDashboardPage() {
             {tickets.length === 0 ? (
               <div className="py-16 text-center space-y-3">
                 <LifeBuoy className="h-12 w-12 text-slate-300 mx-auto" />
-                <h3 className="text-base font-bold text-slate-800">Nenhum chamado aberto</h3>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                <h3 className="text-base font-bold text-slate-800 dark:text-zinc-200">Nenhum chamado aberto</h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
                   Você não possui ocorrências pendentes no momento. Caso precise de suporte, clique em "Novo Chamado".
                 </p>
               </div>
@@ -1085,25 +1086,25 @@ function ClienteDashboardPage() {
                 {tickets.map((t) => {
                   const statusInfo = STATUS_BADGE_STYLES[t.status] || {
                     label: t.status,
-                    bg: "bg-blue-50",
-                    text: "text-blue-700",
-                    border: "border-blue-200",
+                    bg: "bg-slate-100 dark:bg-zinc-800",
+                    text: "text-slate-700 dark:text-zinc-300",
+                    border: "border-slate-200 dark:border-zinc-700",
                   };
 
                   return (
                     <div
                       key={t.id}
                       onClick={() => setSelectedTicket(t)}
-                      className="p-5 rounded-2xl border border-slate-200/90 hover:border-blue-300 hover:shadow-xs transition-all cursor-pointer space-y-3"
+                      className="p-5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 hover:border-slate-300 dark:hover:border-zinc-700 hover:shadow-xs transition-all cursor-pointer space-y-3 bg-white dark:bg-zinc-900"
                     >
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                         <div className="flex items-center gap-2.5">
-                          <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                            <MessageSquare className="h-4 w-4" />
+                          <span className="p-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl">
+                            <MessageSquare className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                           </span>
                           <div>
-                            <h4 className="text-sm font-bold text-slate-900">{t.subject}</h4>
-                            <p className="text-xs text-slate-500">
+                            <h4 className="text-sm font-bold text-slate-900 dark:text-zinc-100">{t.subject}</h4>
+                            <p className="text-xs text-slate-500 dark:text-zinc-400">
                               Protocolo: <span className="font-mono text-[11px]">{t.id.slice(0, 8)}</span> • {formatDate(t.created_at)}
                             </p>
                           </div>
@@ -1113,21 +1114,21 @@ function ClienteDashboardPage() {
                           <Badge className={`${statusInfo.bg} ${statusInfo.text} ${statusInfo.border} text-xs font-semibold`}>
                             {statusInfo.label}
                           </Badge>
-                          <Badge variant="outline" className="text-xs font-medium text-slate-600">
+                          <Badge variant="outline" className="text-xs font-medium text-slate-600 dark:text-zinc-400 border-slate-200 dark:border-zinc-700">
                             {t.category || "Geral"}
                           </Badge>
                         </div>
                       </div>
 
-                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed bg-slate-50/80 p-3 rounded-xl">
+                      <p className="text-xs text-slate-600 dark:text-zinc-300 line-clamp-2 leading-relaxed bg-slate-50 dark:bg-zinc-800/60 p-3 rounded-xl border border-slate-100 dark:border-zinc-800">
                         {t.message}
                       </p>
 
-                      <div className="flex items-center justify-between pt-1 text-xs text-slate-500">
-                        <span className="flex items-center gap-1 text-blue-600 font-semibold">
+                      <div className="flex items-center justify-between pt-1 text-xs text-slate-500 dark:text-zinc-400">
+                        <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-semibold">
                           <MessageSquare className="h-3.5 w-3.5" /> {(t.replies || []).length} resposta{(t.replies || []).length !== 1 ? "s" : ""}
                         </span>
-                        <span className="text-blue-600 font-bold flex items-center gap-1 hover:underline">
+                        <span className="text-blue-600 dark:text-blue-400 font-bold flex items-center gap-1 hover:underline">
                           Abrir conversa <ArrowRight className="h-3 w-3" />
                         </span>
                       </div>
@@ -1143,20 +1144,20 @@ function ClienteDashboardPage() {
             ABA 4: DOCUMENTOS & FATURAS
         ═══════════════════════════════════════════════════════════════════════ */}
         <TabsContent value="documentos" className="space-y-6 focus-visible:outline-none">
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-8">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-zinc-800 p-6 sm:p-8 shadow-xs space-y-8">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-zinc-800 pb-5">
               <div>
-                <h2 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-                  <FileText className="h-5 w-5 text-blue-600" /> Documentos, Contratos & Notas Fiscais
+                <h2 className="text-xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight flex items-center gap-2.5">
+                  <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Documentos, Contratos & Notas Fiscais
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-0.5">
                   Acesse os contratos assinados, relatórios de entrega e faça download das Notas Fiscais de Serviço (NFS-e).
                 </p>
               </div>
 
               <Button
                 onClick={() => setOpenReceiptModal(true)}
-                className="h-9 px-4 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs flex items-center gap-2"
+                className="h-9 px-4 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
               >
                 <UploadCloud className="h-4 w-4" /> Enviar Comprovante de Pagamento
               </Button>
@@ -1164,12 +1165,12 @@ function ClienteDashboardPage() {
 
             {/* Documentos Anexados */}
             <div className="space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <FileCheck className="h-4 w-4 text-blue-600" /> Arquivos & Contratos da Empresa
+              <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                <FileCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Arquivos & Contratos da Empresa
               </h3>
 
               {clientDocs.length === 0 ? (
-                <div className="p-8 text-center border border-dashed rounded-2xl border-slate-200 text-slate-500 text-xs">
+                <div className="p-8 text-center border border-dashed rounded-2xl border-slate-200 dark:border-zinc-800 text-slate-500 text-xs">
                   Nenhum documento anexado no momento.
                 </div>
               ) : (
@@ -1177,28 +1178,28 @@ function ClienteDashboardPage() {
                   {clientDocs.map((doc) => (
                     <div
                       key={doc.id}
-                      className="p-4 rounded-2xl border border-slate-200 flex flex-col justify-between space-y-3 bg-slate-50/50"
+                      className="p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 flex flex-col justify-between space-y-3 bg-slate-50/50 dark:bg-zinc-800/40"
                     >
                       <div className="flex items-start gap-3">
-                        <span className="p-2 bg-blue-50 text-blue-600 rounded-xl">
-                          <FileText className="h-5 w-5" />
+                        <span className="p-2 bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 rounded-xl">
+                          <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-900 truncate">
+                          <p className="text-xs font-bold text-slate-900 dark:text-zinc-100 truncate">
                             {doc.document_type.replace(/_/g, " ").toUpperCase()}
                           </p>
-                          <p className="text-[11px] text-slate-500">{formatDate(doc.uploaded_at)}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-zinc-400">{formatDate(doc.uploaded_at)}</p>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 pt-2 border-t border-slate-200/80">
+                      <div className="flex items-center gap-2 pt-2 border-t border-slate-200/80 dark:border-zinc-700">
                         {doc.file_url && (
                           <>
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => window.open(doc.file_url!, "_blank")}
-                              className="h-8 text-xs font-semibold flex-1 rounded-xl gap-1.5"
+                              className="h-8 text-xs font-semibold flex-1 rounded-xl gap-1.5 border-slate-200 dark:border-zinc-700"
                             >
                               <Eye className="h-3.5 w-3.5" /> Visualizar
                             </Button>
@@ -1211,7 +1212,7 @@ function ClienteDashboardPage() {
                                 a.target = "_blank";
                                 a.click();
                               }}
-                              className="h-8 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl gap-1.5"
+                              className="h-8 text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl gap-1.5"
                             >
                               <Download className="h-3.5 w-3.5" /> Baixar
                             </Button>
@@ -1225,13 +1226,13 @@ function ClienteDashboardPage() {
             </div>
 
             {/* Notas Fiscais Emitidas (NFS-e) */}
-            <div className="space-y-4 pt-4 border-t border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Receipt className="h-4 w-4 text-emerald-600" /> Notas Fiscais de Serviço (NFS-e)
+            <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-zinc-800">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                <Receipt className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Notas Fiscais de Serviço (NFS-e)
               </h3>
 
               {emittedNfses.length === 0 ? (
-                <div className="p-8 text-center border border-dashed rounded-2xl border-slate-200 text-slate-500 text-xs">
+                <div className="p-8 text-center border border-dashed rounded-2xl border-slate-200 dark:border-zinc-800 text-slate-500 text-xs">
                   Nenhuma nota fiscal emitida até o momento.
                 </div>
               ) : (
@@ -1239,28 +1240,28 @@ function ClienteDashboardPage() {
                   {emittedNfses.map((nf) => (
                     <div
                       key={nf.id}
-                      className="p-4 rounded-2xl border border-slate-200 flex flex-col justify-between space-y-3 bg-white shadow-xs"
+                      className="p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 flex flex-col justify-between space-y-3 bg-white dark:bg-zinc-900 shadow-xs"
                     >
                       <div className="flex items-start gap-3">
-                        <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+                        <span className="p-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 rounded-xl">
                           <Receipt className="h-5 w-5" />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-900">
+                          <p className="text-xs font-bold text-slate-900 dark:text-zinc-100">
                             NFS-e Nº {nf.invoice_number || "—"}
                           </p>
-                          <p className="text-xs font-semibold text-emerald-700">{money(nf.amount)}</p>
-                          <p className="text-[11px] text-slate-500">{formatDate(nf.issue_date || nf.created_at)}</p>
+                          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">{money(nf.amount)}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-zinc-400">{formatDate(nf.issue_date || nf.created_at)}</p>
                         </div>
                       </div>
 
                       {nf.pdf_url && (
-                        <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                        <div className="flex items-center gap-2 pt-2 border-t border-slate-100 dark:border-zinc-800">
                           <Button
                             size="sm"
                             variant="outline"
                             onClick={() => window.open(nf.pdf_url!, "_blank")}
-                            className="h-8 text-xs font-semibold flex-1 rounded-xl gap-1.5"
+                            className="h-8 text-xs font-semibold flex-1 rounded-xl gap-1.5 border-slate-200 dark:border-zinc-700"
                           >
                             <Eye className="h-3.5 w-3.5" /> Visualizar
                           </Button>
@@ -1291,22 +1292,22 @@ function ClienteDashboardPage() {
             ABA 5: CONFIGURAÇÕES DA CONTA DO CLIENTE
         ═══════════════════════════════════════════════════════════════════════ */}
         <TabsContent value="configuracoes" className="space-y-6 focus-visible:outline-none">
-          <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-xs space-y-8">
-            <div className="border-b border-slate-100 pb-5">
-              <h2 className="text-xl font-extrabold text-slate-900 tracking-tight flex items-center gap-2.5">
-                <User className="h-5 w-5 text-blue-600" /> Configurações da Conta & Segurança
+          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-zinc-800 p-6 sm:p-8 shadow-xs space-y-8">
+            <div className="border-b border-slate-100 dark:border-zinc-800 pb-5">
+              <h2 className="text-xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight flex items-center gap-2.5">
+                <User className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Configurações da Conta & Segurança
               </h2>
-              <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-0.5">
                 Gerencie seus dados corporativos, responsável de contato, foto de perfil e senha de acesso.
               </p>
             </div>
 
             {/* Avatar & Identidade */}
-            <div className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-2xl bg-slate-50/70 border border-slate-200/80">
+            <div className="flex flex-col sm:flex-row items-center gap-6 p-6 rounded-2xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/80 dark:border-zinc-800">
               <div className="relative group">
-                <Avatar className="h-20 w-20 rounded-2xl border-2 border-blue-600/20 shadow-xs">
+                <Avatar className="h-20 w-20 rounded-2xl border-2 border-slate-200 dark:border-zinc-700 shadow-xs">
                   <AvatarImage src={avatarPreview || profile?.avatar_url || ""} />
-                  <AvatarFallback className="bg-blue-600 text-white text-xl font-bold rounded-2xl">
+                  <AvatarFallback className="bg-gradient-to-br from-blue-700 to-indigo-800 text-white text-xl font-bold rounded-2xl">
                     {(companyName || contactName || "CL").slice(0, 2).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>
@@ -1329,15 +1330,15 @@ function ClienteDashboardPage() {
               </div>
 
               <div className="space-y-1 text-center sm:text-left">
-                <h3 className="text-sm font-bold text-slate-900">Foto de Perfil / Logotipo</h3>
-                <p className="text-xs text-slate-500">Arquivos PNG, JPG ou WEBP de até 5MB.</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100">Foto de Perfil / Logotipo</h3>
+                <p className="text-xs text-slate-500 dark:text-zinc-400">Arquivos PNG, JPG ou WEBP de até 5MB.</p>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
                   onClick={() => avatarFileInputRef.current?.click()}
                   disabled={uploadingAvatar}
-                  className="h-8 text-xs font-semibold rounded-xl gap-1.5 mt-2"
+                  className="h-8 text-xs font-semibold rounded-xl gap-1.5 mt-2 border-slate-200 dark:border-zinc-700"
                 >
                   {uploadingAvatar ? <Loader2 className="h-3 w-3 animate-spin" /> : <Camera className="h-3 w-3" />}
                   {uploadingAvatar ? "Enviando..." : "Alterar Foto"}
@@ -1347,13 +1348,13 @@ function ClienteDashboardPage() {
 
             {/* Form Dados Corporativos */}
             <form onSubmit={handleSaveSettings} className="space-y-6">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Building2 className="h-4 w-4 text-blue-600" /> Dados Corporativos & Contato
+              <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Dados Corporativos & Contato
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-company" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-company" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     Nome Fantasia <span className="text-blue-600">*</span>
                   </Label>
                   <Input
@@ -1366,7 +1367,7 @@ function ClienteDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="s-corp" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-corp" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     Razão Social
                   </Label>
                   <Input
@@ -1378,7 +1379,7 @@ function ClienteDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-cnpj" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-cnpj" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     CNPJ
                   </Label>
                   <Input
@@ -1391,7 +1392,7 @@ function ClienteDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-segment" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-segment" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     Segmento de Atuação
                   </Label>
                   <Input
@@ -1404,7 +1405,7 @@ function ClienteDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-email" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-email" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     E-mail Corporativo <span className="text-blue-600">*</span>
                   </Label>
                   <Input
@@ -1418,7 +1419,7 @@ function ClienteDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-contact" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-contact" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     Nome do Responsável Legal
                   </Label>
                   <Input
@@ -1430,7 +1431,7 @@ function ClienteDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-role" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-role" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     Cargo / Função
                   </Label>
                   <Input
@@ -1443,7 +1444,7 @@ function ClienteDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-phone" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-phone" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     Telefone / WhatsApp
                   </Label>
                   <Input
@@ -1460,7 +1461,7 @@ function ClienteDashboardPage() {
               {/* Endereço */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 pt-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-cep" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-cep" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     CEP
                   </Label>
                   <Input
@@ -1478,7 +1479,7 @@ function ClienteDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="s-addr" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-addr" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     Endereço Completo
                   </Label>
                   <Input
@@ -1494,7 +1495,7 @@ function ClienteDashboardPage() {
                 <Button
                   type="submit"
                   disabled={savingSettings}
-                  className="h-10 px-6 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs flex items-center gap-2 cursor-pointer"
+                  className="h-10 px-6 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                 >
                   {savingSettings ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
                   {savingSettings ? "Salvando..." : "Salvar Alterações Cadastrais"}
@@ -1503,14 +1504,14 @@ function ClienteDashboardPage() {
             </form>
 
             {/* Troca de Senha */}
-            <form onSubmit={handleChangePassword} className="space-y-5 pt-6 border-t border-slate-100">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <KeyRound className="h-4 w-4 text-blue-600" /> Alteração Segura de Senha
+            <form onSubmit={handleChangePassword} className="space-y-5 pt-6 border-t border-slate-100 dark:border-zinc-800">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Alteração Segura de Senha
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-new-pass" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-new-pass" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     Nova Senha <span className="text-blue-600">*</span>
                   </Label>
                   <Input
@@ -1525,7 +1526,7 @@ function ClienteDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="s-conf-pass" className="text-xs font-semibold text-slate-700">
+                  <Label htmlFor="s-conf-pass" className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                     Confirmar Nova Senha <span className="text-blue-600">*</span>
                   </Label>
                   <Input
@@ -1544,7 +1545,7 @@ function ClienteDashboardPage() {
                 <Button
                   type="submit"
                   disabled={changingPassword}
-                  className="h-10 px-6 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs flex items-center gap-2 cursor-pointer"
+                  className="h-10 px-6 text-xs font-bold rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-xs flex items-center gap-2 cursor-pointer transition-all active:scale-95"
                 >
                   {changingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
                   {changingPassword ? "Alterando..." : "Atualizar Senha de Acesso"}
@@ -1660,7 +1661,7 @@ function ClienteDashboardPage() {
                                   a.target = "_blank";
                                   a.click();
                                 }}
-                                className="h-7 px-2.5 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-lg gap-1"
+                                className="h-7 px-2.5 text-xs font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-lg gap-1"
                               >
                                 <Download className="h-3 w-3" /> Baixar
                               </Button>
@@ -1674,8 +1675,8 @@ function ClienteDashboardPage() {
               </div>
 
               {/* Upload form for client/manager inside modal */}
-              <form onSubmit={handleUploadProjectDoc} className="space-y-3 pt-3 border-t border-slate-100">
-                <Label className="text-xs font-bold text-slate-700">Anexar Novo Arquivo / Documento</Label>
+              <form onSubmit={handleUploadProjectDoc} className="space-y-3 pt-3 border-t border-slate-100 dark:border-zinc-800">
+                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">Anexar Novo Arquivo / Documento</Label>
                 <div className="flex items-center gap-2">
                   <Select value={projectDocType} onValueChange={setProjectDocType}>
                     <SelectTrigger className="h-9 text-xs w-44 rounded-xl">
@@ -1699,7 +1700,7 @@ function ClienteDashboardPage() {
                     type="submit"
                     size="sm"
                     disabled={uploadingProjectDoc || !projectDocFile}
-                    className="h-9 px-4 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+                    className="h-9 px-4 text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl transition-all"
                   >
                     {uploadingProjectDoc ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UploadCloud className="h-3.5 w-3.5" />}
                   </Button>
@@ -1726,25 +1727,25 @@ function ClienteDashboardPage() {
           MODAL: ABERTURA DE NOVO CHAMADO NO SAC
       ═══════════════════════════════════════════════════════════════════════ */}
       <Dialog open={openTicketModal} onOpenChange={setOpenTicketModal}>
-        <DialogContent className="sm:max-w-[500px] bg-white rounded-3xl p-6 sm:p-8 space-y-4">
-          <DialogHeader className="space-y-1.5 border-b border-slate-100 pb-3">
-            <DialogTitle className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <LifeBuoy className="h-5 w-5 text-blue-600" /> Abrir Novo Chamado no SAC
+        <DialogContent className="sm:max-w-[500px] bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 space-y-4 border border-slate-200/80 dark:border-zinc-800">
+          <DialogHeader className="space-y-1.5 border-b border-slate-100 dark:border-zinc-800 pb-3">
+            <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+              <LifeBuoy className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Abrir Novo Chamado no SAC
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
+            <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">
               Envie sua solicitação diretamente para a equipe de gestão da Delski.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleCreateTicketSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">
+              <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
                 Assunto <span className="text-blue-600">*</span>
               </Label>
               <Input
                 value={ticketSubject}
                 onChange={(e) => setTicketSubject(e.target.value)}
-                placeholder="Ex: Dúvida sobre entrega do Site"
+                placeholder="Ex: Dúvida sobre entrega do Projeto"
                 className="h-10 text-xs rounded-xl"
                 required
               />
@@ -1752,7 +1753,7 @@ function ClienteDashboardPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Categoria</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">Categoria</Label>
                 <Select value={ticketCategory} onValueChange={setTicketCategory}>
                   <SelectTrigger className="h-10 text-xs rounded-xl">
                     <SelectValue />
@@ -1768,7 +1769,7 @@ function ClienteDashboardPage() {
               </div>
 
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Prioridade</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">Prioridade</Label>
                 <Select value={ticketPriority} onValueChange={(val: any) => setTicketPriority(val)}>
                   <SelectTrigger className="h-10 text-xs rounded-xl">
                     <SelectValue />
@@ -1785,7 +1786,7 @@ function ClienteDashboardPage() {
 
             {clientProjects.length > 0 && (
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold text-slate-700">Projeto Vinculado (Opcional)</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">Projeto Vinculado (Opcional)</Label>
                 <Select value={ticketProject} onValueChange={setTicketProject}>
                   <SelectTrigger className="h-10 text-xs rounded-xl">
                     <SelectValue placeholder="Selecione o projeto" />
@@ -1803,7 +1804,7 @@ function ClienteDashboardPage() {
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">
+              <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">
                 Descrição do Problema / Solicitação <span className="text-blue-600">*</span>
               </Label>
               <Textarea
@@ -1817,7 +1818,7 @@ function ClienteDashboardPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Anexo de Evidência / Imagem (Opcional)</Label>
+              <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">Anexo de Evidência / Imagem (Opcional)</Label>
               <Input
                 type="file"
                 onChange={(e) => setTicketEvidenceFile(e.target.files?.[0] || null)}
@@ -1825,7 +1826,7 @@ function ClienteDashboardPage() {
               />
             </div>
 
-            <DialogFooter className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <DialogFooter className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -1840,7 +1841,7 @@ function ClienteDashboardPage() {
                 type="submit"
                 size="sm"
                 disabled={submittingTicket}
-                className="h-9 px-5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="h-9 px-5 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
               >
                 {submittingTicket ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                 {submittingTicket ? "Enviando..." : "Enviar Chamado"}
@@ -1854,33 +1855,33 @@ function ClienteDashboardPage() {
           MODAL: CHAT & HISTÓRICO DE RESPOSTAS DO CHAMADO
       ═══════════════════════════════════════════════════════════════════════ */}
       <Dialog open={!!selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)}>
-        <DialogContent className="sm:max-w-[600px] bg-white rounded-3xl p-6 sm:p-8 space-y-5">
-          <DialogHeader className="space-y-1 border-b border-slate-100 pb-3">
+        <DialogContent className="sm:max-w-[600px] bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 space-y-5 border border-slate-200/80 dark:border-zinc-800">
+          <DialogHeader className="space-y-1 border-b border-slate-100 dark:border-zinc-800 pb-3">
             <div className="flex items-center gap-2">
-              <Badge className="bg-blue-50 text-blue-700 border-blue-200 text-xs font-bold">
+              <Badge className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 text-xs font-bold">
                 {selectedTicket?.category || "SAC"}
               </Badge>
               <Badge variant="outline" className="text-xs font-semibold">
                 {selectedTicket?.status || "Aberto"}
               </Badge>
             </div>
-            <DialogTitle className="text-lg font-extrabold text-slate-900">
+            <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-zinc-100">
               {selectedTicket?.subject}
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
+            <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">
               Aberto em {formatDate(selectedTicket?.created_at)} • Protocolo #{selectedTicket?.id.slice(0, 8)}
             </DialogDescription>
           </DialogHeader>
 
           {/* Conversation Bubble Feed */}
-          <div className="space-y-3.5 max-h-72 overflow-y-auto p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
+          <div className="space-y-3.5 max-h-72 overflow-y-auto p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/40 border border-slate-200/80 dark:border-zinc-800">
             {/* Original message */}
-            <div className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs space-y-1.5">
-              <div className="flex items-center justify-between text-xs font-bold text-slate-800">
+            <div className="p-3.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-2xs space-y-1.5">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-800 dark:text-zinc-200">
                 <span>{selectedTicket?.client_name || "Você"}</span>
                 <span className="text-[10px] font-normal text-slate-400">{formatDate(selectedTicket?.created_at)}</span>
               </div>
-              <p className="text-xs text-slate-700 leading-relaxed">{selectedTicket?.message}</p>
+              <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed">{selectedTicket?.message}</p>
               {selectedTicket?.evidence_url && (
                 <Button
                   size="sm"
@@ -1902,13 +1903,13 @@ function ClienteDashboardPage() {
                   key={reply.id || idx}
                   className={`p-3.5 rounded-2xl border space-y-1.5 ${
                     isGestorSender
-                      ? "bg-blue-50/80 border-blue-200 ml-4 text-slate-900"
-                      : "bg-white border-slate-200 mr-4 text-slate-900"
+                      ? "bg-blue-50/80 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 ml-4 text-slate-900 dark:text-zinc-100"
+                      : "bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 mr-4 text-slate-900 dark:text-zinc-100"
                   }`}
                 >
                   <div className="flex items-center justify-between text-xs font-bold">
-                    <span className={isGestorSender ? "text-blue-700 flex items-center gap-1" : "text-slate-800"}>
-                      {isGestorSender && <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />}
+                    <span className={isGestorSender ? "text-blue-700 dark:text-blue-400 flex items-center gap-1" : "text-slate-800 dark:text-zinc-200"}>
+                      {isGestorSender && <ShieldCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />}
                       {reply.sender_name}
                     </span>
                     <span className="text-[10px] font-normal text-slate-400">{formatDate(reply.created_at)}</span>
@@ -1943,7 +1944,7 @@ function ClienteDashboardPage() {
                 type="submit"
                 size="sm"
                 disabled={sendingReply || !chatReplyMessage.trim()}
-                className="h-9 px-5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="h-9 px-5 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
               >
                 {sendingReply ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
                 {sendingReply ? "Enviando..." : "Enviar Resposta"}
@@ -1957,19 +1958,19 @@ function ClienteDashboardPage() {
           MODAL: ENVIO DE COMPROVANTE DE PAGAMENTO
       ═══════════════════════════════════════════════════════════════════════ */}
       <Dialog open={openReceiptModal} onOpenChange={setOpenReceiptModal}>
-        <DialogContent className="sm:max-w-[450px] bg-white rounded-3xl p-6 sm:p-8 space-y-4">
-          <DialogHeader className="space-y-1.5 border-b border-slate-100 pb-3">
-            <DialogTitle className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-              <UploadCloud className="h-5 w-5 text-blue-600" /> Enviar Comprovante
+        <DialogContent className="sm:max-w-[450px] bg-white dark:bg-zinc-900 rounded-3xl p-6 sm:p-8 space-y-4 border border-slate-200/80 dark:border-zinc-800">
+          <DialogHeader className="space-y-1.5 border-b border-slate-100 dark:border-zinc-800 pb-3">
+            <DialogTitle className="text-lg font-extrabold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+              <UploadCloud className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Enviar Comprovante
             </DialogTitle>
-            <DialogDescription className="text-xs text-slate-500">
+            <DialogDescription className="text-xs text-slate-500 dark:text-zinc-400">
               Anexe o comprovante de transferência ou boleto pago para agilizar a baixa financeira.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleReceiptSubmit} className="space-y-4">
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Arquivo do Comprovante (PDF/Imagem) <span className="text-blue-600">*</span></Label>
+              <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">Arquivo do Comprovante (PDF/Imagem) <span className="text-blue-600">*</span></Label>
               <Input
                 type="file"
                 onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
@@ -1979,7 +1980,7 @@ function ClienteDashboardPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold text-slate-700">Observações (Opcional)</Label>
+              <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300">Observações (Opcional)</Label>
               <Textarea
                 value={receiptNotes}
                 onChange={(e) => setReceiptNotes(e.target.value)}
@@ -1989,7 +1990,7 @@ function ClienteDashboardPage() {
               />
             </div>
 
-            <DialogFooter className="pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+            <DialogFooter className="pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
@@ -2004,7 +2005,7 @@ function ClienteDashboardPage() {
                 type="submit"
                 size="sm"
                 disabled={uploadingReceipt}
-                className="h-9 px-5 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-xs flex items-center gap-1.5 cursor-pointer"
+                className="h-9 px-5 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
               >
                 {uploadingReceipt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UploadCloud className="h-3.5 w-3.5" />}
                 {uploadingReceipt ? "Enviando..." : "Enviar Comprovante"}

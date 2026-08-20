@@ -24,7 +24,11 @@ export const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
       } else if (!isGestor && isRejected) {
         navigate({ to: '/acesso-negado' as any, replace: true });
       } else if (isCliente) {
-        navigate({ to: '/cliente' as any, replace: true });
+        if (!onboardingCompleted) {
+          navigate({ to: '/onboarding' as any, replace: true });
+        } else {
+          navigate({ to: '/cliente' as any, replace: true });
+        }
       } else if (isFreelancer) {
         if (!onboardingCompleted) {
           navigate({ to: '/onboarding' as any, replace: true });
