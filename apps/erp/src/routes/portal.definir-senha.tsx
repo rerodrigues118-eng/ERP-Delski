@@ -5,12 +5,14 @@ import { Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2, ArrowRight, Shie
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeEmail } from "@/lib/sanitization";
+import { checkRateLimit, recordFailedAttempt, resetRateLimit } from "@/lib/rate-limiter";
 
 export const Route = createFileRoute("/portal/definir-senha")({
   head: () => ({
     meta: [
-      { title: "Ativar Conta & Definir Senha — Portal do Cliente Delski" },
-      { name: "description", content: "Defina sua senha de acesso para o Portal do Cliente Delski." },
+      { title: "Primeiro Acesso & Definir Senha — DELSKI CLOUD" },
+      { name: "description", content: "Defina sua senha de acesso para ativar sua conta na DELSKI CLOUD." },
     ],
   }),
   component: DefinirSenhaPage,
@@ -67,6 +69,13 @@ function DefinirSenhaPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    const cleanEmail = sanitizeEmail(email);
+    const rateLimitCheck = checkRateLimit(`definir_senha_${cleanEmail || "anon"}`, 5, 120_000, 60_000);
+    if (!rateLimitCheck.allowed) {
+      toast.error(`Muitas tentativas consecutivas. Aguarde ${rateLimitCheck.retryAfterSeconds}s antes de tentar novamente.`);
+      return;
+    }
+
     if (!password || password.length < 6) {
       toast.error("A senha deve conter no mínimo 6 caracteres.");
       return;
@@ -79,8 +88,6 @@ function DefinirSenhaPage() {
 
     setLoading(true);
     try {
-      const cleanEmail = email.trim().toLowerCase();
-
       // 1. Verificar se já existe uma sessão ativa (ex: vindo de link de recovery)
       const { data: sessionData } = await supabase.auth.getSession();
 
@@ -89,7 +96,6 @@ function DefinirSenhaPage() {
         const { error: updateError } = await supabase.auth.updateUser({
           password: password,
           data: {
-            role: "cliente",
             approval_status: "approved",
           },
         });
@@ -108,27 +114,25 @@ function DefinirSenhaPage() {
             password: password,
             options: {
               data: {
-                role: "cliente",
                 approval_status: "approved",
               },
             },
           });
 
           if (signUpError) {
-            // Se o usuário já existe no auth mas a senha era outra, tenta updateUser via recovery
+            // Se o usuário já existe no auth mas a senha era outra, tenta updateUser
             const { error: updateErr } = await supabase.auth.updateUser({ password });
             if (updateErr) {
-              // Tenta autenticar novamente com as novas credenciais
               const { error: retryLoginErr } = await supabase.auth.signInWithPassword({
                 email: cleanEmail,
                 password: password,
               });
               if (retryLoginErr) {
-                throw new Error(signUpError.message || retryLoginErr.message || "Erro ao configurar senha.");
+                recordFailedAttempt(`definir_senha_${cleanEmail || "anon"}`, 5, 60_000);
+                throw new Error("Não foi possível configurar a senha. Verifique se o e-mail convidado é válido.");
               }
             }
           } else if (!signUpData.session) {
-            // Se o signUp não retornou sessão imediatamente, faz o signIn automático
             await supabase.auth.signInWithPassword({
               email: cleanEmail,
               password: password,
@@ -136,10 +140,12 @@ function DefinirSenhaPage() {
           }
         }
       } else {
-        // Caso sem email nos params, tenta update da sessão
         const { error: updateErr } = await supabase.auth.updateUser({ password });
         if (updateErr) throw updateErr;
       }
+
+      // Sucesso: resetar rate limit
+      resetRateLimit(`definir_senha_${cleanEmail || "anon"}`);
 
       // 2. Garantir perfil atualizado no Supabase
       const { data: latestSession } = await supabase.auth.getSession();
@@ -147,33 +153,35 @@ function DefinirSenhaPage() {
 
       if (currentUserId && cleanEmail) {
         try {
+          const { data: existingProfile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", currentUserId)
+            .maybeSingle();
+
+          const targetRole = existingProfile?.role || "freelancer";
+
           await (supabase.from("profiles") as any).upsert({
             id: currentUserId,
             email: cleanEmail,
-            role: "cliente",
+            role: targetRole,
             approval_status: "approved",
             status: "ativo",
             updated_at: new Date().toISOString(),
           });
-
-          // Vincular à tabela clients
-          await (supabase.from("clients") as any)
-            .update({ auth_user_id: currentUserId, status: "ativo" })
-            .ilike("email", cleanEmail);
         } catch (pErr) {
           console.warn("Profile upsert fallback:", pErr);
         }
       }
 
       setSuccess(true);
-      toast.success("Conta ativada com sucesso! Bem-vindo(a) ao Delski Cloud.");
+      toast.success("Senha configurada com sucesso! Iniciando Onboarding...");
 
-      // Redirecionar diretamente para Onboarding do Cliente
+      // Redirecionar diretamente para o Onboarding do prestador
       setTimeout(() => {
         window.location.href = "/onboarding";
       }, 1200);
     } catch (err: any) {
-      console.error("[Definir Senha Error]", err);
       const msg = err?.message || "Não foi possível definir a senha. Tente novamente.";
       toast.error(msg);
     } finally {
@@ -182,32 +190,24 @@ function DefinirSenhaPage() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#F8FAFC] flex flex-col justify-center items-center p-4 sm:p-6 text-slate-900 font-sans">
-      {/* Background ambient subtle glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-100/60 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-100/60 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen w-full bg-[#FAFAFA] dark:bg-zinc-950 flex flex-col justify-center items-center p-4 sm:p-6 text-slate-900 font-sans">
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
+        transition={{ duration: 0.35, ease: "easeOut" }}
         className="w-full max-w-md relative z-10"
       >
         {/* Main Card */}
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-md p-6 sm:p-8 space-y-6">
-          {/* Top Royal Blue Accent Line */}
-          <div className="h-1.5 w-full bg-gradient-to-r from-[#1e40af] via-[#2563eb] to-[#3b82f6] rounded-full" />
-
+        <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm p-6 sm:p-8 space-y-6">
           {/* Logo / Header */}
-          <div className="text-center space-y-1.5">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" /> Portal do Cliente Delski
+          <div className="text-center space-y-2">
+            <div className="flex items-center justify-center gap-1.5 mb-1">
+              <span className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">DELSKI</span>
+              <span className="text-sm font-extrabold text-slate-500 uppercase tracking-wider">CLOUD</span>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">Ativar sua Conta</h1>
-            <p className="text-sm text-slate-500">
-              Defina sua senha de acesso segura para acessar seus projetos, demandas e contratos.
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Criar Senha de Acesso</h1>
+            <p className="text-sm text-slate-500 dark:text-zinc-400">
+              Cadastre suas credenciais para ativar sua conta e iniciar o onboarding.
             </p>
           </div>
 
@@ -224,10 +224,10 @@ function DefinirSenhaPage() {
                   <CheckCircle2 className="w-8 h-8 animate-bounce" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-lg font-bold text-slate-900">Senha cadastrada com sucesso!</h3>
-                  <p className="text-sm text-slate-500">Redirecionando você para o Onboarding da sua conta...</p>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Senha ativada com sucesso!</h3>
+                  <p className="text-sm text-slate-500">Iniciando fluxo de onboarding...</p>
                 </div>
-                <Loader2 className="w-5 h-5 animate-spin text-blue-600 mt-2" />
+                <Loader2 className="w-5 h-5 animate-spin text-slate-900 mt-2" />
               </motion.div>
             ) : (
               <motion.form
@@ -237,23 +237,26 @@ function DefinirSenhaPage() {
                 exit={{ opacity: 0 }}
                 className="space-y-5"
               >
-                {/* Pre-filled Email Display */}
-                {email && (
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      E-mail de Acesso
-                    </label>
-                    <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-sm font-medium text-slate-700">
-                      <ShieldCheck className="w-4 h-4 text-blue-600 shrink-0" />
-                      <span className="truncate">{email}</span>
-                    </div>
+                {/* Pre-filled Email Display (Disabled) */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300 uppercase tracking-wider">
+                    E-mail Corporativo
+                  </label>
+                  <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700 text-sm font-medium text-slate-700 dark:text-zinc-200 opacity-90 cursor-not-allowed">
+                    <ShieldCheck className="w-4 h-4 text-slate-500 shrink-0" />
+                    <input
+                      type="email"
+                      value={email || "prestador@delski.co"}
+                      disabled
+                      className="w-full bg-transparent border-0 p-0 text-sm font-medium text-slate-700 dark:text-zinc-200 focus:outline-none cursor-not-allowed"
+                    />
                   </div>
-                )}
+                </div>
 
                 {/* New Password */}
                 <div className="space-y-1.5">
                   <div className="flex justify-between items-center">
-                    <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider" htmlFor="password">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300 uppercase tracking-wider" htmlFor="password">
                       Nova Senha
                     </label>
                     {password && (
@@ -270,7 +273,7 @@ function DefinirSenhaPage() {
                       placeholder="Mínimo 6 caracteres"
                       required
                       autoComplete="new-password"
-                      className="w-full h-10 pl-10 pr-10 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600 transition-all shadow-xs"
+                      className="w-full h-10 pl-10 pr-10 rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900 transition-all shadow-xs"
                     />
                     <button
                       type="button"
@@ -285,12 +288,12 @@ function DefinirSenhaPage() {
                   {/* Password strength bar */}
                   {password && (
                     <div className="space-y-1.5 pt-1">
-                      <div className="flex gap-1 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                      <div className="flex gap-1 h-1.5 w-full bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
                         {[1, 2, 3, 4].map((step) => (
                           <div
                             key={step}
                             className={`flex-1 transition-all duration-300 ${
-                              strength >= step ? strengthColor : "bg-slate-200"
+                              strength >= step ? strengthColor : "bg-slate-200 dark:bg-zinc-700"
                             }`}
                           />
                         ))}
@@ -300,7 +303,7 @@ function DefinirSenhaPage() {
                           ✓ Mínimo 6 dígitos
                         </span>
                         <span className={/[A-Z]/.test(password) ? "text-emerald-600 font-medium" : ""}>
-                          ✓ Letra maiúscula
+                          ✓ Maiúscula
                         </span>
                         <span className={/[0-9]/.test(password) ? "text-emerald-600 font-medium" : ""}>
                           ✓ Número
@@ -312,7 +315,7 @@ function DefinirSenhaPage() {
 
                 {/* Confirm Password */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-600 uppercase tracking-wider" htmlFor="confirmPassword">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300 uppercase tracking-wider" htmlFor="confirmPassword">
                     Confirmar Senha
                   </label>
                   <div className="relative">
@@ -325,12 +328,12 @@ function DefinirSenhaPage() {
                       placeholder="Repita a nova senha"
                       required
                       autoComplete="new-password"
-                      className={`w-full h-10 pl-10 pr-10 rounded-xl border bg-white text-slate-900 text-sm placeholder:text-slate-400 focus:outline-none transition-all shadow-xs ${
+                      className={`w-full h-10 pl-10 pr-10 rounded-xl border bg-white dark:bg-zinc-800 text-slate-900 dark:text-white text-sm placeholder:text-slate-400 focus:outline-none transition-all shadow-xs ${
                         confirmPassword
                           ? passwordsMatch
                             ? "border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                             : "border-rose-400 focus:ring-2 focus:ring-rose-500/20"
-                          : "border-slate-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-600"
+                          : "border-slate-200 dark:border-zinc-700 focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900"
                       }`}
                     />
                     <button
@@ -353,7 +356,7 @@ function DefinirSenhaPage() {
                 <Button
                   type="submit"
                   disabled={loading || !password || password !== confirmPassword}
-                  className="w-full h-11 bg-gradient-to-r from-[#1d4ed8] via-[#2563eb] to-[#3b82f6] hover:from-[#1e40af] hover:via-[#1d4ed8] hover:to-[#2563eb] text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 gap-2 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full h-11 bg-slate-900 hover:bg-black text-white font-medium rounded-xl shadow-sm transition-all duration-200 gap-2 border-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <>
@@ -362,7 +365,7 @@ function DefinirSenhaPage() {
                     </>
                   ) : (
                     <>
-                      Ativar Conta & Acessar
+                      Ativar Conta & Iniciar Onboarding
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -371,11 +374,6 @@ function DefinirSenhaPage() {
             )}
           </AnimatePresence>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-xs text-slate-400 mt-6">
-          © {new Date().getFullYear()} Delski ERP — Gestão Integrada & Portal do Cliente
-        </p>
       </motion.div>
     </div>
   );

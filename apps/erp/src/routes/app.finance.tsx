@@ -913,6 +913,12 @@ function GestorFinanceView() {
   const [reportSubTab, setReportSubTab] = useState<
     "dre_dfc" | "inadimplencia" | "lucratividade" | "projecao" | "balanco" | "fiscal"
   >("dre_dfc");
+  const [dreEvolutionYear, setDreEvolutionYear] = useState<string>(
+    String(new Date().getFullYear())
+  );
+  const [dreEvolutionPeriod, setDreEvolutionPeriod] = useState<
+    "all" | "q1" | "q2" | "q3" | "q4"
+  >("all");
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     cogs: true,
     opex: true,
@@ -1466,23 +1472,23 @@ function GestorFinanceView() {
   const handleExportPDF = () => {
     try {
       const dreRows = [
-        { label: "(+) RECEITA BRUTA OPERACIONAL", type: "header" as const, value: accountingData.grossRevenue },
-        { label: "(-) CUSTOS DIRETOS DOS PROJETOS (COGS)", type: "header" as const, value: accountingData.cogs.total, isNegative: true },
+        { label: "RECEITA BRUTA OPERACIONAL", type: "header" as const, value: accountingData.grossRevenue },
+        { label: "CUSTOS DIRETOS DOS PROJETOS (COGS)", type: "header" as const, value: accountingData.cogs.total, isNegative: true },
         { label: "Repasses a Freelancers", type: "item" as const, value: accountingData.cogs.freela, isNegative: true },
         { label: "APIs & Webhooks (OpenAI, WhatsApp, etc.)", type: "item" as const, value: accountingData.cogs.apis, isNegative: true },
         { label: "Tráfego Pago & Mídia de Clientes", type: "item" as const, value: accountingData.cogs.ads, isNegative: true },
         { label: "Domínios & Infraestrutura de Projetos", type: "item" as const, value: accountingData.cogs.dominios, isNegative: true },
         { label: "Outros Custos Diretos de Entrega", type: "item" as const, value: accountingData.cogs.other, isNegative: true },
-        { label: "(=) LUCRO BRUTO OPERACIONAL", type: "subtotal" as const, value: accountingData.grossProfit },
+        { label: "LUCRO BRUTO OPERACIONAL", type: "subtotal" as const, value: accountingData.grossProfit },
         { label: "Margem Bruta %", type: "margin" as const, value: `${accountingData.grossMargin.toFixed(1)}%` },
-        { label: "(-) DESPESAS OPERACIONAIS (OPEX)", type: "header" as const, value: accountingData.opex.total, isNegative: true },
+        { label: "DESPESAS OPERACIONAIS (OPEX)", type: "header" as const, value: accountingData.opex.total, isNegative: true },
         { label: "Ferramentas SaaS & Softwares (Empresa)", type: "item" as const, value: accountingData.opex.saas, isNegative: true },
         { label: "Ferramentas de IA & Automação Corporativa", type: "item" as const, value: accountingData.opex.ia, isNegative: true },
         { label: "Influencers & Marketing Próprio", type: "item" as const, value: accountingData.opex.marketing, isNegative: true },
         { label: "Aquisição de Leads & Prospecção", type: "item" as const, value: accountingData.opex.leads, isNegative: true },
         { label: "Custos Operacionais Fixos (Aluguel, Contabilidade)", type: "item" as const, value: accountingData.opex.fixos, isNegative: true },
         { label: "Outras Despesas Variáveis", type: "item" as const, value: accountingData.opex.other, isNegative: true },
-        { label: "(=) RESULTADO OPERACIONAL LÍQUIDO (LUCRO LÍQUIDO)", type: "total" as const, value: accountingData.netProfit },
+        { label: "RESULTADO OPERACIONAL LÍQUIDO (LUCRO LÍQUIDO)", type: "total" as const, value: accountingData.netProfit },
         { label: "Margem Líquida Real %", type: "margin" as const, value: `${accountingData.netMargin.toFixed(1)}%` },
       ];
 
@@ -1535,23 +1541,23 @@ function GestorFinanceView() {
   const handleExportCSV = () => {
     try {
       const dreRows = [
-        { label: "(+) RECEITA BRUTA OPERACIONAL", type: "header" as const, value: accountingData.grossRevenue },
-        { label: "(-) CUSTOS DIRETOS DOS PROJETOS (COGS)", type: "header" as const, value: accountingData.cogs.total, isNegative: true },
+        { label: "RECEITA BRUTA OPERACIONAL", type: "header" as const, value: accountingData.grossRevenue },
+        { label: "CUSTOS DIRETOS DOS PROJETOS (COGS)", type: "header" as const, value: accountingData.cogs.total, isNegative: true },
         { label: "Repasses a Freelancers", type: "item" as const, value: accountingData.cogs.freela, isNegative: true },
         { label: "APIs & Webhooks (OpenAI, WhatsApp, etc.)", type: "item" as const, value: accountingData.cogs.apis, isNegative: true },
         { label: "Tráfego Pago & Mídia de Clientes", type: "item" as const, value: accountingData.cogs.ads, isNegative: true },
         { label: "Domínios & Infraestrutura de Projetos", type: "item" as const, value: accountingData.cogs.dominios, isNegative: true },
         { label: "Outros Custos Diretos de Entrega", type: "item" as const, value: accountingData.cogs.other, isNegative: true },
-        { label: "(=) LUCRO BRUTO OPERACIONAL", type: "subtotal" as const, value: accountingData.grossProfit },
+        { label: "LUCRO BRUTO OPERACIONAL", type: "subtotal" as const, value: accountingData.grossProfit },
         { label: "Margem Bruta %", type: "margin" as const, value: `${accountingData.grossMargin.toFixed(1)}%` },
-        { label: "(-) DESPESAS OPERACIONAIS (OPEX)", type: "header" as const, value: accountingData.opex.total, isNegative: true },
+        { label: "DESPESAS OPERACIONAIS (OPEX)", type: "header" as const, value: accountingData.opex.total, isNegative: true },
         { label: "Ferramentas SaaS & Softwares (Empresa)", type: "item" as const, value: accountingData.opex.saas, isNegative: true },
         { label: "Ferramentas de IA & Automação Corporativa", type: "item" as const, value: accountingData.opex.ia, isNegative: true },
         { label: "Influencers & Marketing Próprio", type: "item" as const, value: accountingData.opex.marketing, isNegative: true },
         { label: "Aquisição de Leads & Prospecção", type: "item" as const, value: accountingData.opex.leads, isNegative: true },
         { label: "Custos Operacionais Fixos (Aluguel, Contabilidade)", type: "item" as const, value: accountingData.opex.fixos, isNegative: true },
         { label: "Outras Despesas Variáveis", type: "item" as const, value: accountingData.opex.other, isNegative: true },
-        { label: "(=) RESULTADO OPERACIONAL LÍQUIDO (LUCRO LÍQUIDO)", type: "total" as const, value: accountingData.netProfit },
+        { label: "RESULTADO OPERACIONAL LÍQUIDO (LUCRO LÍQUIDO)", type: "total" as const, value: accountingData.netProfit },
         { label: "Margem Líquida Real %", type: "margin" as const, value: `${accountingData.netMargin.toFixed(1)}%` },
       ];
 
@@ -2122,70 +2128,70 @@ function GestorFinanceView() {
           </DialogContent>
         </Dialog>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         {/* Card 1: Receita Total */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-3.5 sm:p-4">
+        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+          <CardContent className="p-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium">Receita Total</div>
-                <div className="mt-0.5 text-lg sm:text-xl font-bold text-foreground break-all">
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Receita Total</div>
+                <div className="mt-1 text-xl sm:text-2xl font-bold text-foreground break-all">
                   {money(totals.revenue)}
                 </div>
               </div>
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-500">
-                <DollarSign className="h-4 w-4" />
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                <DollarSign className="h-5 w-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Card 2: Custos com Freelancers */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-3.5 sm:p-4">
+        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+          <CardContent className="p-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium">Custos com Freelancers</div>
-                <div className="mt-0.5 text-lg sm:text-xl font-bold text-emerald-600 dark:text-emerald-400 break-all">
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Custos com Freelancers</div>
+                <div className="mt-1 text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 break-all">
                   {money(totals.freelancerCosts)}
                 </div>
               </div>
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500">
-                <Users className="h-4 w-4" />
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <Users className="h-5 w-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Card 3: Despesas Operacionais / Projetos */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-3.5 sm:p-4">
+        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+          <CardContent className="p-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium">Despesas Operacionais / Projetos</div>
-                <div className="mt-0.5 text-lg sm:text-xl font-bold text-rose-600 dark:text-rose-400 break-all">
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Despesas Operacionais / Projetos</div>
+                <div className="mt-1 text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400 break-all">
                   {money(totals.totalExpenses)}
                 </div>
-                <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
+                <div className="mt-1.5 text-[11px] text-muted-foreground flex items-center gap-1">
                   <Layers className="h-3 w-3 text-rose-500" />
                   <span>{totals.projectExpensesCount} em projetos • {totals.corporateExpensesCount} corporativas</span>
                 </div>
               </div>
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-500/10 text-rose-500">
-                <TrendingDown className="h-4 w-4" />
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                <TrendingDown className="h-5 w-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Card 4: Lucro Real Consolidado */}
-        <Card className="bg-card border-border">
-          <CardContent className="p-3.5 sm:p-4">
+        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+          <CardContent className="p-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium">Lucro Real Consolidado</div>
+                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Lucro Real Consolidado</div>
                 <div
-                  className={`mt-0.5 text-lg sm:text-xl font-bold break-all ${
+                  className={`mt-1 text-xl sm:text-2xl font-bold break-all ${
                     totals.realProfit >= 0
                       ? "text-emerald-600 dark:text-emerald-400"
                       : "text-rose-600 dark:text-rose-400"
@@ -2193,13 +2199,13 @@ function GestorFinanceView() {
                 >
                   {money(totals.realProfit)}
                 </div>
-                <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                <div className="mt-1.5 text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
                   <TrendingUp className="h-3 w-3 text-indigo-500" />
                   <span>Margem Líquida Real: {totals.profitMargin.toFixed(1)}%</span>
                 </div>
               </div>
-              <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500">
-                <TrendingUp className="h-4 w-4" />
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                <TrendingUp className="h-5 w-5" />
               </div>
             </div>
           </CardContent>
@@ -2953,85 +2959,85 @@ function GestorFinanceView() {
         {/* ── ABA 2: EMISSÃO DE NFS-E ──────────────────────────────────────── */}
         <TabsContent value="nfse" className="space-y-6 focus-visible:outline-none">
           {/* Métricas de Faturamento Fiscal */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            <Card className="bg-card border-blue-500/20 shadow-xs">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+              <CardContent className="p-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                       Total Faturado (NFS-e)
-                    </span>
-                    <div className="mt-1.5 text-2xl font-bold text-blue-600">
+                    </div>
+                    <div className="mt-1 text-xl sm:text-2xl font-bold text-blue-600 dark:text-blue-400 break-all">
                       {money(nfseTotals.totalBilled)}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <p className="text-[11px] text-muted-foreground mt-1">
                       Notas fiscais autorizadas
                     </p>
                   </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-blue-500/10 text-blue-600">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
                     <Receipt className="h-5 w-5" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-emerald-500/20 shadow-xs">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+              <CardContent className="p-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                       Notas Emitidas
-                    </span>
-                    <div className="mt-1.5 text-2xl font-bold text-foreground">
+                    </div>
+                    <div className="mt-1 text-xl sm:text-2xl font-bold text-foreground break-all">
                       {nfseTotals.totalCount}
                     </div>
-                    <p className="text-[11px] text-emerald-600 font-medium mt-0.5">
+                    <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-1">
                       Histórico completo
                     </p>
                   </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                     <CheckCircle2 className="h-5 w-5" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-purple-500/20 shadow-xs">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+              <CardContent className="p-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                       ISS Calculado
-                    </span>
-                    <div className="mt-1.5 text-2xl font-bold text-purple-600">
+                    </div>
+                    <div className="mt-1 text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400 break-all">
                       {money(nfseTotals.totalIss)}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <p className="text-[11px] text-muted-foreground mt-1">
                       Tributo municipal provisionado
                     </p>
                   </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-purple-500/10 text-purple-600">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-purple-500/10 text-purple-600 dark:text-purple-400">
                     <Building className="h-5 w-5" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-amber-500/20 shadow-xs">
-              <CardContent className="p-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+            <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+              <CardContent className="p-0">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                       Em Análise / Atenção
-                    </span>
-                    <div className="mt-1.5 text-2xl font-bold text-amber-600">
+                    </div>
+                    <div className="mt-1 text-xl sm:text-2xl font-bold text-amber-600 dark:text-amber-400 break-all">
                       {nfseTotals.pendingCount}
                     </div>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <p className="text-[11px] text-muted-foreground mt-1">
                       Processando ou com erro
                     </p>
                   </div>
-                  <div className="grid h-11 w-11 place-items-center rounded-xl bg-amber-500/10 text-amber-600">
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400">
                     <Clock className="h-5 w-5" />
                   </div>
                 </div>
@@ -3354,84 +3360,84 @@ function GestorFinanceView() {
           </Card>
 
           {/* 4 Cards de Resumo Rápido Contábil */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="bg-card border-border">
-              <CardContent className="p-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+            <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+              <CardContent className="p-0">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs text-muted-foreground font-medium">Receita Bruta</div>
-                    <div className="mt-0.5 text-xl font-bold text-foreground break-all">
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Receita Bruta</div>
+                    <div className="mt-1 text-xl sm:text-2xl font-bold text-foreground break-all">
                       {money(accountingData.grossRevenue)}
                     </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
+                    <div className="mt-1.5 text-[11px] text-muted-foreground flex items-center gap-1">
                       <FolderKanban className="h-3 w-3 text-blue-500" />
                       <span>{accountingData.filteredProjects.length} contratos no período</span>
                     </div>
                   </div>
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-blue-500/10 text-blue-500">
-                    <DollarSign className="h-4 w-4" />
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400">
+                    <DollarSign className="h-5 w-5" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border">
-              <CardContent className="p-4">
+            <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+              <CardContent className="p-0">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs text-muted-foreground font-medium">Lucro Bruto Operacional</div>
-                    <div className="mt-0.5 text-xl font-bold text-emerald-600 dark:text-emerald-400 break-all">
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Lucro Bruto Operacional</div>
+                    <div className="mt-1 text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 break-all">
                       {money(accountingData.grossProfit)}
                     </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                    <div className="mt-1.5 text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
                       <TrendingUp className="h-3 w-3 text-emerald-500" />
                       <span>Margem Bruta: {accountingData.grossMargin.toFixed(1)}%</span>
                     </div>
                   </div>
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-emerald-500/10 text-emerald-500">
-                    <TrendingUp className="h-4 w-4" />
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                    <TrendingUp className="h-5 w-5" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border">
-              <CardContent className="p-4">
+            <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+              <CardContent className="p-0">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs text-muted-foreground font-medium">Despesas OPEX Corporativas</div>
-                    <div className="mt-0.5 text-xl font-bold text-rose-600 dark:text-rose-400 break-all">
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Despesas OPEX Corporativas</div>
+                    <div className="mt-1 text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400 break-all">
                       {money(accountingData.opex.total)}
                     </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1">
+                    <div className="mt-1.5 text-[11px] text-muted-foreground flex items-center gap-1">
                       <Layers className="h-3 w-3 text-rose-500" />
                       <span>SaaS, IA, Fixos e Mídia</span>
                     </div>
                   </div>
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-rose-500/10 text-rose-500">
-                    <TrendingDown className="h-4 w-4" />
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
+                    <TrendingDown className="h-5 w-5" />
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            <Card className="bg-card border-border">
-              <CardContent className="p-4">
+            <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+              <CardContent className="p-0">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs text-muted-foreground font-medium">
+                    <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
                       {reportRegime === "competencia" ? "Lucro Líquido Real" : "Saldo Líquido de Caixa"}
                     </div>
                     <div
-                      className={`mt-0.5 text-xl font-bold break-all ${
+                      className={`mt-1 text-xl sm:text-2xl font-bold break-all ${
                         accountingData.netProfit >= 0
-                          ? "text-indigo-600 dark:text-indigo-400"
+                          ? "text-emerald-600 dark:text-emerald-400"
                           : "text-rose-600 dark:text-rose-400"
                       }`}
                     >
                       {money(reportRegime === "competencia" ? accountingData.netProfit : accountingData.cashFlow.netCashFlow)}
                     </div>
-                    <div className="mt-1 text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
+                    <div className="mt-1.5 text-[11px] text-muted-foreground flex items-center gap-1 font-medium">
                       <CheckCircle2 className="h-3 w-3 text-indigo-500" />
                       <span>
                         {reportRegime === "competencia"
@@ -3440,107 +3446,53 @@ function GestorFinanceView() {
                       </span>
                     </div>
                   </div>
-                  <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-indigo-500/10 text-indigo-500">
-                    <Wallet className="h-4 w-4" />
+                  <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-500/10 text-indigo-600 dark:text-indigo-400">
+                    <Wallet className="h-5 w-5" />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Navegação Secundária dos 6 Módulos de Relatórios Contábeis */}
-          <div className="flex items-center gap-1.5 p-1 bg-muted/60 rounded-xl border border-border overflow-x-auto">
-            <button
-              type="button"
-              onClick={() => setReportSubTab("dre_dfc")}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                reportSubTab === "dre_dfc"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <BarChart3 className="h-3.5 w-3.5 text-blue-500" />
-              <span>A. DRE & DFC</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportSubTab("inadimplencia")}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                reportSubTab === "inadimplencia"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <AlertCircle className="h-3.5 w-3.5 text-rose-500" />
-              <span>B. Inadimplência & Aging ({accountingData.agingList.filter((x) => x.isOverdue).length})</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportSubTab("lucratividade")}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                reportSubTab === "lucratividade"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-              <span>C. Rentabilidade por Projeto</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportSubTab("projecao")}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                reportSubTab === "projecao"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <CalendarDays className="h-3.5 w-3.5 text-amber-500" />
-              <span>D. Projeção de Contas (30/60/90d)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportSubTab("balanco")}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                reportSubTab === "balanco"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Scale className="h-3.5 w-3.5 text-indigo-500" />
-              <span>E. Balanço Patrimonial</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setReportSubTab("fiscal")}
-              className={`px-3 py-2 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 whitespace-nowrap ${
-                reportSubTab === "fiscal"
-                  ? "bg-background text-foreground shadow-xs"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <ReceiptText className="h-3.5 w-3.5 text-purple-500" />
-              <span>F. Fechamento Fiscal Contábil</span>
-            </button>
+          {/* Navegação Secundária dos Módulos de Relatórios Contábeis (Pills / Segmented Control Minimalista) */}
+          <div className="bg-slate-100/80 dark:bg-muted/60 p-1.5 rounded-2xl border border-slate-200/80 dark:border-border flex flex-wrap gap-1.5">
+            {[
+              { key: "dre_dfc", label: "DRE & DFC" },
+              { key: "inadimplencia", label: "Inadimplência & Aging" },
+              { key: "lucratividade", label: "Rentabilidade por Projeto" },
+              { key: "projecao", label: "Projeção de Contas" },
+              { key: "balanco", label: "Balanço Patrimonial" },
+              { key: "fiscal", label: "Fechamento Fiscal Contábil" },
+            ].map((tab) => (
+              <button
+                key={tab.key}
+                type="button"
+                onClick={() => setReportSubTab(tab.key as any)}
+                className={`flex-1 min-w-fit px-4 py-2 rounded-xl text-xs transition-all whitespace-nowrap text-center ${
+                  reportSubTab === tab.key
+                    ? "bg-white dark:bg-background text-foreground font-bold shadow-xs border border-slate-200/60 dark:border-border"
+                    : "text-muted-foreground hover:text-foreground font-medium"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {/* ── MÓDULO A: DRE & DFC ────────────────────────────────────────── */}
           {reportSubTab === "dre_dfc" && (
             <div className="space-y-6">
-              <Card className="bg-card border-border shadow-xs">
-                <CardHeader className="pb-3 border-b border-border">
+              <Card className="bg-card border border-slate-200/80 dark:border-border shadow-xs rounded-2xl overflow-hidden">
+                <CardHeader className="p-5 border-b border-slate-100 dark:border-border">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div>
-                      <CardTitle className="text-base font-bold text-foreground flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-blue-500" />
-                        <span>
-                          {reportRegime === "competencia"
-                            ? "Demonstração do Resultado do Exercício (DRE Gerencial)"
-                            : "Demonstração do Fluxo de Caixa (DFC — Regime de Caixa)"}
-                        </span>
+                      <CardTitle className="text-base font-bold text-foreground">
+                        {reportRegime === "competencia"
+                          ? "Demonstração do Resultado do Exercício (DRE Gerencial)"
+                          : "Demonstração do Fluxo de Caixa (DFC — Regime de Caixa)"}
                       </CardTitle>
                       <CardDescription className="text-xs text-muted-foreground mt-0.5">
-                        Linhas consolidadas e detalhamento analítico com suporte a linhas expansíveis (acordeão).
+                        Linhas consolidadas e detalhamento analítico com suporte a linhas expansíveis.
                       </CardDescription>
                     </div>
                     <Badge variant="outline" className="text-xs font-semibold self-start sm:self-auto">
@@ -3551,7 +3503,7 @@ function GestorFinanceView() {
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
-                      <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                      <thead className="bg-slate-50/80 dark:bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border">
                         <tr>
                           <th className="text-left px-4 py-3 font-semibold">Conta / Discriminação Contábil</th>
                           <th className="text-center px-4 py-3 font-semibold">Composição</th>
@@ -3560,16 +3512,15 @@ function GestorFinanceView() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {/* (+) RECEITA BRUTA OPERACIONAL */}
+                        {/* RECEITA BRUTA OPERACIONAL */}
                         <tr className="bg-muted/20 font-bold">
-                          <td className="px-4 py-3.5 text-foreground flex items-center gap-2">
-                            <Plus className="h-4 w-4 text-emerald-500" />
-                            <span>(+) RECEITA BRUTA OPERACIONAL</span>
+                          <td className="px-4 py-3.5 text-foreground">
+                            RECEITA BRUTA OPERACIONAL
                           </td>
                           <td className="px-4 py-3.5 text-center text-muted-foreground">
                             {accountingData.filteredProjects.length} Projetos
                           </td>
-                          <td className="px-4 py-3.5 text-right font-extrabold text-foreground">
+                          <td className="px-4 py-3.5 text-right font-bold text-emerald-600 dark:text-emerald-400">
                             {money(accountingData.grossRevenue)}
                           </td>
                           <td className="px-4 py-3.5 text-right text-muted-foreground font-semibold">
@@ -3577,16 +3528,13 @@ function GestorFinanceView() {
                           </td>
                         </tr>
 
-                        {/* (-) CUSTOS DIRETOS DOS PROJETOS (COGS) Header */}
+                        {/* CUSTOS DIRETOS DOS PROJETOS (COGS) Header */}
                         <tr
                           onClick={() => setExpandedSections((s) => ({ ...s, cogs: !s.cogs }))}
                           className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors font-bold"
                         >
-                          <td className="px-4 py-3 text-rose-600 dark:text-rose-400 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Zap className="h-4 w-4 text-amber-500" />
-                              <span>(-) CUSTOS DIRETOS DOS PROJETOS (COGS / CPV)</span>
-                            </div>
+                          <td className="px-4 py-3 text-foreground flex items-center justify-between">
+                            <span>CUSTOS DIRETOS DOS PROJETOS (COGS / CPV)</span>
                             <Button size="icon" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground">
                               {expandedSections.cogs ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                             </Button>
@@ -3594,10 +3542,10 @@ function GestorFinanceView() {
                           <td className="px-4 py-3 text-center text-muted-foreground font-normal">
                             Freelancers + APIs + Mídia
                           </td>
-                          <td className="px-4 py-3 text-right font-bold text-rose-600 dark:text-rose-400">
+                          <td className="px-4 py-3 text-right font-bold text-red-600 dark:text-red-400">
                             -{money(accountingData.cogs.total)}
                           </td>
-                          <td className="px-4 py-3 text-right text-rose-600 font-semibold">
+                          <td className="px-4 py-3 text-right text-red-600 font-semibold">
                             {accountingData.grossRevenue > 0
                               ? ((accountingData.cogs.total / accountingData.grossRevenue) * 100).toFixed(1)
                               : 0}%
@@ -3608,14 +3556,13 @@ function GestorFinanceView() {
                         {expandedSections.cogs && (
                           <>
                             <tr className="bg-background hover:bg-muted/20 transition-colors">
-                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                <Users className="h-3.5 w-3.5 text-violet-500" />
-                                <span>Repasses a Freelancers & Prestadores</span>
+                              <td className="px-8 py-2 text-muted-foreground">
+                                Repasses a Freelancers & Prestadores
                               </td>
                               <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">
                                 {accountingData.filteredPayouts.length} pagamentos
                               </td>
-                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                              <td className="px-4 py-2 text-right text-red-600 font-medium">
                                 -{money(accountingData.cogs.freela)}
                               </td>
                               <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3623,12 +3570,11 @@ function GestorFinanceView() {
                               </td>
                             </tr>
                             <tr className="bg-background hover:bg-muted/20 transition-colors">
-                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                <Zap className="h-3.5 w-3.5 text-amber-500" />
-                                <span>APIs & Webhooks Diretos (OpenAI, WhatsApp, etc.)</span>
+                              <td className="px-8 py-2 text-muted-foreground">
+                                APIs & Webhooks Diretos (OpenAI, WhatsApp, etc.)
                               </td>
                               <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Custos de IA por projeto</td>
-                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                              <td className="px-4 py-2 text-right text-red-600 font-medium">
                                 -{money(accountingData.cogs.apis)}
                               </td>
                               <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3636,12 +3582,11 @@ function GestorFinanceView() {
                               </td>
                             </tr>
                             <tr className="bg-background hover:bg-muted/20 transition-colors">
-                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                <Megaphone className="h-3.5 w-3.5 text-rose-500" />
-                                <span>Tráfego Pago & Mídia de Clientes (Ads)</span>
+                              <td className="px-8 py-2 text-muted-foreground">
+                                Tráfego Pago & Mídia de Clientes (Ads)
                               </td>
                               <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Meta / Google Ads</td>
-                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                              <td className="px-4 py-2 text-right text-red-600 font-medium">
                                 -{money(accountingData.cogs.ads)}
                               </td>
                               <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3649,12 +3594,11 @@ function GestorFinanceView() {
                               </td>
                             </tr>
                             <tr className="bg-background hover:bg-muted/20 transition-colors">
-                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                <Globe className="h-3.5 w-3.5 text-cyan-500" />
-                                <span>Domínios & Infraestrutura Dedicada</span>
+                              <td className="px-8 py-2 text-muted-foreground">
+                                Domínios & Infraestrutura Dedicada
                               </td>
                               <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Servidores e registros</td>
-                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                              <td className="px-4 py-2 text-right text-red-600 font-medium">
                                 -{money(accountingData.cogs.dominios)}
                               </td>
                               <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3663,12 +3607,11 @@ function GestorFinanceView() {
                             </tr>
                             {accountingData.cogs.other > 0 && (
                               <tr className="bg-background hover:bg-muted/20 transition-colors">
-                                <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span>Outros Custos Diretos de Entrega</span>
+                                <td className="px-8 py-2 text-muted-foreground">
+                                  Outros Custos Diretos de Entrega
                                 </td>
                                 <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Diversos de projetos</td>
-                                <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                <td className="px-4 py-2 text-right text-red-600 font-medium">
                                   -{money(accountingData.cogs.other)}
                                 </td>
                                 <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3679,33 +3622,37 @@ function GestorFinanceView() {
                           </>
                         )}
 
-                        {/* (=) LUCRO BRUTO OPERACIONAL */}
-                        <tr className="bg-emerald-500/10 font-bold border-y-2 border-border">
-                          <td className="px-4 py-3.5 text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                            <Calculator className="h-4 w-4 text-emerald-500" />
-                            <span>(=) LUCRO BRUTO OPERACIONAL</span>
+                        {/* LUCRO BRUTO OPERACIONAL */}
+                        <tr className="bg-slate-50 dark:bg-zinc-900/60 font-bold border-y-2 border-border">
+                          <td className="px-4 py-3.5 text-slate-900 dark:text-white font-bold">
+                            LUCRO BRUTO OPERACIONAL
                           </td>
-                          <td className="px-4 py-3.5 text-center text-emerald-700 dark:text-emerald-300 font-semibold">
+                          <td className="px-4 py-3.5 text-center text-slate-700 dark:text-zinc-300 font-semibold">
                             Margem Bruta: {accountingData.grossMargin.toFixed(1)}%
                           </td>
-                          <td className="px-4 py-3.5 text-right font-extrabold text-emerald-700 dark:text-emerald-300 text-sm">
+                          <td className={`px-4 py-3.5 text-right font-bold text-sm ${
+                            accountingData.grossProfit >= 0
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-red-600 dark:text-red-400"
+                          }`}>
                             {money(accountingData.grossProfit)}
                           </td>
-                          <td className="px-4 py-3.5 text-right text-emerald-700 dark:text-emerald-300 font-extrabold">
+                          <td className={`px-4 py-3.5 text-right font-bold ${
+                            accountingData.grossProfit >= 0
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-red-600 dark:text-red-400"
+                          }`}>
                             {accountingData.grossMargin.toFixed(1)}%
                           </td>
                         </tr>
 
-                        {/* (-) DESPESAS OPERACIONAIS (OPEX) Header */}
+                        {/* DESPESAS OPERACIONAIS (OPEX) Header */}
                         <tr
                           onClick={() => setExpandedSections((s) => ({ ...s, opex: !s.opex }))}
                           className="bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors font-bold"
                         >
-                          <td className="px-4 py-3 text-rose-600 dark:text-rose-400 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <Building className="h-4 w-4 text-slate-500" />
-                              <span>(-) DESPESAS OPERACIONAIS / CORPORATIVAS (OPEX)</span>
-                            </div>
+                          <td className="px-4 py-3 text-foreground flex items-center justify-between">
+                            <span>DESPESAS OPERACIONAIS / CORPORATIVAS (OPEX)</span>
                             <Button size="icon" variant="ghost" className="h-6 w-6 p-0 text-muted-foreground">
                               {expandedSections.opex ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                             </Button>
@@ -3713,10 +3660,10 @@ function GestorFinanceView() {
                           <td className="px-4 py-3 text-center text-muted-foreground font-normal">
                             SaaS + IA + Marketing + Fixos
                           </td>
-                          <td className="px-4 py-3 text-right font-bold text-rose-600 dark:text-rose-400">
+                          <td className="px-4 py-3 text-right font-bold text-red-600 dark:text-red-400">
                             -{money(accountingData.opex.total)}
                           </td>
-                          <td className="px-4 py-3 text-right text-rose-600 font-semibold">
+                          <td className="px-4 py-3 text-right text-red-600 font-semibold">
                             {accountingData.grossRevenue > 0
                               ? ((accountingData.opex.total / accountingData.grossRevenue) * 100).toFixed(1)
                               : 0}%
@@ -3727,12 +3674,11 @@ function GestorFinanceView() {
                         {expandedSections.opex && (
                           <>
                             <tr className="bg-background hover:bg-muted/20 transition-colors">
-                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                <Wrench className="h-3.5 w-3.5 text-blue-500" />
-                                <span>Ferramentas & Softwares SaaS (Vercel, Supabase, Adobe)</span>
+                              <td className="px-8 py-2 text-muted-foreground">
+                                Ferramentas & Softwares SaaS (Vercel, Supabase, Adobe)
                               </td>
                               <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Infraestrutura corporativa</td>
-                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                              <td className="px-4 py-2 text-right text-red-600 font-medium">
                                 -{money(accountingData.opex.saas)}
                               </td>
                               <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3740,12 +3686,11 @@ function GestorFinanceView() {
                               </td>
                             </tr>
                             <tr className="bg-background hover:bg-muted/20 transition-colors">
-                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                <Bot className="h-3.5 w-3.5 text-indigo-500" />
-                                <span>Ferramentas de IA & Automação Corporativa (ChatGPT, Make)</span>
+                              <td className="px-8 py-2 text-muted-foreground">
+                                Ferramentas de IA & Automação Corporativa (ChatGPT, Make)
                               </td>
                               <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Assinaturas da agência</td>
-                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                              <td className="px-4 py-2 text-right text-red-600 font-medium">
                                 -{money(accountingData.opex.ia)}
                               </td>
                               <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3753,12 +3698,11 @@ function GestorFinanceView() {
                               </td>
                             </tr>
                             <tr className="bg-background hover:bg-muted/20 transition-colors">
-                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                <Sparkles className="h-3.5 w-3.5 text-pink-500" />
-                                <span>Influencers & Marketing Próprio da Agência</span>
+                              <td className="px-8 py-2 text-muted-foreground">
+                                Influencers & Marketing Próprio da Agência
                               </td>
                               <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Branding e publis</td>
-                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                              <td className="px-4 py-2 text-right text-red-600 font-medium">
                                 -{money(accountingData.opex.marketing)}
                               </td>
                               <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3766,12 +3710,11 @@ function GestorFinanceView() {
                               </td>
                             </tr>
                             <tr className="bg-background hover:bg-muted/20 transition-colors">
-                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                <Target className="h-3.5 w-3.5 text-emerald-500" />
-                                <span>Aquisição de Leads & Prospecção (Apollo, Scrapers)</span>
+                              <td className="px-8 py-2 text-muted-foreground">
+                                Aquisição de Leads & Prospecção (Apollo, Scrapers)
                               </td>
                               <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Cold mail e bases</td>
-                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                              <td className="px-4 py-2 text-right text-red-600 font-medium">
                                 -{money(accountingData.opex.leads)}
                               </td>
                               <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3779,12 +3722,11 @@ function GestorFinanceView() {
                               </td>
                             </tr>
                             <tr className="bg-background hover:bg-muted/20 transition-colors">
-                              <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                <Building2 className="h-3.5 w-3.5 text-slate-500" />
-                                <span>Custos Operacionais Fixos (Aluguel, Contabilidade)</span>
+                              <td className="px-8 py-2 text-muted-foreground">
+                                Custos Operacionais Fixos (Aluguel, Contabilidade)
                               </td>
                               <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Estrutura e serviços</td>
-                              <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                              <td className="px-4 py-2 text-right text-red-600 font-medium">
                                 -{money(accountingData.opex.fixos)}
                               </td>
                               <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3793,12 +3735,11 @@ function GestorFinanceView() {
                             </tr>
                             {accountingData.opex.other > 0 && (
                               <tr className="bg-background hover:bg-muted/20 transition-colors">
-                                <td className="px-8 py-2 text-muted-foreground flex items-center gap-2">
-                                  <Package className="h-3.5 w-3.5 text-muted-foreground" />
-                                  <span>Outras Despesas Variáveis Corporativas</span>
+                                <td className="px-8 py-2 text-muted-foreground">
+                                  Outras Despesas Variáveis Corporativas
                                 </td>
                                 <td className="px-4 py-2 text-center text-muted-foreground text-[10px]">Deslocamento e taxas</td>
-                                <td className="px-4 py-2 text-right text-rose-500 font-medium">
+                                <td className="px-4 py-2 text-right text-red-600 font-medium">
                                   -{money(accountingData.opex.other)}
                                 </td>
                                 <td className="px-4 py-2 text-right text-muted-foreground">
@@ -3809,19 +3750,26 @@ function GestorFinanceView() {
                           </>
                         )}
 
-                        {/* (=) RESULTADO OPERACIONAL LÍQUIDO */}
-                        <tr className="bg-indigo-500/10 font-bold border-t-2 border-border">
-                          <td className="px-4 py-4 text-indigo-700 dark:text-indigo-300 flex items-center gap-2 text-sm">
-                            <CheckCircle2 className="h-5 w-5 text-indigo-500" />
-                            <span>(=) RESULTADO OPERACIONAL LÍQUIDO (LUCRO LÍQUIDO)</span>
+                        {/* RESULTADO OPERACIONAL LÍQUIDO */}
+                        <tr className="bg-slate-50 dark:bg-zinc-900/60 font-bold border-t-2 border-border">
+                          <td className="px-4 py-4 text-slate-900 dark:text-white font-bold text-sm">
+                            RESULTADO OPERACIONAL LÍQUIDO (LUCRO LÍQUIDO)
                           </td>
-                          <td className="px-4 py-4 text-center text-indigo-700 dark:text-indigo-300 font-semibold">
+                          <td className="px-4 py-4 text-center text-slate-700 dark:text-zinc-300 font-semibold">
                             Margem Líquida Real: {accountingData.netMargin.toFixed(1)}%
                           </td>
-                          <td className="px-4 py-4 text-right font-black text-indigo-700 dark:text-indigo-300 text-base">
+                          <td className={`px-4 py-4 text-right font-black text-base ${
+                            accountingData.netProfit >= 0
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-red-600 dark:text-red-400"
+                          }`}>
                             {money(accountingData.netProfit)}
                           </td>
-                          <td className="px-4 py-4 text-right text-indigo-700 dark:text-indigo-300 font-black text-sm">
+                          <td className={`px-4 py-4 text-right font-bold text-sm ${
+                            accountingData.netProfit >= 0
+                              ? "text-emerald-600 dark:text-emerald-400"
+                              : "text-red-600 dark:text-red-400"
+                          }`}>
                             {accountingData.netMargin.toFixed(1)}%
                           </td>
                         </tr>
@@ -3831,89 +3779,150 @@ function GestorFinanceView() {
                 </CardContent>
               </Card>
 
-              {/* Tabela Comparativa Mês a Mês do Ano Atual */}
-              <Card className="bg-card border-border shadow-xs">
-                <CardHeader className="pb-3 border-b border-border">
-                  <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                    <CalendarDays className="h-4 w-4 text-indigo-500" />
-                    <span>Evolução da DRE Mês a Mês — Ano {new Date().getFullYear()}</span>
-                  </CardTitle>
-                  <CardDescription className="text-xs text-muted-foreground">
-                    Acompanhamento de sazonalidade, receita bruta, despesas e margem líquida mês a mês.
-                  </CardDescription>
+              {/* Tabela Comparativa Mês a Mês com Filtros de Ano e Período */}
+              <Card className="bg-card border border-slate-200/80 dark:border-border shadow-xs rounded-2xl overflow-hidden">
+                <CardHeader className="p-5 border-b border-slate-100 dark:border-border">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-sm font-bold text-foreground">
+                        Evolução da {reportRegime === "competencia" ? "DRE" : "DFC"} Mês a Mês — Ano {dreEvolutionYear}
+                      </CardTitle>
+                      <CardDescription className="text-xs text-muted-foreground mt-0.5">
+                        Acompanhamento de sazonalidade, receita bruta, despesas e margem líquida {reportRegime === "competencia" ? "(Regime de Competência)" : "(Regime de Caixa)"}.
+                      </CardDescription>
+                    </div>
+
+                    {/* Controles de Filtro: Ano e Trimestre/Período */}
+                    <div className="flex items-center gap-2">
+                      <Select
+                        value={dreEvolutionYear}
+                        onValueChange={(v) => setDreEvolutionYear(v)}
+                      >
+                        <SelectTrigger className="w-28 h-8 text-xs font-semibold bg-background border-slate-200 dark:border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="2024">Ano 2024</SelectItem>
+                          <SelectItem value="2025">Ano 2025</SelectItem>
+                          <SelectItem value="2026">Ano 2026</SelectItem>
+                          <SelectItem value="2027">Ano 2027</SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Select
+                        value={dreEvolutionPeriod}
+                        onValueChange={(v) => setDreEvolutionPeriod(v as any)}
+                      >
+                        <SelectTrigger className="w-36 h-8 text-xs font-semibold bg-background border-slate-200 dark:border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Ano Completo (12M)</SelectItem>
+                          <SelectItem value="q1">1º Trim (Jan - Mar)</SelectItem>
+                          <SelectItem value="q2">2º Trim (Abr - Jun)</SelectItem>
+                          <SelectItem value="q3">3º Trim (Jul - Set)</SelectItem>
+                          <SelectItem value="q4">4º Trim (Out - Dez)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </CardHeader>
                 <CardContent className="p-0">
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs text-left">
-                      <thead className="bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border">
+                      <thead className="bg-slate-50/80 dark:bg-muted/50 text-[11px] uppercase tracking-wider text-muted-foreground border-b border-border">
                         <tr>
-                          <th className="px-3 py-2.5 font-semibold">Mês</th>
-                          <th className="px-3 py-2.5 text-right font-semibold">Receita Bruta</th>
-                          <th className="px-3 py-2.5 text-right font-semibold">Custos Diretos</th>
-                          <th className="px-3 py-2.5 text-right font-semibold">Lucro Bruto</th>
-                          <th className="px-3 py-2.5 text-right font-semibold">OPEX</th>
-                          <th className="px-3 py-2.5 text-right font-semibold">Lucro Líquido</th>
-                          <th className="px-3 py-2.5 text-right font-semibold">Margem %</th>
+                          <th className="px-4 py-3 font-semibold">Mês</th>
+                          <th className="px-4 py-3 text-right font-semibold">Receita Bruta</th>
+                          <th className="px-4 py-3 text-right font-semibold">Custos Diretos</th>
+                          <th className="px-4 py-3 text-right font-semibold">Lucro Bruto</th>
+                          <th className="px-4 py-3 text-right font-semibold">OPEX</th>
+                          <th className="px-4 py-3 text-right font-semibold">Lucro Líquido</th>
+                          <th className="px-4 py-3 text-right font-semibold">Margem %</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {Array.from({ length: 12 }).map((_, mIdx) => {
-                          const currentYear = new Date().getFullYear();
-                          const mStart = new Date(currentYear, mIdx, 1);
-                          const mEnd = new Date(currentYear, mIdx + 1, 0, 23, 59, 59);
+                        {Array.from({ length: 12 })
+                          .map((_, mIdx) => mIdx)
+                          .filter((mIdx) => {
+                            if (dreEvolutionPeriod === "q1") return mIdx >= 0 && mIdx <= 2;
+                            if (dreEvolutionPeriod === "q2") return mIdx >= 3 && mIdx <= 5;
+                            if (dreEvolutionPeriod === "q3") return mIdx >= 6 && mIdx <= 8;
+                            if (dreEvolutionPeriod === "q4") return mIdx >= 9 && mIdx <= 11;
+                            return true;
+                          })
+                          .map((mIdx) => {
+                            const targetYear = Number(dreEvolutionYear) || new Date().getFullYear();
+                            const mStart = new Date(targetYear, mIdx, 1);
+                            const mEnd = new Date(targetYear, mIdx + 1, 0, 23, 59, 59);
 
-                          const mProjects = projects.filter((p) => {
-                            const d = new Date(p.created_at || (p as any).created_at);
-                            return d >= mStart && d <= mEnd;
-                          });
-                          const mRev = mProjects.reduce((a, b) => a + Number(b.budget || 0), 0);
-                          const mExpenses = combinedExpenses.filter((e) => {
-                            const d = new Date(e.dueDate ? e.dueDate + "T12:00:00" : Date.now());
-                            return d >= mStart && d <= mEnd;
-                          });
-                          const mDirectExp = mExpenses.filter((e) => Boolean(e.projectId)).reduce((a, b) => a + Number(b.amount || 0), 0);
-                          const mPayouts = allPayouts.filter((p) => {
-                            if (!p.due_date) return false;
-                            const d = new Date(p.due_date);
-                            return d >= mStart && d <= mEnd;
-                          }).reduce((a, b) => a + Number(b.amount || 0), 0);
-                          const mCogs = mPayouts + mDirectExp;
-                          const mGross = mRev - mCogs;
-                          const mOpex = mExpenses.filter((e) => !e.projectId).reduce((a, b) => a + Number(b.amount || 0), 0);
-                          const mNet = mGross - mOpex;
-                          const mMargin = mRev > 0 ? (mNet / mRev) * 100 : 0;
-                          const monthName = format(mStart, "MMM", { locale: ptBR }).toUpperCase();
+                            // Receita
+                            const mProjects = projects.filter((p) => {
+                              const d = new Date(p.created_at || (p as any).created_at);
+                              return d >= mStart && d <= mEnd;
+                            });
+                            const mRev = mProjects.reduce((a, b) => a + Number(b.budget || 0), 0);
 
-                          return (
-                            <tr key={mIdx} className="hover:bg-muted/20 transition-colors">
-                              <td className="px-3 py-2.5 font-bold text-foreground capitalize">
-                                {monthName}
-                              </td>
-                              <td className="px-3 py-2.5 text-right font-medium text-foreground">
-                                {money(mRev)}
-                              </td>
-                              <td className="px-3 py-2.5 text-right text-rose-500 font-medium">
-                                -{money(mCogs)}
-                              </td>
-                              <td className="px-3 py-2.5 text-right text-emerald-600 dark:text-emerald-400 font-semibold">
-                                {money(mGross)}
-                              </td>
-                              <td className="px-3 py-2.5 text-right text-rose-500 font-medium">
-                                -{money(mOpex)}
-                              </td>
-                              <td
-                                className={`px-3 py-2.5 text-right font-bold ${
-                                  mNet >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-rose-500"
-                                }`}
-                              >
-                                {money(mNet)}
-                              </td>
-                              <td className="px-3 py-2.5 text-right font-semibold text-foreground">
-                                {mMargin.toFixed(0)}%
-                              </td>
-                            </tr>
-                          );
-                        })}
+                            // Despesas
+                            const mExpenses = combinedExpenses.filter((e) => {
+                              const d = new Date(e.dueDate ? e.dueDate + "T12:00:00" : Date.now());
+                              return d >= mStart && d <= mEnd;
+                            });
+                            const mDirectExp = mExpenses
+                              .filter((e) => Boolean(e.projectId))
+                              .reduce((a, b) => a + Number(b.amount || 0), 0);
+
+                            // Payouts
+                            const mPayouts = allPayouts
+                              .filter((p) => {
+                                const targetDate = reportRegime === "caixa" ? (p.payment_date || p.due_date) : p.due_date;
+                                if (!targetDate) return false;
+                                const d = new Date(targetDate);
+                                return d >= mStart && d <= mEnd;
+                              })
+                              .reduce((a, b) => a + Number(b.amount || 0), 0);
+
+                            const mCogs = mPayouts + mDirectExp;
+                            const mGross = mRev - mCogs;
+                            const mOpex = mExpenses
+                              .filter((e) => !e.projectId)
+                              .reduce((a, b) => a + Number(b.amount || 0), 0);
+                            const mNet = mGross - mOpex;
+                            const mMargin = mRev > 0 ? (mNet / mRev) * 100 : 0;
+                            const monthName = format(mStart, "MMM", { locale: ptBR }).toUpperCase();
+
+                            return (
+                              <tr key={mIdx} className="hover:bg-muted/20 transition-colors">
+                                <td className="px-4 py-3 font-bold text-foreground">
+                                  {monthName}
+                                </td>
+                                <td className="px-4 py-3 text-right font-medium text-emerald-600 dark:text-emerald-400">
+                                  {money(mRev)}
+                                </td>
+                                <td className="px-4 py-3 text-right text-red-600 dark:text-red-400 font-medium">
+                                  {mCogs > 0 ? `-${money(mCogs)}` : money(0)}
+                                </td>
+                                <td className={`px-4 py-3 text-right font-semibold ${mGross >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>
+                                  {money(mGross)}
+                                </td>
+                                <td className="px-4 py-3 text-right text-red-600 dark:text-red-400 font-medium">
+                                  {mOpex > 0 ? `-${money(mOpex)}` : money(0)}
+                                </td>
+                                <td
+                                  className={`px-4 py-3 text-right font-bold ${
+                                    mNet >= 0
+                                      ? "text-emerald-600 dark:text-emerald-400"
+                                      : "text-red-600 dark:text-red-400"
+                                  }`}
+                                >
+                                  {money(mNet)}
+                                </td>
+                                <td className="px-4 py-3 text-right font-semibold text-foreground">
+                                  {mMargin.toFixed(0)}%
+                                </td>
+                              </tr>
+                            );
+                          })}
                       </tbody>
                     </table>
                   </div>

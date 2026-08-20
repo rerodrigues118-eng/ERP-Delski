@@ -116,6 +116,10 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
 };
 
 const DOC_LABELS: Record<string, string> = {
+  antecedentes_criminais: "Certidão de Antecedentes Criminais",
+  situacao_cpf: "Comprovante de Situação Cadastral do CPF",
+  situacao_cnpj: "Comprovante de Situação do CNPJ",
+  foto_rosto: "Foto do Rosto (Tipo 3x4)",
   cartao_cnpj: "Comprovante de CNPJ Ativo",
   doc_constitutivo: "Documento Constitutivo ou CCMEI",
   consulta_projudi: "Consulta ProJudi",
@@ -436,25 +440,25 @@ function FreelancerDetailPage() {
               value="cadastrais"
               className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
             >
-              <Building2 className="h-4 w-4" /> 1. Dados Cadastrais
+              <Building2 className="h-4 w-4" /> Dados Cadastrais
             </TabsTrigger>
             <TabsTrigger
               value="documentacao"
               className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
             >
-              <FileText className="h-4 w-4" /> 2. Documentação ({docs.length})
+              <FileText className="h-4 w-4" /> Documentação
             </TabsTrigger>
             <TabsTrigger
               value="financeiro"
               className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
             >
-              <CreditCard className="h-4 w-4" /> 3. Dados Financeiros
+              <CreditCard className="h-4 w-4" /> Dados Financeiros
             </TabsTrigger>
             <TabsTrigger
               value="notas"
               className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
             >
-              <Receipt className="h-4 w-4" /> 4. Notas Fiscais ({invoices.length})
+              <Receipt className="h-4 w-4" /> Notas Fiscais
             </TabsTrigger>
           </TabsList>
         </div>

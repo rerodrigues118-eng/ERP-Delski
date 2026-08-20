@@ -48,15 +48,24 @@ import {
 export const Route = createFileRoute("/app/approvals")({
   head: () => ({
     meta: [
-      { title: "Solicitações de Acesso — DELSKI CLOUD" },
-      {
-        name: "description",
-        content: "Gerencie e aprove novos cadastros de usuários e prestadores de serviço.",
-      },
+      { title: "Redirecionando — DELSKI CLOUD" },
     ],
   }),
-  component: ApprovalsPage,
+  component: ApprovalsRedirectPage,
 });
+
+function ApprovalsRedirectPage() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    navigate({ to: "/app", replace: true });
+  }, [navigate]);
+
+  return (
+    <div className="flex items-center justify-center min-h-[400px]">
+      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+    </div>
+  );
+}
 
 function ApprovalsPage() {
   const { isGestor, isLoading: authLoading } = useAuth();

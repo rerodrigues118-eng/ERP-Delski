@@ -76,41 +76,56 @@ export async function sendWelcomeEmail(to: { name: string; email: string }, cust
   const loginUrl =
     customLink ||
     (typeof window !== "undefined"
-      ? `${window.location.origin}/auth`
-      : "http://localhost:8080/auth");
+      ? `${window.location.origin}/portal/definir-senha?email=${encodeURIComponent(to.email)}`
+      : `https://delski.cloud/portal/definir-senha?email=${encodeURIComponent(to.email)}`);
 
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
-      <div style="text-align: center; margin-bottom: 24px;">
-        <h2 style="color: #4f46e5; margin: 0; font-size: 24px;">Bem-vindo(a) à Plataforma Delski!</h2>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
+      <!-- Header / Logo -->
+      <div style="text-align: center; margin-bottom: 32px;">
+        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
+        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
       </div>
-      <p style="font-size: 16px; color: #374151; line-height: 1.5;">Olá <strong>${to.name}</strong>,</p>
-      <p style="font-size: 15px; color: #4b5563; line-height: 1.5;">
-        Sua conta de freelancer foi cadastrada pelo Gestor na plataforma Delski (Automação com IA, Tráfego Pago, Sites e Social Media).
+
+      <!-- Formal Message -->
+      <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">
+        Olá, <strong>${to.name}</strong>.
       </p>
-      <div style="background-color: #f9fafb; padding: 16px; border-radius: 8px; margin: 20px 0; border: 1px solid #f3f4f6;">
-        <p style="margin: 0; font-size: 14px; color: #6b7280;">Seu e-mail de acesso:</p>
-        <p style="margin: 4px 0 0 0; font-size: 16px; font-weight: bold; color: #111827;">${to.email}</p>
+      <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 24px 0;">
+        Sua conta de acesso à plataforma Delski Cloud foi configurada pelo gestor responsável.<br/>
+        Clique no botão abaixo para concluir seu acesso e definir sua senha de entrada.
+      </p>
+
+      <!-- Email Card -->
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin-bottom: 28px;">
+        <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">E-mail cadastrado:</p>
+        <p style="margin: 4px 0 0 0; font-size: 15px; font-weight: 700; color: #0f172a;">${to.email}</p>
       </div>
-      <div style="text-align: center; margin: 28px 0;">
-        <a href="${loginUrl}" style="display: inline-block; background-color: #4f46e5; color: #ffffff; font-weight: bold; font-size: 16px; text-decoration: none; padding: 14px 28px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
-          🚀 Acesse o App & Crie / Entre na sua Conta
+
+      <!-- Compact Black CTA Button -->
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${loginUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #0f172a; color: #ffffff !important; font-weight: 600; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 8px;">
+          Acessar Plataforma
         </a>
       </div>
-      <p style="font-size: 13px; color: #6b7280; text-align: center;">
-        Ou acesse diretamente pelo link: <br/>
-        <a href="${loginUrl}" style="color: #4f46e5; word-break: break-all;">${loginUrl}</a>
+
+      <!-- Fallback Direct URL -->
+      <p style="font-size: 12px; color: #64748b; text-align: center; line-height: 1.5; margin: 24px 0 0 0;">
+        Ou acesse diretamente pelo link:<br/>
+        <a href="${loginUrl}" style="color: #0f172a; text-decoration: underline; word-break: break-all; font-size: 12px;">${loginUrl}</a>
       </p>
-      <hr style="border: 0; border-top: 1px solid #e5e7eb; margin: 24px 0;"/>
-      <p style="font-size: 12px; color: #9ca3af; text-align: center; margin: 0;">
-        Delski — Gestão de Projetos, Contratos & Freelancers
+
+      <!-- Minimalist Clean Footer -->
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0 20px 0;"/>
+      <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+        Delski Cloud — Gestão de Projetos
       </p>
     </div>
   `;
 
   const result = await sendBrevoEmail({
     to: [{ email: to.email, name: to.name }],
-    subject: "Convite de Acesso — Plataforma Delski",
+    subject: "Convite de Acesso — Delski Cloud",
     htmlContent: html,
   });
 
@@ -127,20 +142,32 @@ export async function sendOnboardingEmail(args: {
   onboardingLink: string;
 }) {
   const html = `
-    <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-      <h2 style="color: #4f46e5;">Bem-vindo(a) à plataforma Delski!</h2>
-      <p>Olá <strong>${args.to.name}</strong>,</p>
-      <p>Sua conta foi provisionada pelo Gestor. Use as credenciais temporárias abaixo para acessar e complete seu cadastro:</p>
-      <p><strong>E-mail:</strong> ${args.to.email}</p>
-      <p><strong>Senha temporária:</strong> <code>${args.tempPassword}</code></p>
-      <p style="margin-top:20px;"><a href="${args.onboardingLink}" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold;">Acessar e completar cadastro</a></p>
-      <p style="font-size:12px; color:#888; margin-top:20px;">Recomendamos trocar a senha após o primeiro acesso.</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
+        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
+      </div>
+      <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">Olá, <strong>${args.to.name}</strong>.</p>
+      <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 20px 0;">Sua conta de acesso à plataforma Delski Cloud foi configurada pelo gestor responsável.</p>
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px;">
+        <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase;">E-mail: <strong>${args.to.email}</strong></p>
+        <p style="margin: 6px 0 0 0; font-size: 13px; color: #0f172a;">Senha provisória: <code style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px;">${args.tempPassword}</code></p>
+      </div>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${args.onboardingLink}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #0f172a; color: #ffffff !important; font-weight: 600; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 8px;">
+          Acessar Plataforma
+        </a>
+      </div>
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0 20px 0;"/>
+      <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+        Delski Cloud — Gestão de Projetos
+      </p>
     </div>
   `;
 
   const result = await sendBrevoEmail({
     to: [{ email: args.to.email, name: args.to.name }],
-    subject: "Acesso provisório — Plataforma Delski",
+    subject: "Acesso Provisório — Delski Cloud",
     htmlContent: html,
   });
 
@@ -157,18 +184,28 @@ export async function sendClientInvite(args: {
   projectLink: string;
 }) {
   const html = `
-    <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-      <h2 style="color: #4f46e5;">Acesso ao Portal do Projeto — Delski</h2>
-      <p>Olá <strong>${args.to.name}</strong>,</p>
-      <p>O Gestor da Delski vinculou um projeto a você: <strong>${args.projectTitle}</strong>.</p>
-      <p style="margin-top:20px;"><a href="${args.projectLink}" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold;">Visualizar Projeto</a></p>
-      <p style="font-size:12px; color:#888; margin-top:20px;">Caso não consiga acessar, entre em contato com a equipe Delski.</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
+        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
+      </div>
+      <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">Olá, <strong>${args.to.name}</strong>.</p>
+      <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 20px 0;">O Gestor da Delski vinculou um projeto a você: <strong>${args.projectTitle}</strong>.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${args.projectLink}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #0f172a; color: #ffffff !important; font-weight: 600; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 8px;">
+          Visualizar Projeto
+        </a>
+      </div>
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0 20px 0;"/>
+      <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+        Delski Cloud — Gestão de Projetos
+      </p>
     </div>
   `;
 
   const result = await sendBrevoEmail({
     to: [{ email: args.to.email, name: args.to.name }],
-    subject: `Acesso ao Projeto: ${args.projectTitle} — Delski`,
+    subject: `Acesso ao Projeto: ${args.projectTitle} — Delski Cloud`,
     htmlContent: html,
   });
 
@@ -186,18 +223,29 @@ export async function sendDelegationEmail(args: {
   publicLink?: string;
 }) {
   const html = `
-    <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-      <h2 style="color: #4f46e5;">Novo Projeto Atribuído!</h2>
-      <p>Olá <strong>${args.to.name}</strong>,</p>
-      <p>Você foi alocado(a) para o projeto de <strong>${args.projectClient}</strong> na Delski.</p>
-      ${args.publicLink ? `<p><a href="${args.publicLink}" style="display:inline-block; padding:10px 20px; background:#4f46e5; color:#fff; text-decoration:none; border-radius:6px;">Acessar Projeto</a></p>` : ""}
-      <p style="font-size: 12px; color: #666;">Delski — Automação com IA, Tráfego, Sites e Social Media</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
+        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
+      </div>
+      <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">Olá, <strong>${args.to.name}</strong>.</p>
+      <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 20px 0;">Você foi alocado(a) para o projeto de <strong>${args.projectClient}</strong> na Delski.</p>
+      ${args.publicLink ? `
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${args.publicLink}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #0f172a; color: #ffffff !important; font-weight: 600; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 8px;">
+          Acessar Projeto
+        </a>
+      </div>` : ""}
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0 20px 0;"/>
+      <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+        Delski Cloud — Gestão de Projetos
+      </p>
     </div>
   `;
 
   const result = await sendBrevoEmail({
     to: [{ email: args.to.email, name: args.to.name }],
-    subject: `Alocação de Projeto: ${args.projectClient} — Delski`,
+    subject: `Alocação de Projeto: ${args.projectClient} — Delski Cloud`,
     htmlContent: html,
   });
 
@@ -214,9 +262,17 @@ export async function sendStatusChangeEmail(args: {
   status: string;
 }) {
   const html = `
-    <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-      <h3 style="color: #4f46e5;">Atualização de Status do Projeto</h3>
-      <p>O status do projeto <strong>${args.projectClient}</strong> mudou para: <strong>${args.status}</strong>.</p>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
+        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
+      </div>
+      <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">Atualização de Projeto</p>
+      <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 20px 0;">O status do projeto <strong>${args.projectClient}</strong> mudou para: <strong>${args.status}</strong>.</p>
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0 20px 0;"/>
+      <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+        Delski Cloud — Gestão de Projetos
+      </p>
     </div>
   `;
 
@@ -237,20 +293,28 @@ export async function sendTriageInviteEmail(args: {
   triageLink: string;
 }) {
   const html = `
-    <div style="font-family: sans-serif; max-width: 600px; padding: 20px; border: 1px solid #eee; border-radius: 8px;">
-      <h2 style="color: #4f46e5;">Convite de Triagem de Freelancer — Delski</h2>
-      <p>Olá <strong>${args.to.name}</strong>,</p>
-      <p>Você foi convidado(a) para responder à triagem do projeto <strong>${args.projectClient}</strong>.</p>
-      <p style="margin-top:20px;">
-        <a href="${args.triageLink}" style="display:inline-block; padding:12px 24px; background:#4f46e5; color:#fff; text-decoration:none; border-radius:6px; font-weight:bold;">Preencher Formulário de Triagem</a>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
+      <div style="text-align: center; margin-bottom: 32px;">
+        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
+        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
+      </div>
+      <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">Olá, <strong>${args.to.name}</strong>.</p>
+      <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 20px 0;">Você foi convidado(a) para responder à triagem do projeto <strong>${args.projectClient}</strong>.</p>
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${args.triageLink}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #0f172a; color: #ffffff !important; font-weight: 600; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 8px;">
+          Preencher Triagem
+        </a>
+      </div>
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0 20px 0;"/>
+      <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+        Delski Cloud — Gestão de Projetos
       </p>
-      <p style="font-size:12px; color:#888; margin-top:20px;">Link de acesso único: ${args.triageLink}</p>
     </div>
   `;
 
   const result = await sendBrevoEmail({
     to: [{ email: args.to.email, name: args.to.name }],
-    subject: `Convite de Triagem: Projeto ${args.projectClient} — Delski`,
+    subject: `Convite de Triagem: Projeto ${args.projectClient} — Delski Cloud`,
     htmlContent: html,
   });
 
@@ -273,65 +337,52 @@ export async function sendClientAccessInviteEmail(args: {
       : `https://delski.cloud/portal/definir-senha?email=${encodeURIComponent(args.to.email)}`);
 
   const html = `
-    <div style="background-color: #f4f4f5; padding: 32px 16px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-      <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; border: 1px solid #e4e4e7; overflow: hidden; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);">
-        <!-- Top Royal Blue Gradient Bar -->
-        <div style="height: 6px; background: linear-gradient(135deg, #1E40AF 0%, #2563EB 50%, #3B82F6 100%);"></div>
-
-        <div style="padding: 32px 28px;">
-          <!-- Header / Brand -->
-          <div style="text-align: center; margin-bottom: 28px;">
-            <span style="display: inline-block; padding: 4px 12px; background-color: #eff6ff; border: 1px solid #dbeafe; border-radius: 9999px; color: #1e40af; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
-              Portal do Cliente
-            </span>
-            <h1 style="color: #09090b; font-size: 22px; font-weight: 700; margin: 14px 0 6px 0; letter-spacing: -0.5px;">
-              Convite de Acesso | Delski ERP
-            </h1>
-            <p style="color: #71717a; font-size: 14px; margin: 0;">Gestão Integrada de Projetos & Demandas</p>
-          </div>
-
-          <!-- Body Content -->
-          <p style="font-size: 15px; color: #18181b; line-height: 1.6; margin: 0 0 16px 0;">
-            Olá, <strong>${args.to.name}</strong>${args.companyName ? ` (${args.companyName})` : ""}!
-          </p>
-          <p style="font-size: 14px; color: #3f3f46; line-height: 1.6; margin: 0 0 20px 0;">
-            Sua conta de cliente foi criada no <strong>Delski ERP</strong>. Clique no botão abaixo para ativar seu acesso e cadastrar sua senha inicial:
-          </p>
-
-          <!-- Email Highlight Box -->
-          <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin-bottom: 28px;">
-            <p style="margin: 0; font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Seu e-mail de login:</p>
-            <p style="margin: 4px 0 0 0; font-size: 15px; font-weight: 700; color: #0f172a;">${args.to.email}</p>
-          </div>
-
-          <!-- CTA Button -->
-          <div style="text-align: center; margin: 32px 0;">
-            <a href="${loginUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background: linear-gradient(135deg, #1D4ED8 0%, #2563EB 100%); color: #ffffff !important; font-weight: 700; font-size: 15px; text-decoration: none; padding: 14px 32px; border-radius: 8px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">
-              🔑 Ativar Conta & Criar Senha
-            </a>
-          </div>
-
-          <!-- Direct URL Fallback -->
-          <p style="font-size: 12px; color: #71717a; text-align: center; line-height: 1.5; margin: 24px 0 0 0;">
-            Caso o botão não funcione, copie e cole o link a seguir no seu navegador:<br/>
-            <a href="${loginUrl}" style="color: #2563eb; text-decoration: underline; word-break: break-all; font-size: 12px;">${loginUrl}</a>
-          </p>
-
-          <hr style="border: 0; border-top: 1px solid #e4e4e7; margin: 28px 0 20px 0;"/>
-
-          <!-- Footer -->
-          <p style="font-size: 12px; color: #a1a1aa; text-align: center; margin: 0; line-height: 1.5;">
-            © ${new Date().getFullYear()} Delski — Todos os direitos reservados.<br/>
-            Esta é uma mensagem automática de segurança.
-          </p>
-        </div>
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 580px; margin: 0 auto; padding: 40px 32px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; color: #0f172a;">
+      <!-- Header / Logo -->
+      <div style="text-align: center; margin-bottom: 32px;">
+        <span style="font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #0f172a;">DELSKI</span>
+        <span style="font-size: 15px; font-weight: 800; color: #475569; letter-spacing: 1.5px; margin-left: 4px; text-transform: uppercase;">CLOUD</span>
       </div>
+
+      <!-- Formal Message -->
+      <p style="font-size: 15px; color: #0f172a; line-height: 1.6; margin: 0 0 16px 0;">
+        Olá, <strong>${args.to.name}</strong>${args.companyName ? ` (${args.companyName})` : ""}.
+      </p>
+      <p style="font-size: 14px; color: #334155; line-height: 1.6; margin: 0 0 24px 0;">
+        Sua conta de acesso à plataforma Delski Cloud foi configurada pelo gestor responsável.<br/>
+        Clique no botão abaixo para concluir seu acesso e definir sua senha de entrada.
+      </p>
+
+      <!-- Email Card -->
+      <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px 18px; margin-bottom: 28px;">
+        <p style="margin: 0; font-size: 11px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">E-mail cadastrado:</p>
+        <p style="margin: 4px 0 0 0; font-size: 15px; font-weight: 700; color: #0f172a;">${args.to.email}</p>
+      </div>
+
+      <!-- Compact Black CTA Button -->
+      <div style="text-align: center; margin: 32px 0;">
+        <a href="${loginUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-block; background-color: #0f172a; color: #ffffff !important; font-weight: 600; font-size: 14px; text-decoration: none; padding: 12px 32px; border-radius: 8px;">
+          Acessar Plataforma
+        </a>
+      </div>
+
+      <!-- Fallback Direct URL -->
+      <p style="font-size: 12px; color: #64748b; text-align: center; line-height: 1.5; margin: 24px 0 0 0;">
+        Ou acesse diretamente pelo link:<br/>
+        <a href="${loginUrl}" style="color: #0f172a; text-decoration: underline; word-break: break-all; font-size: 12px;">${loginUrl}</a>
+      </p>
+
+      <!-- Minimalist Clean Footer -->
+      <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 32px 0 20px 0;"/>
+      <p style="font-size: 12px; color: #94a3b8; text-align: center; margin: 0;">
+        Delski Cloud — Gestão de Projetos
+      </p>
     </div>
   `;
 
   const result = await sendBrevoEmail({
     to: [{ email: args.to.email, name: args.to.name }],
-    subject: "Convite de Acesso ao Portal do Cliente | Delski ERP",
+    subject: "Convite de Acesso — Delski Cloud",
     htmlContent: html,
   });
 
@@ -344,7 +395,7 @@ export async function sendClientAccessInviteEmail(args: {
         label: "Copiar Link",
         onClick: () => {
           navigator.clipboard.writeText(loginUrl);
-          toast.success("Link direto do portal copiado para a área de transferência!");
+          toast.success("Link copiado para a área de transferência!");
         },
       },
     });
