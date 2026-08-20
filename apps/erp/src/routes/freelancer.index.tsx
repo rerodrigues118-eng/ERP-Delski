@@ -39,7 +39,25 @@ import {
   Filter,
   Eye,
   Layers,
+  BarChart3,
+  TrendingUp,
+  PieChart as PieChartIcon,
+  Sparkles,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  AreaChart,
+  Area,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+} from "recharts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -143,6 +161,46 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
   pendente: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
+const FreelancerFeesTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    const item = payload[0];
+    const val = item.value || 0;
+    const count = item.payload?.projetos || 0;
+    return (
+      <div className="rounded-2xl border border-gray-200/80 bg-white/95 p-3.5 shadow-xl backdrop-blur-md text-xs space-y-1">
+        <p className="font-bold text-gray-900">{label}</p>
+        <div className="flex items-center gap-1.5 text-emerald-600 font-extrabold text-sm">
+          <span>{money(val)}</span>
+        </div>
+        {count > 0 && (
+          <p className="text-[11px] text-gray-500 font-medium pt-0.5 border-t border-gray-100">
+            {count} demanda(s) no período
+          </p>
+        )}
+      </div>
+    );
+  }
+  return null;
+};
+
+const FreelancerStatusPieTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    return (
+      <div className="rounded-2xl border border-gray-200/80 bg-white/95 p-3 shadow-xl backdrop-blur-md text-xs space-y-0.5">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.payload?.color }} />
+          <span className="font-bold text-gray-900">{data.name}</span>
+        </div>
+        <p className="text-gray-600 text-[11px] font-semibold pl-4">
+          {data.value} projeto(s) • {data.payload?.percent}%
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 function FreelancerDashboardPage() {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -240,6 +298,122 @@ function FreelancerDashboardPage() {
     (acc, p) => acc + Number(p.freelancer_cost || 0),
     0
   );
+
+  // Dados para Gráfico 1: Evolução dos Honorários Mês a Mês
+  const monthlyHonorariosData = useMemo(() => {
+    const months = [
+      { label: "Jan" },
+      { label: "Fev" },
+      { label: "Mar" },
+      { label: "Abr" },
+      { label: "Mai" },
+      { label: "Jun" },
+      { label: "Jul" },
+      { label: "Ago" },
+      { label: "Set" },
+      { label: "Out" },
+      { label: "Nov" },
+      { label: "Dez" },
+    ];
+
+    const data = months.map((m) => ({
+      mes: m.label,
+      honorarios: 0,
+      projetos: 0,
+    }));
+
+    assignedProjects.forEach((p) => {
+      const dateStr = p.deadline || p.created_at;
+      if (dateStr) {
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+          const m = d.getMonth();
+          if (m >= 0 && m < 12) {
+            data[m].honorarios += Number(p.freelancer_cost || 0);
+            data[m].projetos += 1;
+          }
+        }
+      }
+    });
+
+    invoices.forEach((inv) => {
+      if (inv.issue_date) {
+        const d = new Date(inv.issue_date);
+        if (!isNaN(d.getTime())) {
+          const m = d.getMonth();
+          if (m >= 0 && m < 12 && data[m].honorarios === 0) {
+            data[m].honorarios += Number(inv.amount || 0);
+          }
+        }
+      }
+    });
+
+    // Se o total geral é positivo mas não caiu nos meses acima, ancorar no mês atual
+    const totalCalc = data.reduce((acc, curr) => acc + curr.honorarios, 0);
+    if (totalCalc === 0 && totalHonorarios > 0) {
+      const curMonth = new Date().getMonth();
+      data[curMonth].honorarios = totalHonorarios;
+      data[curMonth].projetos = assignedProjects.length;
+    }
+
+    return data;
+  }, [assignedProjects, invoices, totalHonorarios]);
+
+  // Dados para Gráfico 2: Distribuição de Projetos & Demandas
+  const projectDistributionData = useMemo(() => {
+    let inProgress = 0;
+    let awaiting = 0;
+    let inReview = 0;
+    let completed = 0;
+
+    assignedProjects.forEach((p) => {
+      const s = p.status;
+      if (s === "Concluido") {
+        completed++;
+      } else if (s === "Em Revisao" || s === "Revisão de Contrato") {
+        inReview++;
+      } else if (s === "Em Andamento" || s === "Em Producao") {
+        inProgress++;
+      } else {
+        awaiting++;
+      }
+    });
+
+    const total = assignedProjects.length;
+
+    const list = [
+      {
+        name: "Em Andamento",
+        value: inProgress,
+        color: "#2563EB",
+        percent: total ? Math.round((inProgress / total) * 100) : 0,
+      },
+      {
+        name: "Aguardando Início",
+        value: awaiting,
+        color: "#F59E0B",
+        percent: total ? Math.round((awaiting / total) * 100) : 0,
+      },
+      {
+        name: "Em Revisão",
+        value: inReview,
+        color: "#8B5CF6",
+        percent: total ? Math.round((inReview / total) * 100) : 0,
+      },
+      {
+        name: "Concluídos",
+        value: completed,
+        color: "#10B981",
+        percent: total ? Math.round((completed / total) * 100) : 0,
+      },
+    ];
+
+    return {
+      list,
+      total,
+      hasData: total > 0,
+    };
+  }, [assignedProjects]);
 
   const hasPendingDocsOrBank =
     freelancerDocs.length < 3 ||
@@ -498,6 +672,169 @@ function FreelancerDashboardPage() {
               <p className="text-xs text-gray-400 mt-1 font-medium">
                 {invoices.length} nota(s) fiscal(is) emitida(s)
               </p>
+            </div>
+          </div>
+
+          {/* ── SEÇÃO DE GRÁFICOS: Visão Geral e Desempenho ─────────────── */}
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div>
+                <h3 className="text-base font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-blue-600" /> Visão Geral & Desempenho
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Acompanhe a evolução dos seus honorários acumulados e o status das demandas atribuídas.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+              {/* Gráfico 1: Evolução dos Honorários (7 colunas) */}
+              <div className="lg:col-span-7 bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
+                <div className="flex items-center justify-between border-b border-gray-100 pb-3.5">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      <TrendingUp className="w-4 h-4 text-emerald-600" /> Evolução dos Honorários
+                    </h4>
+                    <p className="text-xs text-gray-500">Histórico de faturamento mês a mês</p>
+                  </div>
+                  <span className="text-xs font-bold px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    Acumulado: {money(totalHonorarios)}
+                  </span>
+                </div>
+
+                <div className="h-64 w-full pt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={monthlyHonorariosData}
+                      margin={{ top: 10, right: 10, left: -15, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                      <XAxis
+                        dataKey="mes"
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "#94A3B8" }}
+                      />
+                      <YAxis
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 11, fill: "#94A3B8" }}
+                        tickFormatter={(v) => `R$${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
+                      />
+                      <Tooltip content={<FreelancerFeesTooltip />} />
+                      <Bar
+                        dataKey="honorarios"
+                        name="Honorários"
+                        fill="#2563EB"
+                        radius={[6, 6, 0, 0]}
+                        maxBarSize={32}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-[11px] text-gray-400">
+                  <span className="flex items-center gap-1 text-gray-500">
+                    <Sparkles className="w-3.5 h-3.5 text-blue-600" /> Honorários computados em tempo real
+                  </span>
+                  <span className="font-semibold text-gray-700">
+                    {assignedProjects.length} projeto(s) no histórico
+                  </span>
+                </div>
+              </div>
+
+              {/* Gráfico 2: Distribuição de Projetos & Demandas (5 colunas) */}
+              <div className="lg:col-span-5 bg-white rounded-2xl border border-gray-200/80 p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
+                <div className="border-b border-gray-100 pb-3.5 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      <PieChartIcon className="w-4 h-4 text-blue-600" /> Distribuição de Demandas
+                    </h4>
+                    <p className="text-xs text-gray-500">Proporção por status de execução</p>
+                  </div>
+                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                    {assignedProjects.length} Total
+                  </span>
+                </div>
+
+                {projectDistributionData.hasData ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center py-2">
+                    {/* Donut Chart */}
+                    <div className="h-48 w-full relative flex items-center justify-center">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={projectDistributionData.list.filter((d) => d.value > 0)}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={48}
+                            outerRadius={70}
+                            paddingAngle={4}
+                            dataKey="value"
+                          >
+                            {projectDistributionData.list
+                              .filter((d) => d.value > 0)
+                              .map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={entry.color} />
+                              ))}
+                          </Pie>
+                          <Tooltip content={<FreelancerStatusPieTooltip />} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <span className="text-2xl font-black text-gray-900">
+                          {assignedProjects.length}
+                        </span>
+                        <span className="text-[10px] uppercase font-bold text-gray-400">
+                          Projetos
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Custom Legend with Badges & Percentages */}
+                    <div className="space-y-2">
+                      {projectDistributionData.list.map((item) => (
+                        <div
+                          key={item.name}
+                          className="flex items-center justify-between text-xs p-1.5 rounded-xl hover:bg-gray-50 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: item.color }}
+                            />
+                            <span className="font-semibold text-gray-700">
+                              {item.name}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-gray-900">
+                              {item.value}
+                            </span>
+                            <span className="text-[10px] text-gray-400 font-medium">
+                              ({item.percent}%)
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-gray-400 space-y-1">
+                    <Briefcase className="w-8 h-8 mx-auto text-gray-300 mb-1" />
+                    <p className="text-xs font-semibold text-gray-600">Sem demandas registradas</p>
+                    <p className="text-[11px] text-gray-400">O gráfico será atualizado assim que houver projetos atribuídos.</p>
+                  </div>
+                )}
+
+                <div className="pt-2 border-t border-gray-100 text-[11px] text-gray-400 flex items-center justify-between">
+                  <span>Taxa de conclusão</span>
+                  <span className="font-bold text-emerald-600">
+                    {projectDistributionData.list.find((d) => d.name === "Concluídos")?.percent || 0}%
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
 
