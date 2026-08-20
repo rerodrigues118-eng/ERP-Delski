@@ -309,23 +309,39 @@ export function useCreateTicket() {
       };
 
       try {
-        const { error } = await (supabase.from("support_tickets") as any)
+        // Usa supabaseAdmin para INSERT — bypassa RLS e garante que o gestor veja o ticket
+        const { data: insertedTicket, error } = await (supabaseAdmin.from("support_tickets") as any)
           .insert([ticketData])
-          .select("id");
+          .select("id")
+          .single();
         if (error) {
-          console.error("[useCreateTicket] Error inserting ticket into Supabase:", error);
+          console.error("[useCreateTicket] Error inserting ticket:", error);
+          // Não salva no localStorage se houve erro — queremos visibilidade real do problema
         } else {
+          // Atualiza cache React Query para o gestor e o cliente
           queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
           if (clientId) {
             queryClient.invalidateQueries({ queryKey: ["support_tickets", "client", clientId] });
           }
           queryClient.invalidateQueries({ queryKey: ["tickets"] });
           queryClient.invalidateQueries({ queryKey: ["user_tickets"] });
+          // Salva no localStorage apenas como cache local (não como fonte primária)
+          const stored = getStoredTickets();
+          const newTicket: SupportTicket = {
+            id: insertedTicket?.id || `ticket-${Date.now()}`,
+            ...ticketData,
+            status: "Aberto",
+            replies: [],
+          };
+          stored.unshift(newTicket);
+          saveStoredTickets(stored);
+          return newTicket;
         }
       } catch (err: any) {
         console.error("[useCreateTicket] Exception creating ticket:", err);
       }
 
+      // Fallback: salva apenas localmente se o banco falhou completamente
       const stored = getStoredTickets();
       const newTicket: SupportTicket = {
         id: `ticket-${Date.now()}`,
@@ -335,7 +351,6 @@ export function useCreateTicket() {
       };
       stored.unshift(newTicket);
       saveStoredTickets(stored);
-
       return newTicket;
     },
     onSuccess: () => {

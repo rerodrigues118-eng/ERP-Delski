@@ -33,21 +33,24 @@ export function getProjectCurrentStep(status?: string | null): number {
     .trim()
     .toUpperCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, ""); // Normaliza e remove acentos para compatibilidade total
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .replace(/_/g, " ");             // Normaliza snake_case → espaços
 
-  // 1. Planejamento: CRIADO, SOLICITADO ou AGUARDANDO CANDIDATURAS
+  // 1. Planejamento
   if (
     s === "CRIADO" ||
     s === "SOLICITADO" ||
     s === "AGUARDANDO CANDIDATURAS" ||
     s.includes("CANDIDATURA") ||
-    s === "PLANEJAMENTO"
+    s === "PLANEJAMENTO" ||
+    s === "EM TRIAGEM"
   ) {
     return 1;
   }
 
-  // 2. Contrato: EMITIR CONTRATO ou CONTRATADO
+  // 2. Contrato
   if (
+    s === "EMITIR CONTRATO" ||
     s === "EMITIR CONTRATO" ||
     s === "CONTRATADO" ||
     s === "CONTRATO" ||
@@ -57,7 +60,7 @@ export function getProjectCurrentStep(status?: string | null): number {
     return 2;
   }
 
-  // 3. Execução: DELEGADO ou EM PRODUÇÃO (Em Andamento, Em Execução)
+  // 3. Execução: Delegado, Em Produção, Em Andamento
   if (
     s === "DELEGADO" ||
     s === "EM PRODUCAO" ||
@@ -69,17 +72,18 @@ export function getProjectCurrentStep(status?: string | null): number {
     return 3;
   }
 
-  // 4. Revisão: EM REVISÃO ou HOMOLOGAÇÃO
+  // 4. Revisão
   if (
     s === "EM REVISAO" ||
     s === "REVISAO" ||
     s === "HOMOLOGACAO" ||
+    s.includes("REVISAO") ||
     s.includes("HOMOLOGACAO")
   ) {
     return 4;
   }
 
-  // 5. Concluído: CONCLUÍDO ou ENTREGUE (Aprovado pelo Cliente, Finalizado)
+  // 5. Concluído
   if (
     s === "CONCLUIDO" ||
     s === "CONCLUIDA" ||
