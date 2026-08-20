@@ -277,14 +277,6 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
           </CommandItem>
 
           <CommandItem
-            onSelect={() => runCommand(() => navigate({ to: "/app/wiki" }))}
-            className="flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl cursor-pointer"
-          >
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-            <span className="font-medium text-foreground">Wiki & Procedimentos (SOPs)</span>
-          </CommandItem>
-
-          <CommandItem
             onSelect={() => runCommand(() => navigate({ to: "/app/notifications" }))}
             className="flex items-center gap-2.5 px-3 py-2 text-xs rounded-xl cursor-pointer"
           >

@@ -1928,7 +1928,7 @@ function GestorFinanceView() {
               value="nfse"
               className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
             >
-              <Receipt className="h-4 w-4" /> Emissão de NFS-e ({emittedInvoices.length})
+              <Receipt className="h-4 w-4" /> Emissão de NFS-e
             </TabsTrigger>
             <TabsTrigger
               value="relatorios"
@@ -2215,10 +2215,8 @@ function GestorFinanceView() {
       <Tabs defaultValue="profit" className="space-y-4">
         <TabsList className="bg-muted">
           <TabsTrigger value="profit">Lucro por projeto</TabsTrigger>
-          <TabsTrigger value="expenses">Despesas ({combinedExpenses.length})</TabsTrigger>
-          <TabsTrigger value="freelancers">
-            Pagamentos de freelas ({allPayouts.length})
-          </TabsTrigger>
+          <TabsTrigger value="expenses">Despesas</TabsTrigger>
+          <TabsTrigger value="freelancers">Pagamentos de freelas</TabsTrigger>
         </TabsList>
 
         {/* TAB 1: LUCRO POR PROJETO */}

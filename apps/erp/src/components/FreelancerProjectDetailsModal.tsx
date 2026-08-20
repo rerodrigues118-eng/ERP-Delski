@@ -156,41 +156,10 @@ export function FreelancerProjectDetailsModal({
   return (
     <Dialog open={Boolean(project)} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="w-[94vw] max-w-5xl md:max-w-6xl max-h-[90vh] flex flex-col p-0 gap-0 overflow-hidden rounded-3xl bg-white dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 shadow-2xl">
-        {/* ── CABEÇALHO EXPANDIDO DO PROJETO ───────────────────────────────── */}
-        <div className="p-6 sm:p-8 bg-gradient-to-b from-slate-50 to-white dark:from-zinc-900/80 dark:to-zinc-950 border-b border-slate-100 dark:border-zinc-800/80">
-          <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
-            <div className="space-y-2 flex-1">
-              <div className="flex items-center gap-2.5 flex-wrap">
-                <span className="px-3 py-1 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-xs font-bold border border-blue-200/80 dark:border-blue-800/60 uppercase tracking-wider">
-                  {project.service_type || "Demanda Especializada"}
-                </span>
-
-                <span
-                  className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${
-                    isDone
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
-                      : isInProgress
-                      ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800"
-                      : isReview
-                      ? "bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800"
-                      : "bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800"
-                  }`}
-                >
-                  {isInProgress && (
-                    <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                  )}
-                  {isDone && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
-                  {project.status}
-                </span>
-
-                {project.client?.full_name && (
-                  <span className="text-xs text-slate-500 dark:text-zinc-400 flex items-center gap-1">
-                    <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                    Cliente: <strong className="text-slate-800 dark:text-zinc-200 font-semibold">{project.client.full_name}</strong>
-                  </span>
-                )}
-              </div>
-
+        {/* ── CABEÇALHO ULTRA-MINIMALISTA DO PROJETO ───────────────────────── */}
+        <div className="p-6 sm:p-8 bg-white dark:bg-zinc-950 border-b border-slate-100 dark:border-zinc-800">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="space-y-1 flex-1 min-w-0 pr-4">
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
                 {project.title}
               </h2>
@@ -198,7 +167,7 @@ export function FreelancerProjectDetailsModal({
 
             {/* Quick Metrics Header Cards */}
             <div className="flex items-center gap-3 shrink-0">
-              <div className="px-4 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xs">
+              <div className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800">
                 <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
                   Prazo de Entrega
                 </span>
@@ -208,7 +177,7 @@ export function FreelancerProjectDetailsModal({
                 </span>
               </div>
 
-              <div className="px-4 py-2.5 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xs">
+              <div className="px-4 py-2 rounded-xl bg-slate-50 dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800">
                 <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider block">
                   Honorário Combinado
                 </span>
@@ -221,20 +190,20 @@ export function FreelancerProjectDetailsModal({
           </div>
         </div>
 
-        {/* ── CONTEÚDO COM ABAS INTERNAS ───────────────────────────────────── */}
+        {/* ── CONTEÚDO COM ABAS INTERNAS CENTRALIZADAS E ALINHADAS ──────────── */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <div className="px-6 sm:px-8 pt-4 bg-slate-50/50 dark:bg-zinc-900/50 border-b border-slate-100 dark:border-zinc-800/80">
-            <TabsList className="bg-slate-200/70 dark:bg-zinc-800/90 p-1 rounded-2xl w-full sm:w-auto grid grid-cols-2">
+          <div className="px-6 sm:px-8 py-3 bg-slate-50/70 dark:bg-zinc-900/50 border-b border-slate-100 dark:border-zinc-800/80 flex items-center justify-center">
+            <TabsList className="bg-slate-200/70 dark:bg-zinc-800/90 p-1 rounded-xl w-full max-w-lg grid grid-cols-2">
               <TabsTrigger
                 value="briefing"
-                className="rounded-xl px-5 py-2 text-xs sm:text-sm font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-xs transition-all flex items-center justify-center gap-2"
+                className="rounded-lg px-4 py-2 text-xs sm:text-sm font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-xs transition-all flex items-center justify-center gap-2"
               >
                 <FileText className="w-4 h-4 text-blue-600" />
                 <span>Briefing & Documentos</span>
               </TabsTrigger>
               <TabsTrigger
                 value="tarefas"
-                className="rounded-xl px-5 py-2 text-xs sm:text-sm font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-xs transition-all flex items-center justify-center gap-2"
+                className="rounded-lg px-4 py-2 text-xs sm:text-sm font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-xs transition-all flex items-center justify-center gap-2"
               >
                 <Layers className="w-4 h-4 text-blue-600" />
                 <span>Tarefas & Cronograma ({tasks.length})</span>

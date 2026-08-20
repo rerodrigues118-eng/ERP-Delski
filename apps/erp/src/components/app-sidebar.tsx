@@ -65,7 +65,6 @@ const NAV_NEGOCIO = [
 ];
 
 const NAV_SISTEMA = [
-  { title: "Wiki & SOPs", url: "/app/wiki", icon: BookOpen, gestor: true, freelancer: true, cliente: false },
   { title: "Configurações", url: "/app/perfil", icon: Settings, gestor: true, freelancer: false, cliente: false },
 ];
 

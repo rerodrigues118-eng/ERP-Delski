@@ -25,7 +25,6 @@ const ROUTE_LABELS: Record<string, string> = {
   "/app/contract-generator": "Gerador de Contratos",
   "/app/contract-models": "Modelos de Contrato",
   "/app/documents": "Documentos",
-  "/app/wiki": "Wiki & SOPs",
   "/app/perfil": "Configurações",
   "/app/risks": "Riscos",
 };

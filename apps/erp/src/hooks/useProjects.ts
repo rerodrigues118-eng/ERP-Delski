@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase, supabaseAdmin } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -46,6 +47,26 @@ export interface CreateProjectInput {
 
 // ── Query: all projects (RLS auto-filters by role with resilient fallbacks) ──
 export function useProjects() {
+  const qc = useQueryClient();
+
+  // Sincronização reativa em tempo real com o banco de dados Supabase
+  useEffect(() => {
+    const channel = supabase
+      .channel("delski_realtime_projects_sync")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "projects" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["projects"] });
+        },
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
+
   return useQuery({
     queryKey: ["projects"],
     queryFn: async () => {

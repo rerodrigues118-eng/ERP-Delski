@@ -27,26 +27,72 @@ const JOURNEY_STEPS = [
   { id: "concluido", label: "Concluído" },
 ];
 
-function getProjectCurrentStep(status: string): number {
-  switch (status) {
-    case "Criado":
-    case "Solicitado":
-      return 1;
-    case "Aguardando Candidaturas":
-    case "Emitir Contrato":
-      return 2;
-    case "Em Execução":
-    case "Em Andamento":
-      return 3;
-    case "Em Revisão":
-      return 4;
-    case "Aprovado pelo Cliente":
-    case "Concluida":
-    case "Concluido":
-      return 5;
-    default:
-      return 3;
+export function getProjectCurrentStep(status?: string | null): number {
+  if (!status) return 1;
+  const s = status
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // Normaliza e remove acentos para compatibilidade total
+
+  // 1. Planejamento: CRIADO, SOLICITADO ou AGUARDANDO CANDIDATURAS
+  if (
+    s === "CRIADO" ||
+    s === "SOLICITADO" ||
+    s === "AGUARDANDO CANDIDATURAS" ||
+    s.includes("CANDIDATURA") ||
+    s === "PLANEJAMENTO"
+  ) {
+    return 1;
   }
+
+  // 2. Contrato: EMITIR CONTRATO ou CONTRATADO
+  if (
+    s === "EMITIR CONTRATO" ||
+    s === "CONTRATADO" ||
+    s === "CONTRATO" ||
+    s.includes("CONTRATO") ||
+    s === "ASSINATURA"
+  ) {
+    return 2;
+  }
+
+  // 3. Execução: DELEGADO ou EM PRODUÇÃO (Em Andamento, Em Execução)
+  if (
+    s === "DELEGADO" ||
+    s === "EM PRODUCAO" ||
+    s === "EM ANDAMENTO" ||
+    s === "EM EXECUCAO" ||
+    s === "PRODUCAO" ||
+    s === "EXECUCAO"
+  ) {
+    return 3;
+  }
+
+  // 4. Revisão: EM REVISÃO ou HOMOLOGAÇÃO
+  if (
+    s === "EM REVISAO" ||
+    s === "REVISAO" ||
+    s === "HOMOLOGACAO" ||
+    s.includes("HOMOLOGACAO")
+  ) {
+    return 4;
+  }
+
+  // 5. Concluído: CONCLUÍDO ou ENTREGUE (Aprovado pelo Cliente, Finalizado)
+  if (
+    s === "CONCLUIDO" ||
+    s === "CONCLUIDA" ||
+    s === "ENTREGUE" ||
+    s === "FINALIZADO" ||
+    s === "APROVADO PELO CLIENTE" ||
+    s.includes("CONCLUID") ||
+    s.includes("ENTREGUE")
+  ) {
+    return 5;
+  }
+
+  return 1;
 }
 
 export function NodeJourneyTimeline({
@@ -184,17 +230,19 @@ export function NodeJourneyTimeline({
               <div className="pt-4">
                 <div className="relative flex items-center justify-between">
                   {/* Connecting background line */}
-                  <div className="absolute top-1/2 left-4 right-4 -translate-y-1/2 h-1 bg-slate-200 dark:bg-zinc-700 rounded-full" />
+                  <div className="absolute top-1/2 left-5 right-5 -translate-y-1/2 h-1 bg-slate-200 dark:bg-zinc-700 rounded-full pointer-events-none" />
 
-                  {/* Connecting active filled line with smooth 2.5s duration */}
-                  <motion.div
-                    className="absolute top-1/2 left-4 -translate-y-1/2 h-1 bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 rounded-full"
-                    initial={{ width: "0%" }}
-                    animate={{
-                      width: `${((getProjectCurrentStep(activeProject.status) - 1) / (JOURNEY_STEPS.length - 1)) * 95}%`,
-                    }}
-                    transition={{ duration: 2.5, ease: [0.16, 1, 0.3, 1] }}
-                  />
+                  {/* Connecting active filled line */}
+                  <div className="absolute top-1/2 left-5 right-5 -translate-y-1/2 h-1 overflow-hidden rounded-full pointer-events-none">
+                    <motion.div
+                      className="h-full bg-gradient-to-r from-blue-600 via-blue-500 to-indigo-600 rounded-full"
+                      initial={{ width: "0%" }}
+                      animate={{
+                        width: `${((getProjectCurrentStep(activeProject.status) - 1) / (JOURNEY_STEPS.length - 1)) * 100}%`,
+                      }}
+                      transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                    />
+                  </div>
 
                   {/* Journey Stage Nodes */}
                   {JOURNEY_STEPS.map((step, sIdx) => {

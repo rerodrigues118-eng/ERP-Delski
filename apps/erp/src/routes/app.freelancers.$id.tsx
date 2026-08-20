@@ -632,26 +632,63 @@ function FreelancerDetailPage() {
                 Anexe o contrato formal assinado pela diretoria para disponibilizar no portal do prestador.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-colors shadow-sm">
-                <input
-                  type="file"
-                  className="hidden"
-                  accept=".pdf,.docx"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      uploadDoc.mutate({
-                        freelancerId: id,
-                        documentType: "contrato_prestacao",
-                        file,
-                      });
-                    }
-                  }}
-                />
-                <UploadCloud className="h-4 w-4" /> Anexar Contrato Oficial
-              </label>
-            </CardContent>
+            {(() => {
+              const contractDoc = docs.find(
+                (d) =>
+                  d.document_type === "contrato_prestacao" ||
+                  d.document_type === "contrato_assinado"
+              );
+              const downloadUrl = contractDoc?.file_url || contractDoc?.public_url;
+
+              return (
+                <CardContent className="space-y-3">
+                  {downloadUrl && (
+                    <div className="p-3 bg-background rounded-xl border flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <div>
+                          <p className="text-xs font-bold text-foreground">
+                            Contrato Oficial Anexado
+                          </p>
+                          <p className="text-[11px] text-muted-foreground">
+                            Enviado em {formatDate(contractDoc.uploaded_at)}
+                          </p>
+                        </div>
+                      </div>
+                      <a
+                        href={downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-secondary hover:bg-secondary/80 text-foreground transition-colors"
+                      >
+                        <Download className="h-3.5 w-3.5" /> Baixar Contrato
+                      </a>
+                    </div>
+                  )}
+
+                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-colors shadow-sm">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.docx"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          uploadDoc.mutate({
+                            freelancerId: id,
+                            documentType: "contrato_prestacao",
+                            file,
+                            status: "aprovado",
+                          });
+                        }
+                      }}
+                    />
+                    <UploadCloud className="h-4 w-4" />{" "}
+                    {downloadUrl ? "Substituir Contrato Oficial" : "Anexar Contrato Oficial"}
+                  </label>
+                </CardContent>
+              );
+            })()}
           </Card>
 
           {/* Card: Análise e Homologação de Documentos do Prestador */}
