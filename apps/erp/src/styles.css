@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Geist+Mono:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700&family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&family=Geist+Mono:wght@400;500;600&display=swap");
 @import "tailwindcss";
 /* tw-animate-css removed — caused CPU overhead during page navigation */
 @source ".";
@@ -7,7 +7,7 @@
 
 @theme inline {
   --font-serif: "Newsreader", Georgia, serif;
-  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Urbanist", "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "Geist Mono", "SF Mono", ui-monospace, monospace;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -576,5 +576,128 @@
     margin: 0;
   }
   .dark .section-rule { border-color: #27272a; }
+
+  /* ── HUD (Head-Up Display) Immersive Design System ─────── */
+  /* Mineral canvas backdrop */
+  .bg-canvas-mineral {
+    background-color: #ECECEE;
+  }
+  .dark .bg-canvas-mineral {
+    background-color: #090A0F;
+  }
+
+  /* HUD Hyper-rounded Container Card */
+  .hud-card {
+    background-color: #FFFFFF;
+    border-radius: 32px;
+    border: 1px solid rgba(226, 232, 240, 0.7);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.03), 0 4px 12px -2px rgba(0, 0, 0, 0.02);
+    position: relative;
+    overflow: hidden;
+    transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1), border-color 300ms ease;
+  }
+  .dark .hud-card {
+    background-color: #11131A;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+  }
+  .hud-card-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.08), 0 8px 16px -4px rgba(0, 0, 0, 0.03);
+    border-color: rgba(37, 99, 235, 0.25);
+  }
+  .dark .hud-card-hover:hover {
+    box-shadow: 0 20px 40px -10px rgba(37, 99, 235, 0.25);
+    border-color: rgba(59, 130, 246, 0.35);
+  }
+
+  /* HUD Top-Pill Floating Bar Glassmorphism */
+  .hud-top-pill {
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.05), 0 2px 8px -1px rgba(0, 0, 0, 0.02);
+    border-radius: 9999px;
+  }
+  .dark .hud-top-pill {
+    background: rgba(17, 19, 26, 0.85);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 10px 35px -5px rgba(0, 0, 0, 0.6);
+  }
+
+  /* HUD Floating Pill Action item */
+  .hud-nav-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1.1rem;
+    border-radius: 9999px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #64748B;
+    transition: all 250ms cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+  }
+  .hud-nav-pill:hover {
+    color: #0F172A;
+    background: rgba(0, 0, 0, 0.04);
+  }
+  .dark .hud-nav-pill:hover {
+    color: #FFFFFF;
+    background: rgba(255, 255, 255, 0.06);
+  }
+  .hud-nav-pill.active {
+    color: #FFFFFF;
+    background: #000000;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  }
+  .dark .hud-nav-pill.active {
+    color: #000000;
+    background: #FFFFFF;
+    box-shadow: 0 4px 14px rgba(255, 255, 255, 0.2);
+  }
+
+  /* HUD Royal & Cobalt Fluid Gradient */
+  .hud-gradient-cobalt {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #4f46e5 100%);
+  }
+
+  /* HUD Glow Diffuse Auras (2.5s pulse) */
+  .hud-glow-blue {
+    box-shadow: 0 0 35px 0 rgba(37, 99, 235, 0.22);
+  }
+  .hud-glow-pulse {
+    animation: hud-aura-pulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  @keyframes hud-aura-pulse {
+    0%, 100% {
+      opacity: 0.85;
+      transform: scale(1);
+      filter: blur(24px);
+    }
+    50% {
+      opacity: 0.45;
+      transform: scale(1.06);
+      filter: blur(32px);
+    }
+  }
+
+  /* HUD Semi-Circular Arc Sweep Transition (2.5s) */
+  .hud-arc-track {
+    stroke: #E2E8F0;
+  }
+  .dark .hud-arc-track {
+    stroke: #27272A;
+  }
+
+  /* Typography helpers for HUD */
+  .font-hud {
+    font-family: "Urbanist", sans-serif;
+  }
 }
+
 

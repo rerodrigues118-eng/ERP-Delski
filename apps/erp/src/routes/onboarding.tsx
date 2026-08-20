@@ -11,28 +11,23 @@ import {
   FileText,
   Trash2,
   Loader2,
-  AlertCircle,
   Briefcase,
   ShieldCheck,
   CreditCard,
-  Building,
   User,
   Phone,
   Mail,
-  MapPin,
   Globe,
   Instagram,
   Linkedin,
   Sparkles,
-  RefreshCw,
-  Pencil,
   Check,
   ExternalLink,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -47,7 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 export const Route = createFileRoute("/onboarding")({
   head: () => ({
     meta: [
-      { title: "Boas-vindas & Onboarding — DELSKI CLOUD" },
+      { title: "Boas-vindas & Onboarding HUD — DELSKI CLOUD" },
       { name: "description", content: "Cadastro inicial e homologação de documentos DELSKI." },
     ],
   }),
@@ -87,16 +82,16 @@ interface UploadedDoc {
 
 const slideVariants: any = {
   enter: (direction: number) => ({
-    x: direction > 0 ? 40 : -40,
+    x: direction > 0 ? 30 : -30,
     opacity: 0,
   }),
   center: {
     x: 0,
     opacity: 1,
-    transition: { duration: 0.25 },
+    transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
   },
   exit: (direction: number) => ({
-    x: direction < 0 ? 40 : -40,
+    x: direction < 0 ? 30 : -30,
     opacity: 0,
     transition: { duration: 0.2 },
   }),
@@ -145,14 +140,29 @@ function OnboardingPage() {
   const [documents, setDocuments] = useState<Record<string, UploadedDoc>>({});
   const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
 
-  // Form State - Dados Bancários & PIX (Freelancer)
+  // Form State - Dados Bancários (Freelancer)
   const [bankName, setBankName] = useState<string>("");
   const [bankAgency, setBankAgency] = useState<string>("");
   const [bankAccount, setBankAccount] = useState<string>("");
   const [pixType, setPixType] = useState<string>("CNPJ");
   const [pixKey, setPixKey] = useState<string>("");
 
-  // Fetch client registration pre-filled by gestor and existing uploaded documents
+  // ── Single-access redirection check on mount ────────────────────────────
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      if (isGestor) {
+        navigate({ to: "/app", replace: true });
+      } else if (onboardingCompleted || localStorage.getItem(`delski_onboarding_completed_${user?.id}`) === "true") {
+        if (isFree) {
+          navigate({ to: "/freelancer" as any, replace: true });
+        } else {
+          navigate({ to: "/cliente" as any, replace: true });
+        }
+      }
+    }
+  }, [isAuthenticated, authLoading, onboardingCompleted, isGestor, isFree, user?.id, navigate]);
+
+  // Load client/freelancer data pre-filled
   useEffect(() => {
     async function loadClientData() {
       try {
@@ -167,23 +177,10 @@ function OnboardingPage() {
           }
         }
 
-        // Check URL search parameters if any (?email=... or ?client_id=... or ?id=...)
-        const searchParams = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
-        const queryEmail = searchParams.get("email") || searchParams.get("mail") || "";
-        const queryClientId = searchParams.get("client_id") || searchParams.get("id") || "";
-
-        const normalizedEmail = (activeUserEmail || queryEmail || corporateEmail || "").toLowerCase().trim();
+        const normalizedEmail = (activeUserEmail || corporateEmail || "").toLowerCase().trim();
 
         let cData = null;
-        if (queryClientId) {
-          const { data } = await (supabase.from("clients") as any)
-            .select("*")
-            .eq("id", queryClientId)
-            .maybeSingle();
-          if (data) cData = data;
-        }
-
-        if (!cData && (activeUserId || normalizedEmail)) {
+        if (activeUserId || normalizedEmail) {
           let query = (supabase.from("clients") as any).select("*");
           if (activeUserId && normalizedEmail) {
             query = query.or(`auth_user_id.eq.${activeUserId},email.ilike.${normalizedEmail}`);
@@ -215,7 +212,7 @@ function OnboardingPage() {
           if (profile?.phone && !phone) setPhone(formatPhone(profile.phone));
         }
 
-        // Preload any existing documents from database
+        // Preload documents
         const targetClientId = cData?.id || activeUserId;
         if (isFree && activeUserId) {
           const { data: fDocs } = await (supabase.from("freelancer_documents") as any)
@@ -253,14 +250,14 @@ function OnboardingPage() {
           }
         }
       } catch (err) {
-        console.warn("Aviso ao carregar dados do cliente no onboarding:", err);
+        console.warn("Aviso ao carregar dados do onboarding:", err);
       }
     }
 
     loadClientData();
   }, [user, profile, isFree]);
 
-  // Load draft from sessionStorage on mount
+  // Load draft from sessionStorage
   useEffect(() => {
     try {
       const storageKey = user?.id ? `delski_onboarding_draft_${user.id}` : `delski_onboarding_draft_guest`;
@@ -290,12 +287,10 @@ function OnboardingPage() {
         if (draft.pixType && !pixType) setPixType(draft.pixType);
         if (draft.pixKey && !pixKey) setPixKey(draft.pixKey);
       }
-    } catch (e) {
-      console.warn("Erro ao restaurar rascunho de onboarding:", e);
-    }
+    } catch (e) {}
   }, [user?.id, totalSteps]);
 
-  // Auto-save draft to sessionStorage on state change
+  // Auto-save draft
   useEffect(() => {
     if (onboardingCompleted) return;
     const draftData = {
@@ -353,22 +348,7 @@ function OnboardingPage() {
     pixKey,
   ]);
 
-  // If already completed onboarding or if gestor, navigate to respective workspace
-  useEffect(() => {
-    if (!authLoading && isAuthenticated) {
-      if (isGestor) {
-        navigate({ to: "/app", replace: true });
-      } else if (onboardingCompleted) {
-        if (isFree) {
-          navigate({ to: "/freelancer" as any, replace: true });
-        } else {
-          navigate({ to: "/cliente" as any, replace: true });
-        }
-      }
-    }
-  }, [isAuthenticated, authLoading, onboardingCompleted, isGestor, isFree, navigate]);
-
-  // Auto fetch address by CEP via ViaCEP (for Freelancers)
+  // Auto fetch address via CEP
   const handleCepBlur = async () => {
     const rawCep = cep.replace(/\D/g, "");
     if (rawCep.length === 8) {
@@ -380,7 +360,7 @@ function OnboardingPage() {
           setAddress(`${data.logradouro || ""} - ${data.bairro || ""}`.trim().replace(/^-\s*/, ""));
           setCity(data.localidade || "");
           setState(data.uf || "");
-          toast.success("Endereço preenchido automaticamente pelo CEP!");
+          toast.success("Endereço preenchido automaticamente.");
         }
       } catch (err) {
         console.warn("Erro ao buscar CEP:", err);
@@ -390,7 +370,7 @@ function OnboardingPage() {
     }
   };
 
-  // Upload document handler (Storage Bucket + DB Records)
+  // Upload document handler
   const handleFileUpload = async (docType: string, file: File) => {
     let currentUserId = user?.id;
     let currentUserEmail = (user?.email || corporateEmail || "").trim().toLowerCase();
@@ -419,14 +399,11 @@ function OnboardingPage() {
 
       let fileUrl = "";
 
-      // 1. Upload to Supabase Storage Bucket
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from(bucketName)
         .upload(filePath, file, { upsert: true });
 
       if (uploadError) {
-        console.warn(`Aviso de upload no bucket principal "${bucketName}":`, uploadError);
-        // Fallback to secondary bucket
         const { data: fallbackUpload, error: fallbackError } = await supabase.storage
           .from("project-attachments")
           .upload(`onboarding/${effectiveFolderId}/${safeName}`, file, { upsert: true });
@@ -450,7 +427,6 @@ function OnboardingPage() {
         } catch {}
       }
 
-      // 2. Direct persistence into Supabase Database Table
       try {
         if (isFree && currentUserId) {
           await (supabase.from("freelancer_documents") as any).upsert(
@@ -469,7 +445,7 @@ function OnboardingPage() {
           if (currentUserEmail) {
             const { data: clRecord } = await (supabase.from("clients") as any)
               .select("id")
-              .or(`auth_user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'},email.ilike.${currentUserEmail}`)
+              .or(`auth_user_id.eq.${currentUserId || "00000000-0000-0000-0000-000000000000"},email.ilike.${currentUserEmail}`)
               .limit(1)
               .maybeSingle();
             if (clRecord?.id) clId = clRecord.id;
@@ -489,10 +465,9 @@ function OnboardingPage() {
           }
         }
       } catch (dbErr) {
-        console.warn("Aviso ao persistir documento no banco:", dbErr);
+        console.warn("Aviso ao persistir documento:", dbErr);
       }
 
-      // 3. Update React state immediately
       const newDoc: UploadedDoc = {
         type: docType,
         name: file.name,
@@ -502,10 +477,7 @@ function OnboardingPage() {
       };
 
       setDocuments((prev) => {
-        const updated = {
-          ...prev,
-          [docType]: newDoc,
-        };
+        const updated = { ...prev, [docType]: newDoc };
         try {
           const storageKey = currentUserId ? `delski_onboarding_draft_${currentUserId}` : `delski_onboarding_draft_guest`;
           const savedDraft = sessionStorage.getItem(storageKey);
@@ -516,9 +488,8 @@ function OnboardingPage() {
         return updated;
       });
 
-      toast.success(`Documento "${file.name}" anexado e salvo no banco de dados com sucesso!`);
+      toast.success(`Documento "${file.name}" anexado com sucesso!`);
     } catch (err: any) {
-      console.error("Erro no upload do documento:", err);
       toast.error(`Falha ao enviar arquivo: ${err.message || "Erro desconhecido"}`);
     } finally {
       setUploadingDoc(null);
@@ -534,7 +505,6 @@ function OnboardingPage() {
     toast.info("Documento removido.");
   };
 
-  // Documents list per role
   const requiredDocs = isFree
     ? [
         { id: "cartao_cnpj", title: "Comprovante de CNPJ Ativo", desc: "Cartão CNPJ atualizado da Receita Federal", required: true },
@@ -563,21 +533,20 @@ function OnboardingPage() {
       if (step === 2) {
         if (!isDocComplete) {
           return toast.error(
-            `Documentos pendentes: ${pendingRequiredDocs.map((d) => d.title).join(", ")}. Por favor, anexe os arquivos para avançar.`
+            `Documentos pendentes: ${pendingRequiredDocs.map((d) => d.title).join(", ")}.`
           );
         }
       }
       if (step === 3) {
         if (!bankName.trim() || !pixKey.trim()) {
-          return toast.error("Informe o Banco e a Chave PIX para recebimento de pagamentos.");
+          return toast.error("Informe o Banco e a Chave PIX para recebimento.");
         }
       }
     } else {
-      // Cliente: Etapa 1 é Documentação
       if (step === 1) {
         if (!isDocComplete) {
           return toast.error(
-            `Documentos pendentes: ${pendingRequiredDocs.map((d) => d.title).join(", ")}. Por favor, anexe os arquivos para avançar.`
+            `Documentos pendentes: ${pendingRequiredDocs.map((d) => d.title).join(", ")}.`
           );
         }
       }
@@ -592,7 +561,7 @@ function OnboardingPage() {
     setStep((s) => Math.max(s - 1, 1));
   };
 
-  // Final Submit
+  // Final Submit with 2.5s wave animation
   const handleFinalize = async () => {
     let currentUserId = user?.id;
     let currentUserEmail = (user?.email || corporateEmail || "").trim().toLowerCase();
@@ -609,73 +578,26 @@ function OnboardingPage() {
       }
     }
 
-    // Try finding existing client by email or auth_user_id
-    let resolvedClientId = currentUserId || null;
-    if (currentUserEmail || currentUserId) {
-      try {
-        const { data: existingClient } = await (supabase.from("clients") as any)
-          .select("id, auth_user_id, email, company_name")
-          .or(`auth_user_id.eq.${currentUserId || '00000000-0000-0000-0000-000000000000'},email.ilike.${currentUserEmail || 'null@null.com'}`)
-          .limit(1)
-          .maybeSingle();
-
-        if (existingClient?.id) {
-          resolvedClientId = existingClient.id;
-          if (!currentUserId && existingClient.auth_user_id) {
-            currentUserId = existingClient.auth_user_id;
-          }
-        }
-      } catch (e) {
-        console.warn("Aviso ao buscar cliente existente:", e);
-      }
-    }
-
-    const effectiveUserId = currentUserId || resolvedClientId;
-
     setSubmitting(true);
-
     try {
-      const cleanPhone = phone.replace(/\D/g, "");
-      const cleanCnpj = cnpj.replace(/\D/g, "");
-      const cleanCep = cep.replace(/\D/g, "");
+      const cleanPhone = phone ? phone.replace(/\D/g, "") : null;
+      const cleanCnpj = cnpj ? cnpj.replace(/\D/g, "") : null;
+      const cleanCep = cep ? cep.replace(/\D/g, "") : null;
 
       if (isFree) {
-        // ── FLUXO FREELANCER ──────────────────────────────────────────────
-        const freelancerPayload: any = {
-          id: effectiveUserId,
-          company_name: companyName.trim() || profile?.full_name || "Prestador",
-          corporate_name: corporateName.trim() || companyName.trim() || profile?.full_name || "Prestador",
-          cnpj: cleanCnpj || null,
-          segment: segment.trim() || null,
-          email: currentUserEmail,
-          address: address.trim() || null,
-          city: city.trim() || null,
-          state: state.trim() || null,
-          cep: cleanCep || null,
-          role_position: rolePosition.trim() || null,
-          phone: cleanPhone || null,
-          instagram: instagram.trim() || null,
-          linkedin: linkedin.trim() || null,
-          website: website.trim() || null,
-          bank_name: bankName.trim() || null,
-          bank_agency: bankAgency.trim() || null,
-          bank_account: bankAccount.trim() || null,
-          pix_type: pixType || null,
-          pix_key: pixKey.trim() || null,
-          onboarding_completed: true,
-          status: "ativo",
-          updated_at: new Date().toISOString(),
-        };
+        let effectiveUserId = currentUserId;
+        if (!effectiveUserId && currentUserEmail) {
+          const { data: pData } = await supabase
+            .from("profiles")
+            .select("id")
+            .ilike("email", currentUserEmail)
+            .maybeSingle();
+          if (pData?.id) effectiveUserId = pData.id;
+        }
 
         if (effectiveUserId) {
           try {
-            await (supabase.from("freelancers") as any).upsert(freelancerPayload);
-          } catch (fErr) {
-            console.warn("Freelancers upsert warn:", fErr);
-          }
-
-          try {
-            await (supabase.from("profiles") as any).upsert({
+            await supabase.from("profiles").upsert({
               id: effectiveUserId,
               full_name: contactName.trim() || profile?.full_name || "Prestador",
               email: currentUserEmail,
@@ -686,9 +608,7 @@ function OnboardingPage() {
               approval_status: "approved",
               updated_at: new Date().toISOString(),
             });
-          } catch (pErr) {
-            console.warn("Profiles upsert warn:", pErr);
-          }
+          } catch (pErr) {}
         }
 
         try {
@@ -700,28 +620,6 @@ function OnboardingPage() {
             },
           });
         } catch {}
-
-        // Insert documents
-        const docEntries = Object.entries(documents);
-        if (docEntries.length > 0 && effectiveUserId) {
-          for (const [docType, docData] of docEntries) {
-            try {
-              await (supabase.from("freelancer_documents") as any).upsert(
-                {
-                  freelancer_id: effectiveUserId,
-                  document_type: docType,
-                  file_path: docData.filePath,
-                  file_url: docData.fileUrl || null,
-                  status: "em_analise",
-                  uploaded_at: new Date().toISOString(),
-                },
-                { onConflict: "freelancer_id,document_type" }
-              );
-            } catch (dErr) {
-              console.warn("Error inserting freelancer document:", dErr);
-            }
-          }
-        }
 
         try {
           if (effectiveUserId) {
@@ -735,9 +633,9 @@ function OnboardingPage() {
         toast.success("Cadastro do Freelancer concluído com sucesso!");
         setTimeout(() => {
           window.location.href = "/freelancer";
-        }, 1200);
+        }, 2500);
       } else {
-        // ── FLUXO CLIENTE ─────────────────────────────────────────────────
+        // FLUXO CLIENTE
         const clientPayload: any = {
           auth_user_id: currentUserId || null,
           full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
@@ -750,35 +648,44 @@ function OnboardingPage() {
           city: city.trim() || null,
           state: state.trim() || null,
           cep: cleanCep || null,
-          contact_name: contactName.trim() || profile?.full_name || null,
+          contact_name: contactName.trim() || null,
           role_position: rolePosition.trim() || null,
           phone: cleanPhone || null,
-          onboarding_completed: true,
+          instagram: instagram.trim() || null,
+          linkedin: linkedin.trim() || null,
+          website: website.trim() || null,
           status: "ativo",
+          onboarding_completed: true,
           updated_at: new Date().toISOString(),
         };
 
-        try {
-          if (resolvedClientId) {
+        let activeClientId = null;
+        if (currentUserId) {
+          const { data: existingClient } = await (supabase.from("clients") as any)
+            .select("id")
+            .or(`auth_user_id.eq.${currentUserId},email.ilike.${currentUserEmail}`)
+            .limit(1)
+            .maybeSingle();
+
+          if (existingClient?.id) {
+            activeClientId = existingClient.id;
             await (supabase.from("clients") as any)
               .update(clientPayload)
-              .eq("id", resolvedClientId);
+              .eq("id", existingClient.id);
           } else {
-            const { data: inserted } = await (supabase.from("clients") as any)
-              .upsert(clientPayload, { onConflict: "email" })
+            const { data: newCl } = await (supabase.from("clients") as any)
+              .insert([clientPayload])
               .select("id")
-              .maybeSingle();
-            resolvedClientId = inserted?.id || currentUserId;
+              .single();
+            if (newCl?.id) activeClientId = newCl.id;
           }
-        } catch (cErr) {
-          console.warn("Aviso ao salvar na tabela clients:", cErr);
         }
 
         if (currentUserId) {
           try {
-            await (supabase.from("profiles") as any).upsert({
+            await supabase.from("profiles").upsert({
               id: currentUserId,
-              full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
+              full_name: contactName.trim() || companyName.trim() || profile?.full_name || "Cliente",
               email: currentUserEmail,
               phone: cleanPhone || profile?.phone,
               role: "cliente",
@@ -787,46 +694,19 @@ function OnboardingPage() {
               approval_status: "approved",
               updated_at: new Date().toISOString(),
             });
-          } catch (pErr) {
-            console.warn("Aviso ao atualizar profiles:", pErr);
-          }
-
-          try {
-            await supabase.auth.updateUser({
-              data: {
-                role: "cliente",
-                onboarding_completed: true,
-                full_name: contactName.trim() || profile?.full_name || companyName.trim() || "Cliente",
-              },
-            });
-          } catch (authErr) {
-            console.warn("Aviso ao atualizar user_metadata:", authErr);
-          }
+          } catch (pErr) {}
         }
 
-        // Insert documents
-        const docEntries = Object.entries(documents);
-        if (docEntries.length > 0) {
-          const targetDocClientId = resolvedClientId || currentUserId;
-          if (targetDocClientId) {
-            for (const [docType, docData] of docEntries) {
-              try {
-                await (supabase.from("client_documents") as any).insert([
-                  {
-                    client_id: targetDocClientId,
-                    document_type: docType,
-                    file_path: docData.filePath,
-                    file_url: docData.fileUrl || null,
-                    status: "em_analise",
-                    uploaded_at: new Date().toISOString(),
-                  },
-                ]);
-              } catch (dErr) {
-                console.warn("Error inserting client document:", dErr);
-              }
-            }
-          }
-        }
+        try {
+          await supabase.auth.updateUser({
+            data: {
+              role: "cliente",
+              onboarding_completed: true,
+              company_name: companyName.trim() || "Empresa",
+              full_name: contactName.trim() || profile?.full_name || "Cliente",
+            },
+          });
+        } catch {}
 
         try {
           if (currentUserId) {
@@ -837,44 +717,27 @@ function OnboardingPage() {
 
         await refreshProfile();
         setIsSuccessModalOpen(true);
-        toast.success("Homologação do Cliente concluída com sucesso! Redirecionando para o Portal...");
-
+        toast.success("Homologação do cliente concluída!");
         setTimeout(() => {
-          if (currentUserId) {
-            window.location.href = "/cliente";
-          } else if (currentUserEmail) {
-            window.location.href = `/portal/definir-senha?email=${encodeURIComponent(currentUserEmail)}`;
-          } else {
-            window.location.href = "/cliente";
-          }
-        }, 1200);
+          window.location.href = "/cliente";
+        }, 2500);
       }
     } catch (err: any) {
-      console.error("Erro ao finalizar onboarding:", err);
-      try {
-        if (currentUserId) {
-          localStorage.setItem(`delski_onboarding_completed_${currentUserId}`, "true");
-          window.location.href = isFree ? "/freelancer" : "/cliente";
-        } else {
-          window.location.href = "/cliente";
-        }
-      } catch {
-        toast.error(`Erro ao salvar informações: ${err.message || "Tente novamente."}`);
-      }
+      toast.error(`Erro ao finalizar: ${err.message || "Tente novamente."}`);
     } finally {
       setSubmitting(false);
     }
   };
 
-  // Helper renderer for document upload card
+  // ── Document Card Renderer with Clean "Carregando..." state ──────────────
   const renderDocumentUploadCard = () => (
     <div className="space-y-6">
-      <div className="space-y-1">
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+      <div className="space-y-1 text-center sm:text-left">
+        <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center justify-center sm:justify-start gap-2">
           <FileCheck className="h-5 w-5 text-blue-600" /> Documentação da Empresa
         </h2>
-        <p className="text-xs sm:text-sm text-slate-500">
-          Anexe os arquivos para validação cadastral e conformidade jurídica (PDF, PNG ou JPG até 10MB).
+        <p className="text-xs sm:text-sm text-slate-400 font-medium">
+          Anexe os arquivos para validação cadastral e conformidade jurídica (PDF ou imagens até 10MB).
         </p>
       </div>
 
@@ -886,53 +749,39 @@ function OnboardingPage() {
           return (
             <div
               key={doc.id}
-              className={`p-5 rounded-2xl border transition-all ${
+              className={`p-5 rounded-[24px] border transition-all ${
                 uploaded
-                  ? "bg-slate-50/90 border-slate-300 ring-1 ring-blue-500/20 shadow-xs"
-                  : "bg-white border-slate-200 hover:border-blue-300 shadow-xs"
+                  ? "bg-blue-50/50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/60 shadow-xs"
+                  : "bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 hover:border-blue-400/60 shadow-xs"
               }`}
             >
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="space-y-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-sm text-slate-900">
-                      {doc.title} {doc.required && <span className="text-blue-600 font-bold ml-0.5">*</span>}
-                    </h3>
-                    {!doc.required && (
-                      <Badge
-                        variant="outline"
-                        className="text-[10px] font-medium py-0.5 px-2 rounded-md bg-slate-100 text-slate-600 border-slate-200"
-                      >
-                        Opcional
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-xs text-slate-500 leading-relaxed">{doc.desc}</p>
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white font-hud">
+                    {doc.title} {doc.required && <span className="text-blue-600 font-black ml-0.5">•</span>}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed font-medium">{doc.desc}</p>
                 </div>
                 {uploaded && (
-                  <Badge className="bg-blue-600 text-white text-[10px] font-bold py-0.5 px-2.5 rounded-full shrink-0 flex items-center gap-1 shadow-xs">
-                    <Check className="h-3 w-3 text-white" /> Anexado
-                  </Badge>
+                  <span className="bg-blue-600 text-white text-[10px] font-bold py-0.5 px-2.5 rounded-full shrink-0 flex items-center gap-1 font-hud">
+                    <Check className="h-3 w-3" /> Anexado
+                  </span>
                 )}
               </div>
 
-              <div className="pt-3 border-t border-slate-100">
+              <div className="pt-3 border-t border-slate-100 dark:border-zinc-800">
                 {uploaded ? (
                   <div className="space-y-2.5">
-                    {/* Document details box */}
-                    <div className="flex items-center justify-between gap-2.5 w-full bg-white border border-slate-200 rounded-xl p-3 shadow-xs">
-                      <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-900 min-w-0">
-                        <div className="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+                    <div className="flex items-center justify-between gap-2.5 w-full bg-slate-50 dark:bg-zinc-800/60 border border-slate-200 dark:border-zinc-700 rounded-2xl p-3">
+                      <div className="flex items-center gap-2.5 text-xs font-semibold text-slate-900 dark:text-white min-w-0">
+                        <div className="h-8 w-8 rounded-xl bg-blue-100 dark:bg-blue-950 text-blue-600 flex items-center justify-center shrink-0">
                           <FileText className="h-4 w-4" />
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate font-bold text-slate-900 text-xs max-w-[140px] sm:max-w-[190px]" title={uploaded.name}>
+                          <p className="truncate font-bold text-xs max-w-[140px] sm:max-w-[180px] font-hud" title={uploaded.name}>
                             {uploaded.name}
                           </p>
-                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-blue-600" />
-                            <span>{uploaded.size ? `${(uploaded.size / (1024 * 1024)).toFixed(2)} MB` : "Documento Anexado"}</span>
-                          </div>
+                          <p className="text-[11px] text-slate-400 font-medium">Arquivo pronto para validação</p>
                         </div>
                       </div>
 
@@ -942,11 +791,10 @@ function OnboardingPage() {
                             href={uploaded.fileUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors"
+                            className="p-1.5 rounded-xl text-xs font-bold bg-white dark:bg-zinc-700 text-slate-700 dark:text-zinc-200 hover:bg-slate-100 transition-colors"
                             title="Visualizar documento"
                           >
                             <ExternalLink className="h-3.5 w-3.5 text-blue-600" />
-                            <span className="hidden sm:inline">Ver</span>
                           </a>
                         )}
 
@@ -954,38 +802,16 @@ function OnboardingPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleRemoveDoc(doc.id)}
-                          className="text-rose-500 hover:text-rose-700 hover:bg-rose-50 h-7 w-7 p-0 rounded-lg cursor-pointer"
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0 rounded-xl"
                           title="Remover anexo"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     </div>
-
-                    {/* Change document action */}
-                    <div className="flex items-center justify-end">
-                      <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-all shadow-xs">
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".pdf,.png,.jpg,.jpeg"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) handleFileUpload(doc.id, file);
-                          }}
-                          disabled={isUploading}
-                        />
-                        {isUploading ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-600" />
-                        ) : (
-                          <Pencil className="h-3.5 w-3.5 text-blue-600" />
-                        )}
-                        <span>{isUploading ? "Carregando..." : "Alterar Documento"}</span>
-                      </label>
-                    </div>
                   </div>
                 ) : (
-                  <label className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white transition-colors w-full justify-center shadow-xs">
+                  <label className="cursor-pointer flex items-center justify-center gap-2 py-3 px-4 rounded-2xl border-2 border-dashed border-slate-200 dark:border-zinc-700 hover:border-blue-500 bg-slate-50/50 dark:bg-zinc-800/40 hover:bg-blue-50/30 transition-all">
                     <input
                       type="file"
                       className="hidden"
@@ -997,13 +823,15 @@ function OnboardingPage() {
                       disabled={isUploading}
                     />
                     {isUploading ? (
-                      <>
-                        <Loader2 className="h-4 w-4 animate-spin text-white" /> Carregando...
-                      </>
+                      <div className="flex items-center gap-2 text-xs font-bold text-blue-600 font-hud">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Carregando...</span>
+                      </div>
                     ) : (
-                      <>
-                        <UploadCloud className="h-4 w-4 text-white" /> Selecionar Arquivo
-                      </>
+                      <div className="flex items-center gap-2 text-xs font-bold text-slate-600 dark:text-zinc-400 font-hud">
+                        <UploadCloud className="h-4 w-4 text-blue-600" />
+                        <span>Selecionar Arquivo</span>
+                      </div>
                     )}
                   </label>
                 )}
@@ -1016,778 +844,437 @@ function OnboardingPage() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-between p-4 sm:p-6 lg:p-10">
-      <div className="max-w-4xl w-full mx-auto space-y-8">
-        {/* Header Branding */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-200/80 pb-6">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Delski Logo" className="h-10 w-10 object-contain" />
-            <div>
-              <h1 className="text-xl font-bold tracking-tight text-gray-900">
-                DELSKI <span className="text-blue-600">CLOUD</span>
-              </h1>
-              <p className="text-xs text-gray-500 font-medium">
-                {isFree ? "Onboarding de Prestador de Serviços / Freelancer PJ" : "Onboarding & Homologação de Cliente"}
-              </p>
-            </div>
-          </div>
+    <div className="min-h-screen bg-[#ECECEE] dark:bg-[#090A0F] text-slate-900 dark:text-zinc-100 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-10 font-hud antialiased selection:bg-blue-600 selection:text-white transition-colors">
+      {/* ── Background Ambient Light (Cobalt Glow) ────────────────────── */}
+      <div className="fixed top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-blue-500/10 dark:bg-blue-600/15 blur-[80px] pointer-events-none hud-glow-pulse" />
 
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs bg-white text-gray-700 border-gray-200 shadow-xs font-bold">
-              Etapa {step} de {totalSteps}
-            </Badge>
-          </div>
+      {/* Top Brand Pill */}
+      <div className="mb-6 flex items-center gap-2.5 px-4 py-2 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-white/10 shadow-sm">
+        <div className="w-6 h-6 rounded-full bg-blue-600 flex items-center justify-center text-white">
+          <Zap className="h-3.5 w-3.5" />
         </div>
-
-        {/* Progress Stepper Bar */}
-        <div className="space-y-2">
-          <div className="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
-            <motion.div
-              className="bg-blue-600 h-full rounded-full"
-              initial={{ width: "0%" }}
-              animate={{ width: `${(step / totalSteps) * 100}%` }}
-              transition={{ duration: 0.3 }}
-            />
-          </div>
-
-          {isFree ? (
-            <div className="flex justify-between text-xs font-semibold text-gray-500">
-              <span className={step >= 1 ? "text-blue-600 font-bold" : ""}>1. Dados Cadastrais</span>
-              <span className={step >= 2 ? "text-blue-600 font-bold" : ""}>2. Documentação</span>
-              <span className={step >= 3 ? "text-blue-600 font-bold" : ""}>3. Dados Financeiros</span>
-              <span className={step === 4 ? "text-blue-600 font-bold" : ""}>4. Revisão & Conclusão</span>
-            </div>
-          ) : (
-            <div className="flex justify-between text-xs font-semibold text-gray-500">
-              <span className={step >= 1 ? "text-blue-600 font-bold" : ""}>1. Documentação</span>
-              <span className={step === 2 ? "text-blue-600 font-bold" : ""}>2. Revisão & Ativação</span>
-            </div>
-          )}
-        </div>
-
-        {/* Dynamic Multi-step Form Content */}
-        <div className="bg-white rounded-2xl border border-gray-200/80 shadow-xs p-6 sm:p-10">
-          <AnimatePresence mode="wait" custom={direction}>
-            {/* ── CLIENTE: ETAPA 1 = DOCUMENTAÇÃO ──────────────────────────── */}
-            {!isFree && step === 1 && (
-              <motion.div
-                key="client-step1"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-              >
-                {renderDocumentUploadCard()}
-              </motion.div>
-            )}
-
-            {/* ── CLIENTE: ETAPA 2 = REVISÃO & ATIVAÇÃO ─────────────────────── */}
-            {!isFree && step === 2 && (
-              <motion.div
-                key="client-step2"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="space-y-6"
-              >
-                <div className="space-y-1">
-                  <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Revisão & Ativação de Acesso
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    Confira os dados corporativos cadastrados e confirme a conclusão do onboarding para liberar seu painel.
-                  </p>
-                </div>
-
-                <div className="space-y-5">
-                  {/* Resumo Cadastral Cadastrado pelo Gestor */}
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-gray-200/80 space-y-4 shadow-xs">
-                    <div className="flex items-center justify-between border-b border-gray-200/60 pb-2.5">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="h-4 w-4 text-blue-600" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-700">Dados Corporativos da Empresa</span>
-                      </div>
-                      <Badge variant="outline" className="text-[10px] bg-blue-50 text-blue-700 border-blue-200 font-semibold">
-                        Cadastrado pelo Gestor
-                      </Badge>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
-                      <div>
-                        <span className="text-gray-400 text-[11px]">Nome Fantasia:</span>
-                        <p className="font-bold text-gray-900 text-sm mt-0.5">{companyName || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 text-[11px]">Razão Social:</span>
-                        <p className="font-semibold text-gray-800 mt-0.5">{corporateName || companyName || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 text-[11px]">CNPJ:</span>
-                        <p className="font-semibold text-gray-800 font-mono mt-0.5">{cnpj || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 text-[11px]">Segmento de Atuação:</span>
-                        <p className="font-semibold text-gray-800 mt-0.5">{segment || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 text-[11px]">E-mail Corporativo:</span>
-                        <p className="font-semibold text-gray-800 mt-0.5">{corporateEmail || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400 text-[11px]">Responsável Legal:</span>
-                        <p className="font-semibold text-gray-900 mt-0.5">{contactName || "—"}</p>
-                      </div>
-                      {rolePosition && (
-                        <div>
-                          <span className="text-gray-400 text-[11px]">Cargo / Função:</span>
-                          <p className="font-semibold text-gray-800 mt-0.5">{rolePosition}</p>
-                        </div>
-                      )}
-                      {phone && (
-                        <div>
-                          <span className="text-gray-400 text-[11px]">WhatsApp / Contato:</span>
-                          <p className="font-semibold text-gray-800 mt-0.5">{phone}</p>
-                        </div>
-                      )}
-                      {address && (
-                        <div className="sm:col-span-2">
-                          <span className="text-gray-400 text-[11px]">Endereço:</span>
-                          <p className="font-semibold text-gray-800 mt-0.5">
-                            {address} {city && `· ${city}`} {state && `/${state}`} {cep && `(CEP: ${cep})`}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Resumo Documental */}
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-gray-200/80 space-y-3 shadow-xs">
-                    <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
-                      <div className="flex items-center gap-2">
-                        <FileCheck className="h-4 w-4 text-emerald-600" />
-                        <span className="text-xs font-bold uppercase tracking-wider text-gray-700">
-                          Documentos Anexados ({Object.keys(documents).length})
-                        </span>
-                      </div>
-                      <Button variant="link" size="sm" onClick={() => setStep(1)} className="text-xs h-auto p-0 text-blue-600 font-semibold cursor-pointer">
-                        Alterar Documentos
-                      </Button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2.5">
-                      {Object.keys(documents).length === 0 ? (
-                        <p className="text-xs text-slate-500 font-medium">Nenhum documento anexado ainda.</p>
-                      ) : (
-                        Object.entries(documents).map(([type, doc]) => (
-                          <Badge key={type} className="bg-slate-100 text-slate-800 border-slate-200 text-xs py-1.5 px-3 flex items-center gap-1.5 font-medium shadow-2xs">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-blue-600" />
-                            <span className="truncate max-w-[240px]">{doc.name}</span>
-                          </Badge>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── FREELANCER: ETAPA 1 = DADOS CADASTRAIS ─────────────────────── */}
-            {isFree && step === 1 && (
-              <motion.div
-                key="free-step1"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="space-y-6"
-              >
-                <div className="space-y-1">
-                  <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                    <Building2 className="h-5 w-5 text-blue-600" /> Dados Cadastrais da Empresa / Prestador
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    Informe os dados corporativos para emissão de contratos e formalização fiscal.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="company-name" className="text-xs font-semibold text-gray-700">
-                      Nome Fantasia <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="company-name"
-                      value={companyName}
-                      onChange={(e) => setCompanyName(e.target.value)}
-                      placeholder="Ex: Studio Lumina Mídia"
-                      className="h-10"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="corporate-name" className="text-xs font-semibold text-gray-700">
-                      Razão Social
-                    </Label>
-                    <Input
-                      id="corporate-name"
-                      value={corporateName}
-                      onChange={(e) => setCorporateName(e.target.value)}
-                      placeholder="Ex: Lumina Midia e Servicos de Tecnologia LTDA"
-                      className="h-10"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="cnpj" className="text-xs font-semibold text-gray-700">
-                      CNPJ
-                    </Label>
-                    <Input
-                      id="cnpj"
-                      value={cnpj}
-                      onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
-                      placeholder="00.000.000/0000-00"
-                      maxLength={18}
-                      className="h-10 font-mono text-sm"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="segment" className="text-xs font-semibold text-gray-700">
-                      Segmento de Atuação
-                    </Label>
-                    <Input
-                      id="segment"
-                      value={segment}
-                      onChange={(e) => setSegment(e.target.value)}
-                      placeholder="Ex: Tráfego Pago, Design, Dev, IA"
-                      className="h-10"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="corp-email" className="text-xs font-semibold text-gray-700">
-                      E-mail Corporativo <span className="text-red-500">*</span>
-                    </Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
-                      <Input
-                        id="corp-email"
-                        type="email"
-                        value={corporateEmail}
-                        onChange={(e) => setCorporateEmail(e.target.value)}
-                        placeholder="contato@empresa.com"
-                        className="h-10 pl-9"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="cep" className="text-xs font-semibold text-gray-700">
-                      CEP
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="cep"
-                        value={cep}
-                        onChange={(e) => setCep(formatCEP(e.target.value))}
-                        onBlur={handleCepBlur}
-                        placeholder="00000-000"
-                        maxLength={9}
-                        className="h-10 font-mono text-sm pr-9"
-                      />
-                      {fetchingCep && (
-                        <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-blue-600" />
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5 sm:col-span-2">
-                    <Label htmlFor="address" className="text-xs font-semibold text-gray-700">
-                      Endereço Completo
-                    </Label>
-                    <Input
-                      id="address"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Rua, Número, Bairro, Complemento"
-                      className="h-10"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="city" className="text-xs font-semibold text-gray-700">
-                      Cidade / UF
-                    </Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="city"
-                        value={city}
-                        onChange={(e) => setCity(e.target.value)}
-                        placeholder="Cidade"
-                        className="h-10 flex-1"
-                      />
-                      <Input
-                        id="state"
-                        value={state}
-                        onChange={(e) => setState(e.target.value.toUpperCase())}
-                        placeholder="UF"
-                        maxLength={2}
-                        className="h-10 w-16 text-center font-mono text-sm uppercase"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="contact-name" className="text-xs font-semibold text-gray-700">
-                      Responsável Legal <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="contact-name"
-                      value={contactName}
-                      onChange={(e) => setContactName(e.target.value)}
-                      placeholder="Nome do representante legal"
-                      className="h-10"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="role-pos" className="text-xs font-semibold text-gray-700">
-                      Cargo / Função
-                    </Label>
-                    <Input
-                      id="role-pos"
-                      value={rolePosition}
-                      onChange={(e) => setRolePosition(e.target.value)}
-                      placeholder="Ex: Sócio-Administrador / Especialista"
-                      className="h-10"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="phone" className="text-xs font-semibold text-gray-700">
-                      WhatsApp
-                    </Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
-                      <Input
-                        id="phone"
-                        value={phone}
-                        onChange={(e) => setPhone(formatPhone(e.target.value))}
-                        placeholder="(11) 99999-9999"
-                        maxLength={15}
-                        className="h-10 pl-9 font-mono text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="instagram" className="text-xs font-semibold text-gray-700">
-                      Instagram (Opcional)
-                    </Label>
-                    <div className="relative">
-                      <Instagram className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
-                      <Input
-                        id="instagram"
-                        value={instagram}
-                        onChange={(e) => setInstagram(e.target.value)}
-                        placeholder="@perfil"
-                        className="h-10 pl-9"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="linkedin" className="text-xs font-semibold text-gray-700">
-                      LinkedIn (Opcional)
-                    </Label>
-                    <div className="relative">
-                      <Linkedin className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
-                      <Input
-                        id="linkedin"
-                        value={linkedin}
-                        onChange={(e) => setLinkedin(e.target.value)}
-                        placeholder="linkedin.com/in/..."
-                        className="h-10 pl-9"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="website" className="text-xs font-semibold text-gray-700">
-                      Site Institucional (Opcional)
-                    </Label>
-                    <div className="relative">
-                      <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
-                      <Input
-                        id="website"
-                        value={website}
-                        onChange={(e) => setWebsite(e.target.value)}
-                        placeholder="https://empresa.com"
-                        className="h-10 pl-9"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── FREELANCER: ETAPA 2 = DOCUMENTAÇÃO ────────────────────────── */}
-            {isFree && step === 2 && (
-              <motion.div
-                key="free-step2"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-              >
-                {renderDocumentUploadCard()}
-              </motion.div>
-            )}
-
-            {/* ── FREELANCER: ETAPA 3 = DADOS FINANCEIROS & PIX ─────────────── */}
-            {isFree && step === 3 && (
-              <motion.div
-                key="free-step3"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="space-y-6"
-              >
-                <div className="space-y-1">
-                  <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                    <CreditCard className="h-5 w-5 text-emerald-600" /> Dados Financeiros para Pagamentos
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    Informe os dados da conta bancária da sua PJ e a chave PIX para liquidação de honorários.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div className="space-y-1.5">
-                    <Label htmlFor="bank-name" className="text-xs font-semibold text-gray-700">
-                      Instituição Bancária (Banco) <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="bank-name"
-                      value={bankName}
-                      onChange={(e) => setBankName(e.target.value)}
-                      placeholder="Ex: Nubank, Itaú, Banco Inter, Bradesco"
-                      className="h-10"
-                      required
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pix-type" className="text-xs font-semibold text-gray-700">
-                      Tipo de Chave PIX <span className="text-red-500">*</span>
-                    </Label>
-                    <Select value={pixType} onValueChange={setPixType}>
-                      <SelectTrigger id="pix-type" className="h-10">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="CNPJ">CNPJ</SelectItem>
-                        <SelectItem value="E-mail">E-mail</SelectItem>
-                        <SelectItem value="Telefone">Telefone</SelectItem>
-                        <SelectItem value="Chave Aleatória">Chave Aleatória</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <Label htmlFor="pix-key" className="text-xs font-semibold text-gray-700">
-                      Chave PIX <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="pix-key"
-                      value={pixKey}
-                      onChange={(e) => setPixKey(e.target.value)}
-                      placeholder="Informe sua chave Pix cadastrada"
-                      className="h-10 font-mono text-sm"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label htmlFor="bank-agency" className="text-xs font-semibold text-gray-700">
-                        Agência
-                      </Label>
-                      <Input
-                        id="bank-agency"
-                        value={bankAgency}
-                        onChange={(e) => setBankAgency(e.target.value)}
-                        placeholder="0001"
-                        className="h-10 font-mono text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label htmlFor="bank-account" className="text-xs font-semibold text-gray-700">
-                        Conta Corrente
-                      </Label>
-                      <Input
-                        id="bank-account"
-                        value={bankAccount}
-                        onChange={(e) => setBankAccount(e.target.value)}
-                        placeholder="123456-7"
-                        className="h-10 font-mono text-sm"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100 flex items-start gap-3">
-                  <ShieldCheck className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-xs text-blue-900 leading-relaxed">
-                    <strong>Atenção:</strong> Os pagamentos serão processados exclusivamente para a titularidade da pessoa jurídica cadastrada (mesmo CNPJ).
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* ── FREELANCER: ETAPA 4 = REVISÃO & CONCLUSÃO ──────────────────── */}
-            {isFree && step === 4 && (
-              <motion.div
-                key="free-step4"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                className="space-y-6"
-              >
-                <div className="space-y-1">
-                  <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" /> Revisão & Confirmação de Cadastro
-                  </h2>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    Confira o resumo das informações antes de concluir a homologação no DELSKI CLOUD.
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Resumo Cadastral */}
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-gray-200/80 space-y-3">
-                    <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-gray-600">Dados da Empresa</span>
-                      <Button variant="link" size="sm" onClick={() => setStep(1)} className="text-xs h-auto p-0 text-blue-600">
-                        Editar
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-                      <div>
-                        <span className="text-gray-400">Nome Fantasia:</span>
-                        <p className="font-semibold text-gray-800">{companyName || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Razão Social:</span>
-                        <p className="font-semibold text-gray-800">{corporateName || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">CNPJ:</span>
-                        <p className="font-semibold text-gray-800 font-mono">{cnpj || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">E-mail Corporativo:</span>
-                        <p className="font-semibold text-gray-800">{corporateEmail || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Responsável Legal:</span>
-                        <p className="font-semibold text-gray-800">{contactName || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">WhatsApp:</span>
-                        <p className="font-semibold text-gray-800">{phone || "—"}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Resumo Bancário (Freelancer) */}
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-gray-200/80 space-y-3">
-                    <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-gray-600">Dados Bancários / PIX</span>
-                      <Button variant="link" size="sm" onClick={() => setStep(3)} className="text-xs h-auto p-0 text-blue-600">
-                        Editar
-                      </Button>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                      <div>
-                        <span className="text-gray-400">Banco:</span>
-                        <p className="font-semibold text-gray-800">{bankName || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Tipo de PIX:</span>
-                        <p className="font-semibold text-gray-800">{pixType || "—"}</p>
-                      </div>
-                      <div>
-                        <span className="text-gray-400">Chave PIX:</span>
-                        <p className="font-semibold text-gray-800 font-mono">{pixKey || "—"}</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Resumo Documental */}
-                  <div className="p-5 rounded-2xl bg-slate-50 border border-gray-200/80 space-y-3">
-                    <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
-                      <span className="text-xs font-bold uppercase tracking-wider text-gray-600">
-                        Documentos Anexados ({Object.keys(documents).length})
-                      </span>
-                      <Button variant="link" size="sm" onClick={() => setStep(2)} className="text-xs h-auto p-0 text-blue-600">
-                        Gerenciar
-                      </Button>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {Object.keys(documents).length === 0 ? (
-                        <p className="text-xs text-amber-600 font-medium">Nenhum documento anexado ainda.</p>
-                      ) : (
-                        Object.entries(documents).map(([type, doc]) => (
-                          <Badge key={type} className="bg-emerald-100 text-emerald-800 border-emerald-200 text-xs py-1 px-3 flex items-center gap-1.5">
-                            <FileCheck className="h-3.5 w-3.5 text-emerald-600" />
-                            <span>{doc.name}</span>
-                          </Badge>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          {/* Alerta de Documentos Pendentes */}
-          {((!isFree && step === 1) || (isFree && step === 2)) && !isDocComplete && (
-            <div className="p-4 mt-6 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3 text-xs text-slate-700 font-medium">
-              <AlertCircle className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-slate-900">Documentos necessários pendentes:</p>
-                <p className="text-slate-600 mt-0.5">
-                  Anexe os seguintes arquivos para habilitar o avanço:{" "}
-                  <span className="font-semibold text-slate-900">{pendingRequiredDocs.map((d) => d.title).join(", ")}</span>.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Alerta de Documentos Todos Anexados (Sucesso) */}
-          {((!isFree && step === 1) || (isFree && step === 2)) && isDocComplete && (
-            <div className="p-4 mt-6 rounded-2xl bg-blue-50/60 border border-blue-200 flex items-start gap-3 text-xs text-blue-900 font-medium shadow-2xs animate-in fade-in duration-300">
-              <CheckCircle2 className="h-4 w-4 text-blue-600 shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-slate-900">Todos os documentos foram anexados com sucesso!</p>
-                <p className="text-slate-600 mt-0.5">
-                  Seus arquivos foram salvos e vinculados no banco de dados. Clique em <strong>"Continuar"</strong> abaixo para avançar.
-                </p>
-              </div>
-            </div>
-          )}
-
-          {/* Navigation Controls */}
-          <div className="flex items-center justify-between pt-8 mt-8 border-t border-slate-100">
-            {step > 1 ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={prevStep}
-                disabled={submitting}
-                className="h-10 px-5 text-xs font-semibold rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 cursor-pointer"
-              >
-                <ArrowLeft className="h-4 w-4 mr-1.5" /> Voltar
-              </Button>
-            ) : (
-              <div />
-            )}
-
-            {step < totalSteps ? (
-              <Button
-                type="button"
-                onClick={nextStep}
-                disabled={(!isFree && step === 1 && !isDocComplete) || (isFree && step === 2 && !isDocComplete)}
-                className={`h-10 px-6 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 cursor-pointer ${
-                  ((!isFree && step === 1 && !isDocComplete) || (isFree && step === 2 && !isDocComplete))
-                    ? "bg-slate-200 text-slate-400 hover:bg-slate-200 cursor-not-allowed shadow-none"
-                    : "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                }`}
-              >
-                Continuar <ArrowRight className="h-4 w-4 ml-1" />
-              </Button>
-            ) : (
-              <Button
-                type="button"
-                onClick={handleFinalize}
-                disabled={submitting}
-                className="h-11 px-8 text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700 text-white shadow-md flex items-center gap-2 cursor-pointer transition-all"
-              >
-                {submitting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" /> Concluindo Homologação...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4" /> Finalizar e Acessar Painel
-                  </>
-                )}
-              </Button>
-            )}
-          </div>
-        </div>
+        <span className="text-xs font-black tracking-tight text-slate-900 dark:text-white">
+          DELSKI <span className="text-blue-600 dark:text-blue-400">HUD ONBOARDING</span>
+        </span>
       </div>
 
-      {/* Modal Animado de Conclusão ('Tudo pronto!') */}
-      <AnimatePresence>
-        {isSuccessModalOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4"
-          >
+      {/* ── Central Floating HUD Card ─────────────────────────────────── */}
+      <div className="w-full max-w-2xl hud-card p-6 sm:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.04)] relative z-10 space-y-8">
+        {/* Stepper Header (Smooth 2.5s Radial/Linear Progress) */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="px-3 py-1 rounded-full text-xs font-black bg-blue-600 text-white font-hud shadow-md shadow-blue-500/20">
+                Etapa {step} de {totalSteps}
+              </span>
+              <span className="text-xs font-bold text-slate-400">
+                {isFree
+                  ? step === 1 ? "Dados Pessoais" : step === 2 ? "Documentos" : step === 3 ? "Dados Bancários" : "Revisão"
+                  : step === 1 ? "Documentação Corporativa" : "Dados da Empresa"}
+              </span>
+            </div>
+
+            <span className="text-xs font-black text-blue-600 dark:text-blue-400 font-hud">
+              {Math.round((step / totalSteps) * 100)}%
+            </span>
+          </div>
+
+          {/* Progress Bar with 2.5s smooth transition */}
+          <div className="w-full h-2 rounded-full bg-slate-100 dark:bg-zinc-800 overflow-hidden">
             <motion.div
-              initial={{ scale: 0.9, opacity: 0, y: 20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.9, opacity: 0, y: 20 }}
-              transition={{ duration: 0.35, ease: "easeOut" }}
-              className="bg-white rounded-3xl border border-slate-200/80 shadow-2xl p-8 max-w-md w-full text-center space-y-6"
+              className="h-full bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 rounded-full"
+              initial={{ width: "0%" }}
+              animate={{ width: `${(step / totalSteps) * 100}%` }}
+              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            />
+          </div>
+        </div>
+
+        {/* ── Step Panels ──────────────────────────────────────────────── */}
+        <AnimatePresence mode="wait" custom={direction}>
+          {/* CLIENTE: ETAPA 1 = DOCUMENTAÇÃO */}
+          {!isFree && step === 1 && (
+            <motion.div
+              key="client-step1"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-6"
             >
-              <div className="w-20 h-20 rounded-full bg-emerald-50 border-2 border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-inner">
-                <CheckCircle2 className="w-10 h-10 animate-bounce" />
-              </div>
-              <div className="space-y-2">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold uppercase tracking-wider">
-                  <Sparkles className="w-3.5 h-3.5" /> Homologação Concluída
-                </div>
-                <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Tudo pronto!</h2>
-                <p className="text-sm text-slate-500 leading-relaxed">
-                  Seus dados cadastrais foram registrados com sucesso no Delski Cloud. Estamos redirecionando para o seu painel...
+              {renderDocumentUploadCard()}
+            </motion.div>
+          )}
+
+          {/* CLIENTE: ETAPA 2 = DADOS CADASTRAIS */}
+          {!isFree && step === 2 && (
+            <motion.div
+              key="client-step2"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-6"
+            >
+              <div className="space-y-1 text-center sm:text-left">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center justify-center sm:justify-start gap-2">
+                  <Building2 className="h-5 w-5 text-blue-600" /> Dados Cadastrais & Contato
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                  Confirme as informações cadastrais da empresa e do representante legal.
                 </p>
               </div>
-              <div className="pt-2">
-                <Button
-                  onClick={() => {
-                    if (isFree) {
-                      window.location.href = "/freelancer";
-                    } else {
-                      window.location.href = "/cliente";
-                    }
-                  }}
-                  className="w-full h-11 bg-gradient-to-r from-[#1d4ed8] via-[#2563eb] to-[#3b82f6] text-white font-semibold rounded-xl shadow-md gap-2 cursor-pointer"
-                >
-                  Acessar Meu Portal Agora <ArrowRight className="w-4 h-4" />
-                </Button>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
+                    Nome Fantasia da Empresa <span className="text-blue-600">•</span>
+                  </Label>
+                  <Input
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    placeholder="Ex: Minha Empresa Corp"
+                    className="h-10 text-xs rounded-2xl"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Razão Social</Label>
+                  <Input
+                    value={corporateName}
+                    onChange={(e) => setCorporateName(e.target.value)}
+                    placeholder="Ex: Minha Empresa Serviços Ltda"
+                    className="h-10 text-xs rounded-2xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">CNPJ</Label>
+                  <Input
+                    value={cnpj}
+                    onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
+                    maxLength={18}
+                    className="h-10 text-xs rounded-2xl font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Segmento</Label>
+                  <Input
+                    value={segment}
+                    onChange={(e) => setSegment(e.target.value)}
+                    placeholder="Ex: Tecnologia, Varejo"
+                    className="h-10 text-xs rounded-2xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
+                    E-mail Corporativo <span className="text-blue-600">•</span>
+                  </Label>
+                  <Input
+                    type="email"
+                    value={corporateEmail}
+                    onChange={(e) => setCorporateEmail(e.target.value)}
+                    className="h-10 text-xs rounded-2xl"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
+                    Representante Legal <span className="text-blue-600">•</span>
+                  </Label>
+                  <Input
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    className="h-10 text-xs rounded-2xl"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">WhatsApp</Label>
+                  <Input
+                    value={phone}
+                    onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    maxLength={15}
+                    className="h-10 text-xs rounded-2xl font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">CEP</Label>
+                  <Input
+                    value={cep}
+                    onChange={(e) => {
+                      const v = formatCEP(e.target.value);
+                      setCep(v);
+                      if (v.length === 9) handleCepBlur();
+                    }}
+                    maxLength={9}
+                    placeholder="00000-000"
+                    className="h-10 text-xs rounded-2xl font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Endereço</Label>
+                  <Input
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="h-10 text-xs rounded-2xl"
+                  />
+                </div>
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+
+          {/* FREELANCER: ETAPA 1 = DADOS PESSOAIS */}
+          {isFree && step === 1 && (
+            <motion.div
+              key="free-step1"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-6"
+            >
+              <div className="space-y-1 text-center sm:text-left">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center justify-center sm:justify-start gap-2">
+                  <User className="h-5 w-5 text-blue-600" /> Identificação do Especialista
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                  Preencha seus dados para homologação e emissão de contratos.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5 sm:col-span-2">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
+                    Nome Completo <span className="text-blue-600">•</span>
+                  </Label>
+                  <Input
+                    value={contactName}
+                    onChange={(e) => setContactName(e.target.value)}
+                    className="h-10 text-xs rounded-2xl"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Razão Social / MEI</Label>
+                  <Input
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    className="h-10 text-xs rounded-2xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">CNPJ</Label>
+                  <Input
+                    value={cnpj}
+                    onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
+                    maxLength={18}
+                    className="h-10 text-xs rounded-2xl font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
+                    E-mail <span className="text-blue-600">•</span>
+                  </Label>
+                  <Input
+                    type="email"
+                    value={corporateEmail}
+                    onChange={(e) => setCorporateEmail(e.target.value)}
+                    className="h-10 text-xs rounded-2xl"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">WhatsApp</Label>
+                  <Input
+                    value={phone}
+                    onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    maxLength={15}
+                    className="h-10 text-xs rounded-2xl font-mono"
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* FREELANCER: ETAPA 2 = DOCUMENTOS */}
+          {isFree && step === 2 && (
+            <motion.div
+              key="free-step2"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-6"
+            >
+              {renderDocumentUploadCard()}
+            </motion.div>
+          )}
+
+          {/* FREELANCER: ETAPA 3 = DADOS BANCÁRIOS */}
+          {isFree && step === 3 && (
+            <motion.div
+              key="free-step3"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-6"
+            >
+              <div className="space-y-1 text-center sm:text-left">
+                <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center justify-center sm:justify-start gap-2">
+                  <CreditCard className="h-5 w-5 text-blue-600" /> Dados Bancários & Recebimento
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 font-medium">
+                  Informe seus dados e chave PIX para repasse de pagamentos das entregas.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
+                    Instituição Bancária <span className="text-blue-600">•</span>
+                  </Label>
+                  <Input
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    placeholder="Ex: Nubank, Itaú, Banco do Brasil"
+                    className="h-10 text-xs rounded-2xl"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Agência / Conta</Label>
+                  <Input
+                    value={bankAccount}
+                    onChange={(e) => setBankAccount(e.target.value)}
+                    placeholder="Ex: Ag 0001 / Conta 12345-6"
+                    className="h-10 text-xs rounded-2xl"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Tipo de Chave PIX</Label>
+                  <Select value={pixType} onValueChange={setPixType}>
+                    <SelectTrigger className="h-10 text-xs rounded-2xl font-hud">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CNPJ">CNPJ</SelectItem>
+                      <SelectItem value="CPF">CPF</SelectItem>
+                      <SelectItem value="E-mail">E-mail</SelectItem>
+                      <SelectItem value="Telefone">Telefone</SelectItem>
+                      <SelectItem value="Aleatória">Chave Aleatória</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">
+                    Chave PIX <span className="text-blue-600">•</span>
+                  </Label>
+                  <Input
+                    value={pixKey}
+                    onChange={(e) => setPixKey(e.target.value)}
+                    placeholder="Digite sua chave PIX"
+                    className="h-10 text-xs rounded-2xl"
+                    required
+                  />
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* FREELANCER: ETAPA 4 = REVISÃO */}
+          {isFree && step === 4 && (
+            <motion.div
+              key="free-step4"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              className="space-y-6 text-center"
+            >
+              <div className="w-16 h-16 rounded-full bg-blue-50 dark:bg-blue-950/60 text-blue-600 mx-auto flex items-center justify-center shadow-lg shadow-blue-500/20">
+                <CheckCircle2 className="h-8 w-8" />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white font-hud">
+                  Tudo pronto para homologação!
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto font-medium">
+                  Seus dados e documentações foram estruturados com sucesso. Clique abaixo para ativar seu acesso imediato à plataforma.
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ── Navigation Buttons ────────────────────────────────────────── */}
+        <div className="flex items-center justify-between pt-6 border-t border-slate-100 dark:border-white/5">
+          {step > 1 ? (
+            <button
+              type="button"
+              onClick={prevStep}
+              disabled={submitting}
+              className="px-5 py-2.5 rounded-2xl bg-slate-100 dark:bg-zinc-800 hover:bg-slate-200 text-slate-700 dark:text-zinc-300 text-xs font-bold flex items-center gap-2 cursor-pointer font-hud"
+            >
+              <ArrowLeft className="h-4 w-4" /> Voltar
+            </button>
+          ) : (
+            <div />
+          )}
+
+          {step < totalSteps ? (
+            <button
+              type="button"
+              onClick={nextStep}
+              className="px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-500/20 flex items-center gap-2 cursor-pointer font-hud transition-all"
+            >
+              <span>Avançar</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleFinalize}
+              disabled={submitting}
+              className="px-8 py-3 rounded-2xl bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-600 hover:from-blue-800 hover:to-indigo-700 text-white text-xs font-black shadow-lg shadow-blue-500/30 flex items-center gap-2 cursor-pointer font-hud transition-all"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Homologando...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="h-4 w-4" />
+                  <span>Concluir & Acessar Portal</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
