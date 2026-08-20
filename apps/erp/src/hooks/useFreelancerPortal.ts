@@ -189,30 +189,61 @@ export function useUpdateCurrentFreelancerProfile() {
       const targetId = freelancerId || userId;
       if (!targetId) throw new Error("ID do freelancer não especificado.");
 
-      // 1. Update/Upsert freelancers table
-      const freelancerPayload = {
+      // 1. Update/Upsert freelancers table via admin (bypassa RLS)
+      const freelancerPayload: Record<string, any> = {
         id: targetId,
         ...patch,
         updated_at: new Date().toISOString(),
       };
 
+      // Helper: campos que sabemos que existem com certeza na tabela freelancers
+      const KNOWN_FREELANCER_COLUMNS = new Set([
+        "id", "email", "full_name", "company_name", "corporate_name", "cnpj",
+        "segment", "address", "city", "state", "cep", "phone", "role_position",
+        "instagram", "linkedin", "website", "bank_name", "bank_agency",
+        "bank_account", "pix_type", "pix_key", "status", "contract_model",
+        "contract_value", "payment_date", "due_date", "financial_status",
+        "onboarding_completed", "created_at", "updated_at",
+        // colunas adicionadas via migration — incluídas apenas se disponíveis
+        "behance",
+      ]);
+
+      const safePayload = Object.fromEntries(
+        Object.entries(freelancerPayload).filter(([k]) => KNOWN_FREELANCER_COLUMNS.has(k))
+      );
+
       try {
-        const { error: fErr } = await (supabase.from("freelancers") as any).upsert(
-          freelancerPayload,
+        const { error: fErr } = await (supabaseAdmin.from("freelancers") as any).upsert(
+          safePayload,
           { onConflict: "id" }
         );
         if (fErr) {
-          console.warn("Primary upsert freelancers error, trying admin:", fErr);
-          await (supabaseAdmin.from("freelancers") as any).upsert(freelancerPayload, {
-            onConflict: "id",
-          });
+          // Se a coluna behance ainda não existe, tenta sem ela
+          if (fErr.code === "42703" || fErr.message?.includes("column")) {
+            const { behance: _b, ...payloadWithoutBehance } = safePayload;
+            const { error: retryErr } = await (supabaseAdmin.from("freelancers") as any).upsert(
+              payloadWithoutBehance,
+              { onConflict: "id" }
+            );
+            if (retryErr) throw new Error(`Erro ao salvar: ${retryErr.message}`);
+          } else {
+            throw new Error(`Erro ao salvar dados: ${fErr.message}`);
+          }
         }
-      } catch (err) {
-        console.warn("Upsert freelancers exception, trying admin:", err);
-        await (supabaseAdmin.from("freelancers") as any).upsert(freelancerPayload, {
-          onConflict: "id",
-        });
+      } catch (err: any) {
+        // Se é um erro de coluna desconhecida, tenta sem behance
+        if (err?.code === "42703" || err?.message?.includes("column") || err?.message?.includes("behance")) {
+          const { behance: _b, ...payloadWithoutBehance } = safePayload;
+          const { error: fallbackErr } = await (supabaseAdmin.from("freelancers") as any).upsert(
+            payloadWithoutBehance,
+            { onConflict: "id" }
+          );
+          if (fallbackErr) throw new Error(`Erro ao salvar dados: ${fallbackErr.message}`);
+        } else {
+          throw err;
+        }
       }
+
 
       // 2. Update profiles table
       const profilePatch: any = {};
@@ -241,22 +272,13 @@ export function useUpdateCurrentFreelancerProfile() {
       profilePatch.updated_at = new Date().toISOString();
 
       if (Object.keys(profilePatch).length > 0 && (userId || targetId)) {
-        try {
-          const { error: pErr } = await supabase
-            .from("profiles")
-            .update(profilePatch)
-            .eq("id", userId || targetId);
-          if (pErr) {
-            await supabaseAdmin
-              .from("profiles")
-              .update(profilePatch)
-              .eq("id", userId || targetId);
-          }
-        } catch {
-          await supabaseAdmin
-            .from("profiles")
-            .update(profilePatch)
-            .eq("id", userId || targetId);
+        const profileId = userId || targetId;
+        const { error: pErr } = await supabaseAdmin
+          .from("profiles")
+          .update(profilePatch)
+          .eq("id", profileId);
+        if (pErr) {
+          console.warn("Profiles update warning (non-blocking):", pErr.message);
         }
       }
 
