@@ -606,77 +606,104 @@ function ClienteDashboardPage() {
 
   return (
     <div className="space-y-8 pb-16 max-w-7xl mx-auto">
-      {/* ── Welcome Header & Quick Action ──────────────────────────────────── */}
-      {/* ── Welcome Header & Quick Action ──────────────────────────────────── */}
+      {/* ── Executive Hero Card ──────────────────────────────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden"
+        transition={{ duration: 0.5 }}
+        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-slate-900 to-blue-950 text-white p-7 sm:p-9 shadow-xl border border-slate-800/90"
       >
-        <div className="flex items-center gap-4">
-          <Avatar className="h-16 w-16 rounded-2xl border border-slate-200 dark:border-zinc-700 shadow-xs">
-            <AvatarImage src={avatarPreview || profile?.avatar_url || ""} />
-            <AvatarFallback className="bg-gradient-to-br from-blue-700 to-indigo-800 text-white text-lg font-bold rounded-2xl">
-              {(client?.company_name || client?.contact_name || "CL").slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-          <div className="space-y-1">
-            <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border border-slate-200/80 dark:border-zinc-700">
-                <ShieldCheck className="h-3 w-3 text-blue-600 dark:text-blue-400" /> Portal Corporativo
+        {/* Top Accent Line */}
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-indigo-400 to-cyan-400" />
+
+        {/* Ambient Decorative Lighting */}
+        <div className="absolute -right-16 -top-16 w-80 h-80 bg-blue-500/15 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -left-16 -bottom-16 w-72 h-72 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex items-start sm:items-center gap-5">
+            <div className="relative">
+              <Avatar className="h-18 w-18 sm:h-20 sm:w-20 rounded-2xl border-2 border-white/20 shadow-lg ring-4 ring-blue-500/20">
+                <AvatarImage src={avatarPreview || profile?.avatar_url || ""} />
+                <AvatarFallback className="bg-gradient-to-br from-blue-600 via-indigo-600 to-blue-800 text-white text-2xl font-black rounded-2xl">
+                  {(client?.company_name || client?.contact_name || "CL").slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <span className="absolute -bottom-1 -right-1 flex h-4 w-4">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500 border-2 border-slate-900" />
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight">
-              Olá, {contactName || "Cliente"}
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 max-w-xl">
-              Painel corporativo para acompanhamento de demandas, chamados de suporte, faturas e governança contratual.
-            </p>
-          </div>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            onClick={() => setOpenTicketModal(true)}
-            className="h-10 px-5 text-xs font-bold rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-xs flex items-center gap-2 cursor-pointer transition-all active:scale-95"
-          >
-            <Plus className="h-4 w-4" /> Abrir Chamado SAC
-          </Button>
+            <div className="space-y-1.5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold bg-blue-500/20 text-blue-300 border border-blue-400/30 backdrop-blur-md">
+                  <ShieldCheck className="h-3.5 w-3.5 text-blue-400" /> Portal Corporativo Oficial
+                </span>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-slate-300 border border-white/10">
+                  CNPJ Homologado
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-white tracking-tight">
+                Olá, {contactName || "Cliente"}
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-300 max-w-2xl leading-relaxed">
+                Gestão centralizada de demandas contratadas, cronogramas de entrega, governança de contratos e suporte executivo.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 shrink-0 pt-2 lg:pt-0">
+            <Button
+              onClick={() => setOpenTicketModal(true)}
+              className="h-11 px-6 text-xs sm:text-sm font-bold rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/30 flex items-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95"
+            >
+              <Plus className="h-4 w-4" /> Abrir Chamado no SAC
+            </Button>
+          </div>
         </div>
       </motion.div>
 
-      {/* ── Main Navigation Tabs ────────────────────────────────────────────── */}
+      {/* ── Luxury Segmented Navigation Tabs ─────────────────────────────────── */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="bg-white dark:bg-zinc-900 p-1.5 rounded-2xl border border-slate-200/80 dark:border-zinc-800 shadow-xs overflow-x-auto">
-          <TabsList className="bg-transparent h-auto p-0 flex gap-1 min-w-max">
+        <div className="bg-white dark:bg-zinc-900 p-2 rounded-2xl border border-slate-200/90 dark:border-zinc-800 shadow-sm overflow-x-auto">
+          <TabsList className="bg-transparent h-auto p-0 flex gap-1.5 min-w-max">
             <TabsTrigger
               value="dashboard"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
             >
               <Sparkles className="h-4 w-4" /> Dashboard
             </TabsTrigger>
             <TabsTrigger
               value="projetos"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
             >
-              <Briefcase className="h-4 w-4" /> Meus Projetos ({clientProjects.length})
+              <Briefcase className="h-4 w-4" /> Meus Projetos
+              <span className="ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                {clientProjects.length}
+              </span>
             </TabsTrigger>
             <TabsTrigger
               value="ocorrencias"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
             >
-              <LifeBuoy className="h-4 w-4" /> SAC / Suporte ({tickets.length})
+              <LifeBuoy className="h-4 w-4" /> SAC / Suporte
+              <span className="ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                {tickets.length}
+              </span>
             </TabsTrigger>
             <TabsTrigger
               value="documentos"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
             >
-              <FileText className="h-4 w-4" /> Documentos & Faturas ({availableDocsCount})
+              <FileText className="h-4 w-4" /> Documentos & Faturas
+              <span className="ml-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 data-[state=active]:bg-white/20 data-[state=active]:text-white">
+                {availableDocsCount}
+              </span>
             </TabsTrigger>
             <TabsTrigger
               value="configuracoes"
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-xs text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-200 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:font-bold data-[state=active]:shadow-md data-[state=active]:shadow-blue-600/20 text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-zinc-100 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all flex items-center gap-2"
             >
               <User className="h-4 w-4" /> Configurações da Conta
             </TabsTrigger>
@@ -693,80 +720,86 @@ function ClienteDashboardPage() {
             animate="visible"
             className="space-y-6"
           >
-            {/* Metric KPI Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {/* Executive Metric KPI Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Card 1: Projetos Ativos */}
               <motion.div
                 variants={itemVariants}
-                whileHover={{ y: -3 }}
+                whileHover={{ y: -4 }}
                 onClick={() => setActiveTab("projetos")}
-                className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-zinc-700 transition-all cursor-pointer space-y-4"
+                className="bg-white dark:bg-zinc-900 p-6 sm:p-7 rounded-3xl border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:border-blue-500/40 transition-all duration-300 cursor-pointer relative overflow-hidden group space-y-5"
               >
+                <div className="absolute -top-6 -right-6 w-28 h-28 bg-blue-500/10 rounded-full blur-xl group-hover:bg-blue-500/20 transition-all pointer-events-none" />
+
                 <div className="flex items-center justify-between">
-                  <span className="p-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-xl border border-slate-200/60 dark:border-zinc-700">
-                    <Briefcase className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </span>
-                  <Badge className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200/80 dark:border-zinc-700 text-xs font-semibold">
+                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                    <Briefcase className="h-6 w-6" />
+                  </div>
+                  <Badge className="bg-blue-50 dark:bg-blue-950/50 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800 text-xs font-bold px-3 py-1 rounded-full">
                     {activeProjectsCount} Em Andamento
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-3xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight">{clientProjects.length}</p>
-                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 mt-0.5">Projetos Contratados</p>
+                  <p className="text-4xl font-black text-slate-900 dark:text-zinc-100 tracking-tight">{clientProjects.length}</p>
+                  <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">Projetos Contratados</p>
                 </div>
-                <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-bold pt-2 border-t border-slate-100 dark:border-zinc-800">
-                  <span>Ver projetos e documentos</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-bold pt-3 border-t border-slate-100 dark:border-zinc-800 group-hover:text-blue-700">
+                  <span>Acompanhar entregas & escopo</span>
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </motion.div>
 
               {/* Card 2: Chamados SAC */}
               <motion.div
                 variants={itemVariants}
-                whileHover={{ y: -3 }}
+                whileHover={{ y: -4 }}
                 onClick={() => setActiveTab("ocorrencias")}
-                className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-zinc-700 transition-all cursor-pointer space-y-4"
+                className="bg-white dark:bg-zinc-900 p-6 sm:p-7 rounded-3xl border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:border-indigo-500/40 transition-all duration-300 cursor-pointer relative overflow-hidden group space-y-5"
               >
+                <div className="absolute -top-6 -right-6 w-28 h-28 bg-indigo-500/10 rounded-full blur-xl group-hover:bg-indigo-500/20 transition-all pointer-events-none" />
+
                 <div className="flex items-center justify-between">
-                  <span className="p-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-xl border border-slate-200/60 dark:border-zinc-700">
-                    <LifeBuoy className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
-                  </span>
-                  <Badge className={openTicketsCount > 0 ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-slate-100 text-slate-700 border-slate-200"}>
-                    {openTicketsCount > 0 ? `${openTicketsCount} Em Aberto` : "Regular / Em Dia"}
+                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-700 text-white flex items-center justify-center shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
+                    <LifeBuoy className="h-6 w-6" />
+                  </div>
+                  <Badge className={openTicketsCount > 0 ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800 font-bold text-xs px-3 py-1 rounded-full" : "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800 font-bold text-xs px-3 py-1 rounded-full"}>
+                    {openTicketsCount > 0 ? `${openTicketsCount} Em Aberto` : "Atendimento em Dia"}
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-3xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight">{tickets.length}</p>
-                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 mt-0.5">Chamados de Suporte & SAC</p>
+                  <p className="text-4xl font-black text-slate-900 dark:text-zinc-100 tracking-tight">{tickets.length}</p>
+                  <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">Chamados de Suporte & SAC</p>
                 </div>
-                <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-bold pt-2 border-t border-slate-100 dark:border-zinc-800">
-                  <span>Abrir ou responder chamado</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                <div className="flex items-center justify-between text-xs text-indigo-600 dark:text-indigo-400 font-bold pt-3 border-t border-slate-100 dark:border-zinc-800 group-hover:text-indigo-700">
+                  <span>Abrir chamado com SLA de 2h</span>
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </motion.div>
 
               {/* Card 3: Documentos & NF-e */}
               <motion.div
                 variants={itemVariants}
-                whileHover={{ y: -3 }}
+                whileHover={{ y: -4 }}
                 onClick={() => setActiveTab("documentos")}
-                className="bg-white dark:bg-zinc-900 p-6 rounded-3xl border border-slate-200/80 dark:border-zinc-800 shadow-xs hover:shadow-md hover:border-slate-300 dark:hover:border-zinc-700 transition-all cursor-pointer space-y-4"
+                className="bg-white dark:bg-zinc-900 p-6 sm:p-7 rounded-3xl border border-slate-200/90 dark:border-zinc-800 shadow-sm hover:shadow-xl hover:border-slate-400 dark:hover:border-zinc-600 transition-all duration-300 cursor-pointer relative overflow-hidden group space-y-5"
               >
+                <div className="absolute -top-6 -right-6 w-28 h-28 bg-slate-500/10 rounded-full blur-xl group-hover:bg-slate-500/20 transition-all pointer-events-none" />
+
                 <div className="flex items-center justify-between">
-                  <span className="p-2.5 bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 rounded-xl border border-slate-200/60 dark:border-zinc-700">
-                    <FileText className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                  </span>
-                  <Badge className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200/80 dark:border-zinc-700 text-xs font-semibold">
-                    Disponíveis para Consulta
+                  <div className="h-12 w-12 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 text-white flex items-center justify-center shadow-md shadow-slate-900/20 group-hover:scale-105 transition-transform">
+                    <FileText className="h-6 w-6" />
+                  </div>
+                  <Badge className="bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 text-xs font-bold px-3 py-1 rounded-full">
+                    Acesso Imediato
                   </Badge>
                 </div>
                 <div>
-                  <p className="text-3xl font-extrabold text-slate-900 dark:text-zinc-100 tracking-tight">{availableDocsCount}</p>
-                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 mt-0.5">Documentos, Contratos & NF-e</p>
+                  <p className="text-4xl font-black text-slate-900 dark:text-zinc-100 tracking-tight">{availableDocsCount}</p>
+                  <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 mt-1 uppercase tracking-wider">Documentos & Notas Fiscais</p>
                 </div>
-                <div className="flex items-center justify-between text-xs text-blue-600 dark:text-blue-400 font-bold pt-2 border-t border-slate-100 dark:border-zinc-800">
-                  <span>Acessar pasta digital</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
+                <div className="flex items-center justify-between text-xs text-slate-700 dark:text-zinc-300 font-bold pt-3 border-t border-slate-100 dark:border-zinc-800 group-hover:text-slate-900">
+                  <span>Baixar contratos assinados e NFS-e</span>
+                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </div>
               </motion.div>
             </div>
@@ -776,20 +809,20 @@ function ClienteDashboardPage() {
               {/* Left 2 Cols: Linha do Tempo dos Projetos */}
               <motion.div
                 variants={itemVariants}
-                className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-6"
+                className="lg:col-span-2 bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/90 dark:border-zinc-800 p-6 sm:p-7 shadow-sm space-y-6"
               >
-                <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-4">
                   <div className="space-y-0.5">
-                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <Clock className="h-5 w-5 text-blue-600" /> Linha do Tempo & Atualizações
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Linha do Tempo dos Projetos
                     </h2>
-                    <p className="text-xs text-slate-500">Últimos eventos e marcos registrados nos seus projetos.</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400">Últimos eventos e marcos registrados nos seus serviços contratados.</p>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setActiveTab("projetos")}
-                    className="text-xs font-semibold text-blue-600 hover:text-blue-700"
+                    className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 rounded-xl"
                   >
                     Ver todos
                   </Button>
@@ -797,14 +830,16 @@ function ClienteDashboardPage() {
 
                 {clientProjects.length === 0 ? (
                   <div className="py-12 text-center space-y-3">
-                    <Briefcase className="h-10 w-10 text-slate-300 mx-auto" />
-                    <p className="text-sm font-semibold text-slate-700">Nenhum projeto registrado no momento</p>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                    <div className="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-zinc-800 text-slate-400 flex items-center justify-center mx-auto">
+                      <Briefcase className="h-6 w-6" />
+                    </div>
+                    <p className="text-sm font-bold text-slate-800 dark:text-zinc-200">Nenhum projeto registrado no momento</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
                       Assim que um projeto for iniciado pela equipe Delski, o progresso aparecerá aqui em tempo real.
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3.5">
                     {clientProjects.slice(0, 4).map((p, idx) => {
                       const tag = SERVICE_TAG_STYLES[p.service_type] || {
                         label: p.service_type,
@@ -826,19 +861,19 @@ function ClienteDashboardPage() {
                             setSelectedProject(p);
                             setProjectModalOpen(true);
                           }}
-                          className="flex items-start gap-4 p-4 rounded-2xl border border-slate-100 hover:border-blue-200 hover:bg-slate-50/50 transition-all cursor-pointer group"
+                          className="flex items-start gap-4 p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-700 hover:bg-slate-50/50 dark:hover:bg-zinc-800/40 transition-all cursor-pointer group"
                         >
-                          <div className="mt-1 h-3 w-3 rounded-full bg-blue-600 ring-4 ring-blue-50 flex-shrink-0" />
+                          <div className="mt-1 h-3 w-3 rounded-full bg-blue-600 ring-4 ring-blue-100 dark:ring-blue-950/80 flex-shrink-0" />
                           <div className="flex-1 min-w-0 space-y-1">
                             <div className="flex flex-wrap items-center gap-2 justify-between">
-                              <p className="text-sm font-bold text-slate-900 group-hover:text-blue-600 transition-colors truncate">
+                              <p className="text-sm font-bold text-slate-900 dark:text-zinc-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
                                 {p.title}
                               </p>
-                              <Badge className={`${statusInfo.bg} ${statusInfo.text} ${statusInfo.border} text-[11px] font-semibold`}>
+                              <Badge className={`${statusInfo.bg} ${statusInfo.text} ${statusInfo.border} text-[11px] font-bold rounded-full`}>
                                 {statusInfo.label}
                               </Badge>
                             </div>
-                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                            <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-zinc-400">
                               <span className={`px-2 py-0.5 rounded-md ${tag.bg} ${tag.text} font-semibold text-[10px]`}>
                                 {tag.label}
                               </span>
@@ -849,7 +884,7 @@ function ClienteDashboardPage() {
                               )}
                             </div>
                           </div>
-                          <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all self-center" />
+                          <ChevronRight className="h-4 w-4 text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:translate-x-0.5 transition-all self-center" />
                         </div>
                       );
                     })}
@@ -860,53 +895,53 @@ function ClienteDashboardPage() {
               {/* Right Col: Atalhos Rápidos */}
               <motion.div
                 variants={itemVariants}
-                className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-7 shadow-xs space-y-5 flex flex-col justify-between"
+                className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/90 dark:border-zinc-800 p-6 sm:p-7 shadow-sm space-y-5 flex flex-col justify-between"
               >
                 <div className="space-y-4">
-                  <div className="border-b border-slate-100 pb-3">
-                    <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-blue-600" /> Atalhos Rápidos
+                  <div className="border-b border-slate-100 dark:border-zinc-800 pb-3">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-zinc-100 flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Atalhos Rápidos
                     </h2>
-                    <p className="text-xs text-slate-500 mt-0.5">Ações essenciais do seu dia a dia.</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Ações essenciais do seu dia a dia.</p>
                   </div>
 
                   <div className="space-y-2.5">
                     <Button
                       onClick={() => setOpenTicketModal(true)}
                       variant="outline"
-                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 hover:text-blue-600 hover:border-blue-300 rounded-xl"
+                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:text-blue-600 hover:border-blue-300 dark:border-zinc-700 rounded-xl transition-all"
                     >
-                      <LifeBuoy className="h-4 w-4 text-blue-600" /> Abrir Novo Chamado no SAC
+                      <LifeBuoy className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Abrir Novo Chamado no SAC
                     </Button>
                     <Button
                       onClick={() => setActiveTab("projetos")}
                       variant="outline"
-                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 hover:text-blue-600 hover:border-blue-300 rounded-xl"
+                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:text-blue-600 hover:border-blue-300 dark:border-zinc-700 rounded-xl transition-all"
                     >
-                      <Briefcase className="h-4 w-4 text-blue-600" /> Acessar Meus Projetos
+                      <Briefcase className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Acessar Meus Projetos
                     </Button>
                     <Button
                       onClick={() => setActiveTab("documentos")}
                       variant="outline"
-                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 hover:text-blue-600 hover:border-blue-300 rounded-xl"
+                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:text-blue-600 hover:border-blue-300 dark:border-zinc-700 rounded-xl transition-all"
                     >
-                      <FileCheck className="h-4 w-4 text-blue-600" /> Baixar Contratos & Notas Fiscais
+                      <FileCheck className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Baixar Contratos & Notas Fiscais
                     </Button>
                     <Button
                       onClick={() => setActiveTab("configuracoes")}
                       variant="outline"
-                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 hover:text-blue-600 hover:border-blue-300 rounded-xl"
+                      className="w-full justify-start gap-3 h-11 text-xs font-bold text-slate-800 dark:text-zinc-200 hover:text-blue-600 hover:border-blue-300 dark:border-zinc-700 rounded-xl transition-all"
                     >
-                      <User className="h-4 w-4 text-blue-600" /> Atualizar Dados & Senha
+                      <User className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Atualizar Dados & Senha
                     </Button>
                   </div>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-blue-50/70 border border-blue-100 text-xs text-slate-600 space-y-1.5">
-                  <div className="flex items-center gap-1.5 font-bold text-blue-900">
-                    <Info className="h-4 w-4 text-blue-600" /> Atendimento Exclusivo
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-100 dark:border-blue-900/40 text-xs text-slate-600 dark:text-zinc-300 space-y-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-blue-900 dark:text-blue-300">
+                    <Info className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Atendimento Exclusivo
                   </div>
-                  <p className="text-[11px] leading-relaxed text-slate-600">
+                  <p className="text-[11px] leading-relaxed text-slate-600 dark:text-zinc-400">
                     Precisa de um suporte emergencial? Nosso SAC responde seus chamados em até 2 horas úteis.
                   </p>
                 </div>

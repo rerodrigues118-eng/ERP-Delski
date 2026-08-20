@@ -75,10 +75,10 @@ function ClienteLayout() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <div className="text-center space-y-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto" />
-          <p className="text-sm text-muted-foreground font-medium">Carregando área do cliente...</p>
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-zinc-950 text-foreground">
+        <div className="text-center space-y-3.5">
+          <div className="h-10 w-10 animate-spin rounded-full border-3 border-blue-600 border-t-transparent mx-auto shadow-sm" />
+          <p className="text-xs text-slate-500 font-semibold tracking-wide">Carregando DELSKI CLOUD...</p>
         </div>
       </div>
     );
@@ -90,31 +90,31 @@ function ClienteLayout() {
   const contactName = clientData?.contact_name || clientData?.full_name || profile?.full_name || "Representante";
 
   return (
-    <div className="min-h-screen bg-background dark:bg-zinc-950 text-foreground flex flex-col transition-colors">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#0B0F19] text-slate-900 dark:text-zinc-100 flex flex-col font-sans antialiased selection:bg-blue-600 selection:text-white transition-colors">
       {/* Top Client Navbar */}
-      <header className="sticky top-0 z-30 bg-card/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-border dark:border-zinc-800/80 shadow-xs transition-colors">
+      <header className="sticky top-0 z-40 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-xl border-b border-slate-200/80 dark:border-zinc-800/80 shadow-xs transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           {/* Brand Logo & Company Badge */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => navigate({ to: "/cliente" })}>
               <img src="/logo.png" alt="Delski" className="h-8 w-8 object-contain transition-all dark:brightness-0 dark:invert" />
-              <span className="font-bold tracking-tight text-foreground text-lg">
-                DELSKI <span className="text-blue-600 dark:text-blue-400 font-extrabold">CLOUD</span>
+              <span className="font-extrabold tracking-tight text-slate-900 dark:text-zinc-100 text-lg">
+                DELSKI <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-black">CLOUD</span>
               </span>
             </div>
-            <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-border">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs font-semibold text-foreground truncate max-w-[220px]">
-                {displayName}
+            <div className="hidden sm:flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-zinc-800">
+              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-zinc-800/80 border border-slate-200/80 dark:border-zinc-700/80 text-xs font-semibold text-slate-700 dark:text-zinc-300 flex items-center gap-1.5 truncate max-w-[240px]">
+                <Building2 className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span className="truncate">{displayName}</span>
               </span>
             </div>
           </div>
 
           {/* Right: Support button, ThemeToggle, User Menu */}
-          <div className="flex items-center gap-2.5">
-            <div className="hidden md:flex items-center gap-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 text-xs px-3 py-1.5 rounded-full font-medium border border-blue-500/20">
-              <ShieldCheck className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
-              <span>Acesso Seguro</span>
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 text-xs px-3 py-1 rounded-full font-semibold border border-emerald-200/80 dark:border-emerald-800/80">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+              <span>Ambiente Homologado</span>
             </div>
 
             <ThemeToggle />
@@ -123,55 +123,55 @@ function ClienteLayout() {
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  className="flex items-center gap-2.5 p-1.5 rounded-xl hover:bg-accent transition-colors border border-border"
+                  className="flex items-center gap-2.5 p-1.5 pr-2.5 rounded-2xl hover:bg-slate-100 dark:hover:bg-zinc-800 transition-all border border-slate-200/80 dark:border-zinc-800 bg-white dark:bg-zinc-900 shadow-xs cursor-pointer"
                 >
-                  <Avatar className="h-8 w-8 rounded-lg border border-border">
+                  <Avatar className="h-8 w-8 rounded-xl border border-slate-200 dark:border-zinc-700">
                     <AvatarImage src={profile?.avatar_url || ""} />
-                    <AvatarFallback className="bg-blue-600 text-white text-xs font-bold rounded-lg">
+                    <AvatarFallback className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white text-xs font-bold rounded-xl">
                       {displayName.slice(0, 2).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
                   <div className="text-left hidden sm:block">
-                    <p className="text-xs font-semibold text-foreground leading-tight truncate max-w-[140px]">
+                    <p className="text-xs font-bold text-slate-900 dark:text-zinc-100 leading-tight truncate max-w-[140px]">
                       {contactName}
                     </p>
-                    <p className="text-[11px] text-muted-foreground truncate max-w-[140px]">
+                    <p className="text-[10px] font-medium text-slate-500 dark:text-zinc-400 truncate max-w-[140px]">
                       {user?.email}
                     </p>
                   </div>
-                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 p-1.5 rounded-xl shadow-lg bg-popover border-border">
+              <DropdownMenuContent align="end" className="w-60 p-2 rounded-2xl shadow-xl bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800">
                 <DropdownMenuLabel className="font-normal px-2 py-1.5">
-                  <div className="text-xs font-semibold text-foreground truncate">{displayName}</div>
-                  <div className="text-[11px] text-muted-foreground truncate">{user?.email}</div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-zinc-100 truncate">{displayName}</div>
+                  <div className="text-[11px] text-slate-500 dark:text-zinc-400 truncate">{user?.email}</div>
                 </DropdownMenuLabel>
-                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuSeparator className="bg-slate-100 dark:bg-zinc-800 my-1" />
                 <DropdownMenuItem
                   onClick={() => {
                     const event = new CustomEvent("delski_switch_client_tab", { detail: "configuracoes" });
                     window.dispatchEvent(event);
                   }}
-                  className="rounded-lg text-xs font-medium cursor-pointer flex items-center gap-2"
+                  className="rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-2.5 py-2 px-2.5"
                 >
-                  <User className="h-3.5 w-3.5 text-blue-600" /> Configurações da Conta
+                  <User className="h-4 w-4 text-blue-600 dark:text-blue-400" /> Configurações da Conta
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={() => {
                     const event = new CustomEvent("delski_switch_client_tab", { detail: "ocorrencias" });
                     window.dispatchEvent(event);
                   }}
-                  className="rounded-lg text-xs font-medium cursor-pointer flex items-center gap-2"
+                  className="rounded-xl text-xs font-semibold text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer flex items-center gap-2.5 py-2 px-2.5"
                 >
-                  <LifeBuoy className="h-3.5 w-3.5 text-blue-600" /> Central de SAC / Suporte
+                  <LifeBuoy className="h-4 w-4 text-indigo-600 dark:text-indigo-400" /> Central de SAC / Suporte
                 </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuSeparator className="bg-slate-100 dark:bg-zinc-800 my-1" />
                 <DropdownMenuItem
                   onClick={() => signOut()}
-                  className="text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-500/10 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-2"
+                  className="text-rose-600 dark:text-rose-400 hover:text-rose-700 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-xl text-xs font-semibold cursor-pointer flex items-center gap-2.5 py-2 px-2.5"
                 >
-                  <LogOut className="h-3.5 w-3.5" /> Encerrar Sessão
+                  <LogOut className="h-4 w-4" /> Encerrar Sessão
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -185,13 +185,14 @@ function ClienteLayout() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card py-6 mt-auto transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-muted-foreground">
+      <footer className="border-t border-slate-200/80 dark:border-zinc-800/80 bg-white dark:bg-zinc-900 py-6 mt-auto transition-colors">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-zinc-400">
           <div className="flex items-center gap-2">
-            <span>DELSKI &copy; {new Date().getFullYear()} — Todos os direitos reservados.</span>
+            <span className="font-semibold text-slate-700 dark:text-zinc-300">DELSKI CLOUD &copy; {new Date().getFullYear()}</span>
+            <span>— Plataforma Corporativa de Gestão de PJ & Demandas.</span>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-muted-foreground">Suporte Delski: contato@delski.co</span>
+          <div className="flex items-center gap-4 text-xs">
+            <span>Canal Oficial de Atendimento: <a href="mailto:contato@delski.co" className="font-semibold text-blue-600 dark:text-blue-400 hover:underline">contato@delski.co</a></span>
           </div>
         </div>
       </footer>
