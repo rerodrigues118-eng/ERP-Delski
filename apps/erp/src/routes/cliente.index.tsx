@@ -631,15 +631,6 @@ function ClienteDashboardPage() {
                     {client?.contact_name || client?.company_name || profile?.full_name || "Eduardo Cavali"}
                   </span>
                 </h1>
-                <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1 font-medium font-hud">
-                  Visão consolidada de performance, cronogramas e conformidade das entregas ativas.
-                </p>
-              </div>
-
-              {/* Indicador de Status do Portal */}
-              <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800/60 rounded-full w-fit shrink-0">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 font-hud">Sistema Operacional</span>
               </div>
             </div>
 
@@ -664,10 +655,6 @@ function ClienteDashboardPage() {
                     {overallProgressPercentage}%
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 dark:text-zinc-500 font-medium font-hud mt-1 flex items-center justify-between">
-                  <span>Conformidade de entrega</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-blue-600 transition-colors" />
-                </p>
               </motion.div>
 
               {/* Card 2: Projetos Ativos */}
@@ -689,10 +676,6 @@ function ClienteDashboardPage() {
                     {activeProjectsCount || 1}
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 dark:text-zinc-500 font-medium font-hud mt-1 flex items-center justify-between">
-                  <span>{clientProjects.length} demanda(s) no histórico</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-blue-600 transition-colors" />
-                </p>
               </motion.div>
 
               {/* Card 3: Chamados SAC */}
@@ -717,10 +700,6 @@ function ClienteDashboardPage() {
                     Pendentes
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 dark:text-zinc-500 font-medium font-hud mt-1 flex items-center justify-between">
-                  <span>Tempo de resposta &lt; 2h</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-blue-600 transition-colors" />
-                </p>
               </motion.div>
 
               {/* Card 4: Documentos & NF-e */}
@@ -745,10 +724,6 @@ function ClienteDashboardPage() {
                     Arquivos
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 dark:text-zinc-500 font-medium font-hud mt-1 flex items-center justify-between">
-                  <span>Prontos para download</span>
-                  <ArrowUpRight className="h-3.5 w-3.5 text-slate-300 group-hover:text-blue-600 transition-colors" />
-                </p>
               </motion.div>
             </div>
 
@@ -762,9 +737,6 @@ function ClienteDashboardPage() {
                       <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center gap-2">
                         <Clock className="h-4 w-4 text-blue-600" /> Cronograma & Entregas
                       </h3>
-                      <p className="text-xs text-slate-400 mt-0.5 font-medium">
-                        Saúde operacional e prazos das demandas em andamento
-                      </p>
                     </div>
                   </div>
 
@@ -820,9 +792,6 @@ function ClienteDashboardPage() {
                     <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center gap-2">
                       <TrendingUp className="h-4 w-4 text-blue-600" /> Evolução de Entregas & Marcos do Projeto
                     </h3>
-                    <p className="text-xs text-slate-400 mt-0.5 font-medium">
-                      Série Temporal em Tempo Real do progresso mensal acumulado
-                    </p>
                   </div>
 
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/70 font-hud self-start sm:self-center">
@@ -897,11 +866,8 @@ function ClienteDashboardPage() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 dark:border-white/5 pb-5">
               <div>
                 <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center gap-2.5">
-                  <Briefcase className="h-5 w-5 text-blue-600" /> Meus Projetos Contratados
+                  <Briefcase className="h-5 w-5 text-blue-600" /> Meus Projetos
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-400 mt-0.5 font-medium">
-                  Acompanhe escopo, prazos, entregáveis e acesse os contratos assinados e notas fiscais de cada demanda.
-                </p>
               </div>
 
               {/* Filters */}
@@ -1487,11 +1453,8 @@ function ClienteDashboardPage() {
           >
             <div className="border-b border-slate-100 dark:border-white/5 pb-5">
               <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center gap-2.5">
-                <User className="h-5 w-5 text-blue-600" /> Configurações da Conta & Segurança
+                <User className="h-5 w-5 text-blue-600" /> Configurações
               </h2>
-              <p className="text-xs sm:text-sm text-slate-400 mt-0.5 font-medium">
-                Gerencie dados cadastrais, responsável de contato, foto de perfil e senha corporativa.
-              </p>
             </div>
 
             {/* Avatar Profile */}
