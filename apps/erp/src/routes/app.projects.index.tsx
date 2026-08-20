@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,9 +43,16 @@ export const Route = createFileRoute("/app/projects/")({
 });
 
 function ProjectsListPage() {
-  const { profile, loading } = useAuth();
+  const { profile, loading, isCliente } = useAuth();
+  const navigate = useNavigate();
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading && (isCliente || profile?.role === "cliente")) {
+      navigate({ to: "/cliente", replace: true });
+    }
+  }, [loading, isCliente, profile, navigate]);
+
+  if (loading || isCliente || profile?.role === "cliente") {
     return (
       <div className="p-12 text-center border border-dashed rounded-lg text-stone-500 space-y-3 max-w-7xl mx-auto my-12">
         <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-900" />

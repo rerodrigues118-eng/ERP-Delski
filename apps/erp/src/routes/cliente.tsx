@@ -149,6 +149,25 @@ function ClienteLayout() {
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-border" />
                 <DropdownMenuItem
+                  onClick={() => {
+                    const event = new CustomEvent("delski_switch_client_tab", { detail: "configuracoes" });
+                    window.dispatchEvent(event);
+                  }}
+                  className="rounded-lg text-xs font-medium cursor-pointer flex items-center gap-2"
+                >
+                  <User className="h-3.5 w-3.5 text-blue-600" /> Configurações da Conta
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    const event = new CustomEvent("delski_switch_client_tab", { detail: "ocorrencias" });
+                    window.dispatchEvent(event);
+                  }}
+                  className="rounded-lg text-xs font-medium cursor-pointer flex items-center gap-2"
+                >
+                  <LifeBuoy className="h-3.5 w-3.5 text-blue-600" /> Central de SAC / Suporte
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-border" />
+                <DropdownMenuItem
                   onClick={() => signOut()}
                   className="text-red-600 dark:text-red-400 hover:text-red-700 hover:bg-red-500/10 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-2"
                 >
