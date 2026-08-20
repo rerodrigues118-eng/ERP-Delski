@@ -139,13 +139,13 @@ function ClienteLayout() {
   const displayName = clientData?.company_name || clientData?.full_name || profile?.full_name || user?.email?.split("@")[0] || "Cliente";
   const initials = displayName.slice(0, 2).toUpperCase();
 
-  // Navigation Items
+  // Navigation Items (Apenas Ícone + Rótulo)
   const NAV_ITEMS = [
-    { value: "dashboard", label: "Dashboard", icon: <Sparkles className="h-3.5 w-3.5" /> },
-    { value: "projetos", label: "Projetos", count: clientProjects.length, icon: <Briefcase className="h-3.5 w-3.5" /> },
-    { value: "documentos", label: "Documentos & Faturas", count: availableDocsCount, icon: <FileText className="h-3.5 w-3.5" /> },
-    { value: "sac", label: "SAC", count: tickets.length, icon: <LifeBuoy className="h-3.5 w-3.5" /> },
-    { value: "configuracoes", label: "Configurações", icon: <User className="h-3.5 w-3.5" /> },
+    { value: "dashboard", label: "Dashboard", icon: <Sparkles className="h-4 w-4" /> },
+    { value: "projetos", label: "Projetos", icon: <Briefcase className="h-4 w-4" /> },
+    { value: "documentos", label: "Documentos & Faturas", icon: <FileText className="h-4 w-4" /> },
+    { value: "sac", label: "SAC", icon: <LifeBuoy className="h-4 w-4" /> },
+    { value: "configuracoes", label: "Configurações", icon: <User className="h-4 w-4" /> },
   ];
 
   return (
@@ -174,8 +174,8 @@ function ClienteLayout() {
             </button>
           </div>
 
-          {/* CENTRO: Navegação Principal Integrada */}
-          <nav className="hidden lg:flex items-center gap-1.5">
+          {/* CENTRO: Navegação Principal Integrada (Apenas Ícone + Nome) */}
+          <nav className="hidden lg:flex items-center gap-1">
             {NAV_ITEMS.map((item) => {
               const isActive = activeTab === item.value;
               return (
@@ -185,23 +185,12 @@ function ClienteLayout() {
                   onClick={() => switchTab(item.value)}
                   className={
                     isActive
-                      ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full px-4 py-1.5 text-sm font-bold font-hud transition-all shadow-xs flex items-center gap-1.5 cursor-pointer"
-                      : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white px-3 py-1.5 text-sm font-medium font-hud transition-colors flex items-center gap-1.5 cursor-pointer"
+                      ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-full px-4 py-2 text-sm font-medium font-hud transition-all shadow-xs flex items-center gap-2 cursor-pointer"
+                      : "text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white px-4 py-2 text-sm font-medium font-hud transition-colors flex items-center gap-2 cursor-pointer"
                   }
                 >
                   {item.icon}
                   <span>{item.label}</span>
-                  {item.count !== undefined && (
-                    <span
-                      className={`ml-1 text-[10px] font-black px-1.5 py-0.5 rounded-full font-hud ${
-                        isActive
-                          ? "bg-white/20 text-white dark:bg-black/20 dark:text-black"
-                          : "bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400"
-                      }`}
-                    >
-                      {item.count}
-                    </span>
-                  )}
                 </button>
               );
             })}
@@ -226,19 +215,12 @@ function ClienteLayout() {
                     <DropdownMenuItem
                       key={item.value}
                       onClick={() => switchTab(item.value)}
-                      className={`rounded-xl text-xs font-bold px-3 py-2 cursor-pointer flex items-center justify-between ${
+                      className={`rounded-xl text-xs font-bold px-3 py-2 cursor-pointer flex items-center gap-2 ${
                         activeTab === item.value ? "bg-slate-900 text-white dark:bg-white dark:text-slate-900" : "text-slate-700 dark:text-zinc-300"
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        {item.icon}
-                        <span>{item.label}</span>
-                      </div>
-                      {item.count !== undefined && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-200/50 dark:bg-zinc-800">
-                          {item.count}
-                        </span>
-                      )}
+                      {item.icon}
+                      <span>{item.label}</span>
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>
