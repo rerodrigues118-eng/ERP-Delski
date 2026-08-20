@@ -604,6 +604,27 @@ function ClienteDashboardPage() {
             transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             className="space-y-6"
           >
+            {/* ── Seção de Boas-Vindas com Espaçamento Adequado (Hero Header) ── */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2">
+              <div>
+                <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight font-hud">
+                  Bem-vindo de volta,{" "}
+                  <span className="text-blue-600 dark:text-blue-400">
+                    {client?.contact_name || client?.company_name || profile?.full_name || "Eduardo Cavali"}
+                  </span>
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-1 font-medium font-hud">
+                  Visão consolidada de performance, cronogramas e conformidade das entregas ativas.
+                </p>
+              </div>
+
+              {/* Indicador de Status do Portal */}
+              <div className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200/60 dark:border-emerald-800/60 rounded-full w-fit shrink-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-emerald-700 dark:text-emerald-300 font-hud">Sistema Operacional</span>
+              </div>
+            </div>
+
             {/* ── LINHA 1: 4 Cards Compactos de KPI (Grid de 4 Colunas) ─────── */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Card 1: Progresso do Escopo */}
