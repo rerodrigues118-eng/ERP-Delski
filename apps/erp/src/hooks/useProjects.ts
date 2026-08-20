@@ -51,19 +51,31 @@ export function useProjects() {
 
   // Sincronização reativa em tempo real com o banco de dados Supabase
   useEffect(() => {
-    const channel = supabase
-      .channel("delski_realtime_projects_sync")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "projects" },
-        () => {
-          qc.invalidateQueries({ queryKey: ["projects"] });
-        },
-      )
-      .subscribe();
+    let channel: any = null;
+    try {
+      const channelId = `projects_sync_${Math.random().toString(36).substring(2, 9)}`;
+      channel = supabase
+        .channel(channelId)
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "projects" },
+          () => {
+            qc.invalidateQueries({ queryKey: ["projects"] });
+          },
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn("Realtime projects channel subscription warn:", err);
+    }
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        try {
+          supabase.removeChannel(channel);
+        } catch (e) {
+          console.warn("Remove realtime channel warn:", e);
+        }
+      }
     };
   }, [qc]);
 
