@@ -141,6 +141,14 @@ function AppHeader({ onOpenCommandPalette }: { onOpenCommandPalette: () => void 
 
 function AppLayout() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const { isCliente, isLoading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && isCliente) {
+      navigate({ to: "/cliente", replace: true });
+    }
+  }, [isLoading, isCliente, navigate]);
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {

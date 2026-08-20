@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
@@ -568,7 +568,23 @@ function FreelancerDashboardView() {
 
 /* ── Dashboard Principal ─────────────────────────────────── */
 function Dashboard() {
-  const { profile, user, isGestor, isCliente, isFreelancer } = useAuth();
+  const { profile, user, isGestor, isCliente, isFreelancer, loading } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!loading && (isCliente || profile?.role === "cliente")) {
+      navigate({ to: "/cliente", replace: true });
+    }
+  }, [loading, isCliente, profile, navigate]);
+
+  if (isCliente || profile?.role === "cliente") {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center gap-3.5 bg-background text-foreground">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-blue-600 border-t-transparent mx-auto" />
+        <p className="text-xs font-semibold text-muted-foreground">Redirecionando para o Portal do Cliente...</p>
+      </div>
+    );
+  }
 
   if (isFreelancer) {
     return <FreelancerDashboardView />;
@@ -592,15 +608,8 @@ function Dashboard() {
         }),
       );
     }
-    if (isCliente) {
-      return projects.filter(
-        (p) =>
-          (user?.id && p.client_id === user.id) ||
-          (user?.email && p.client?.email?.toLowerCase() === user.email.toLowerCase()),
-      );
-    }
     return projects;
-  }, [projects, isGestor, isFreelancer, isCliente, user]);
+  }, [projects, isGestor, isFreelancer, user]);
 
   const active = visible.filter((p) => p.status !== "Concluido").length;
   const done = visible.filter((p) => p.status === "Concluido").length;
@@ -1018,9 +1027,7 @@ function Dashboard() {
         <div>
           <h1 className="page-title">Olá, {userName}!</h1>
           <p className="text-sm text-muted-foreground mt-1">
-            {isCliente
-              ? "Acompanhe o status e as métricas das suas demandas ativas."
-              : "Visão consolidada de performance, volumetria e finanças da Delski."}
+            Visão consolidada de performance, volumetria e finanças da Delski.
           </p>
         </div>
         <Button
@@ -1034,87 +1041,45 @@ function Dashboard() {
       </motion.div>
 
       {/* ── KPIs Fileira 1 (Gestor) ──────────────────────────── */}
-      {isGestor && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {loadingProjects ? (
-            Array.from({ length: 4 }).map((_, i) => <KpiSkeleton key={i} />)
-          ) : (
-            <>
-              <KpiCard
-                label="Receita Bruta"
-                numericValue={grossRevenue}
-                prefix="R$ "
-                icon={DollarSign}
-                iconBg="bg-blue-500/10"
-                iconColor="text-blue-600 dark:text-blue-400"
-              />
-              <KpiCard
-                label="Custo Freelancers"
-                numericValue={grossCost}
-                prefix="R$ "
-                icon={Users}
-                iconBg="bg-red-500/10"
-                iconColor="text-red-500 dark:text-red-400"
-              />
-              <KpiCard
-                label="Margem Bruta"
-                numericValue={grossMargin}
-                suffix="%"
-                icon={Percent}
-                iconBg="bg-emerald-500/10"
-                iconColor="text-emerald-600 dark:text-emerald-400"
-              />
-              <KpiCard
-                label="Projetos Ativos"
-                numericValue={projects.filter((p) => p.status !== "Concluido").length}
-                icon={Activity}
-                iconBg="bg-amber-500/10"
-                iconColor="text-amber-500 dark:text-amber-400"
-              />
-            </>
-          )}
-        </div>
-      )}
-
-      {/* ── KPIs Fileira 1 (Cliente) ─────────────────────────── */}
-      {isCliente && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {loadingProjects ? (
-            Array.from({ length: 4 }).map((_, i) => <KpiSkeleton key={i} />)
-          ) : (
-            <>
-              <KpiCard
-                label="Projetos Contratados"
-                numericValue={visible.length}
-                icon={Layers}
-              />
-              <KpiCard
-                label="Em Andamento"
-                numericValue={active}
-                icon={Activity}
-                iconBg="bg-amber-500/10"
-                iconColor="text-amber-600 dark:text-amber-400"
-              />
-              <KpiCard
-                label="Investimento Total"
-                numericValue={totalClientBudget}
-                prefix="R$ "
-                icon={DollarSign}
-                iconBg="bg-emerald-500/10"
-                iconColor="text-emerald-600 dark:text-emerald-400"
-              />
-              <KpiCard
-                label="Progresso Geral"
-                numericValue={rate}
-                suffix="%"
-                icon={TrendingUp}
-                iconBg="bg-blue-500/10"
-                iconColor="text-blue-600 dark:text-blue-400"
-              />
-            </>
-          )}
-        </div>
-      )}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {loadingProjects ? (
+          Array.from({ length: 4 }).map((_, i) => <KpiSkeleton key={i} />)
+        ) : (
+          <>
+            <KpiCard
+              label="Receita Bruta"
+              numericValue={grossRevenue}
+              prefix="R$ "
+              icon={DollarSign}
+              iconBg="bg-blue-500/10"
+              iconColor="text-blue-600 dark:text-blue-400"
+            />
+            <KpiCard
+              label="Custo Freelancers"
+              numericValue={grossCost}
+              prefix="R$ "
+              icon={Users}
+              iconBg="bg-red-500/10"
+              iconColor="text-red-500 dark:text-red-400"
+            />
+            <KpiCard
+              label="Margem Bruta"
+              numericValue={grossMargin}
+              suffix="%"
+              icon={Percent}
+              iconBg="bg-emerald-500/10"
+              iconColor="text-emerald-600 dark:text-emerald-400"
+            />
+            <KpiCard
+              label="Projetos Ativos"
+              numericValue={projects.filter((p) => p.status !== "Concluido").length}
+              icon={Activity}
+              iconBg="bg-amber-500/10"
+              iconColor="text-amber-500 dark:text-amber-400"
+            />
+          </>
+        )}
+      </div>
 
       {/* ── 2ª Fileira: Cards Estatísticos + Smooth Area Chart ─ */}
       {!loadingProjects && (

@@ -47,7 +47,7 @@ import { Textarea } from "@/components/ui/textarea";
 /* ── Navigation config ─────────────────────────────────── */
 const NAV_OPERACAO = [
   { title: "Dashboard", url: "/app", icon: LayoutDashboard, gestor: true, freelancer: true, cliente: false },
-  { title: "Projetos", url: "/app/projects", icon: Kanban, gestor: true, freelancer: true, cliente: true },
+  { title: "Projetos", url: "/app/projects", icon: Kanban, gestor: true, freelancer: true, cliente: false },
   { title: "Suporte", url: "/app/suporte", icon: LifeBuoy, gestor: true, freelancer: false, cliente: false },
   { title: "Notificações", url: "/app/notifications", icon: Bell, gestor: true, freelancer: true, cliente: false },
   { title: "Documentos", url: "/app/documents", icon: ShieldCheck, gestor: false, freelancer: true, cliente: false },
@@ -60,7 +60,7 @@ const NAV_EQUIPE = [
 ];
 
 const NAV_NEGOCIO = [
-  { title: "Financeiro", url: "/app/finance", icon: DollarSign, gestor: true, freelancer: true, cliente: true },
+  { title: "Financeiro", url: "/app/finance", icon: DollarSign, gestor: true, freelancer: true, cliente: false },
   { title: "Gerador de Contratos", url: "/app/contract-generator", icon: FileSignature, gestor: true, freelancer: false, cliente: false },
   { title: "Modelos de Contrato", url: "/app/contract-models", icon: FilePlus, gestor: true, freelancer: false, cliente: false },
 ];

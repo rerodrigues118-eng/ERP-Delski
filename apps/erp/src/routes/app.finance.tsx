@@ -1,5 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState, useEffect } from "react";
 import { useStore } from "@/mocks/store";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -4694,19 +4694,22 @@ function GestorFinanceView() {
 // ── Componente Principal / Guard Estrito de RBAC ─────────────────────────────
 function FinancePage() {
   const { user, isLoading, isGestor, isFreelancer, isCliente } = useAuth();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!isLoading && isCliente) {
+      navigate({ to: "/cliente", replace: true });
+    }
+  }, [isLoading, isCliente, navigate]);
 
   // Guard Neutro: Enquanto o estado do usuário/sessão carrega, NUNCA renderizar dados
-  if (isLoading || !user) {
+  if (isLoading || !user || isCliente) {
     return <FinanceSkeleton />;
   }
 
   // Renderização 100% isolada por papel (Sem vazamento de estado ou cache de gestor)
   if (isFreelancer) {
     return <FreelancerFinanceView user={user} />;
-  }
-
-  if (isCliente) {
-    return <ClienteFinanceView user={user} />;
   }
 
   if (isGestor) {
