@@ -1697,45 +1697,29 @@ function ClienteDashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Modal: Project Detail & Documents (Grid HUD max-w-4xl) ─────────── */}
+      {/* ── Modal: Project Detail & Documents (Minimalist HUD max-w-4xl) ─── */}
       <Dialog open={projectModalOpen} onOpenChange={setProjectModalOpen}>
         <DialogContent className="sm:max-w-4xl max-w-4xl w-full bg-white dark:bg-[#11131A] rounded-[32px] p-6 sm:p-8 space-y-6 border border-slate-200/80 dark:border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
-          {/* 1. Cabeçalho do Modal (Header HUD) */}
-          <DialogHeader className="space-y-3 border-b border-slate-100 dark:border-zinc-800 pb-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-xs font-bold font-hud border border-blue-200/60 dark:border-blue-800/60">
-                  {selectedProject?.service_type || "Inteligência Artificial"}
-                </span>
-                <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 text-xs font-bold font-hud border border-emerald-200/60 dark:border-emerald-800/60 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  {selectedProject?.status || "Em Execução"}
-                </span>
-                <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 text-xs font-bold font-hud font-mono">
-                  #DEL-2026-{(selectedProject?.id || "081").slice(0, 4).toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            <DialogTitle className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
+          {/* 1. Cabeçalho do Modal (Header Minimalista) */}
+          <DialogHeader className="border-b border-slate-100 dark:border-zinc-800 pb-4">
+            <DialogTitle className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white font-hud tracking-tight">
               {selectedProject?.title}
             </DialogTitle>
           </DialogHeader>
 
-          {/* 2. Linha 1 — KPIs de Finanças e Prazos (Grid de 4 Cards Compactos) */}
+          {/* 2. Linha 1 — KPIs Minimalistas (Grid de 4 Cards) */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-            <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800/80 space-y-1">
+            <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-zinc-900/60 border border-slate-100 dark:border-zinc-800/80 space-y-1">
               <div className="flex items-center justify-between text-slate-400 dark:text-zinc-500">
                 <span className="text-[10px] font-bold uppercase tracking-wider font-hud">Orçamento Bruto</span>
                 <DollarSign className="h-4 w-4 text-emerald-600" />
               </div>
               <p className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white font-hud">
-                {money(selectedProject?.budget || 18500)}
+                {money(selectedProject?.budget || 4000)}
               </p>
-              <p className="text-[11px] text-slate-400 font-medium font-hud">Investimento Aprovado</p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800/80 space-y-1">
+            <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-zinc-900/60 border border-slate-100 dark:border-zinc-800/80 space-y-1">
               <div className="flex items-center justify-between text-slate-400 dark:text-zinc-500">
                 <span className="text-[10px] font-bold uppercase tracking-wider font-hud">Data de Início</span>
                 <Calendar className="h-4 w-4 text-blue-600" />
@@ -1743,10 +1727,9 @@ function ClienteDashboardPage() {
               <p className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white font-hud">
                 {formatDate(selectedProject?.created_at || "2026-08-17")}
               </p>
-              <p className="text-[11px] text-slate-400 font-medium font-hud">Assinatura / Kickoff</p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800/80 space-y-1">
+            <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-zinc-900/60 border border-slate-100 dark:border-zinc-800/80 space-y-1">
               <div className="flex items-center justify-between text-slate-400 dark:text-zinc-500">
                 <span className="text-[10px] font-bold uppercase tracking-wider font-hud">Prazo Estimado</span>
                 <Clock className="h-4 w-4 text-indigo-600" />
@@ -1754,10 +1737,9 @@ function ClienteDashboardPage() {
               <p className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white font-hud">
                 {selectedProject?.deadline ? formatDate(selectedProject.deadline) : "19/09/2026"}
               </p>
-              <p className="text-[11px] text-slate-400 font-medium font-hud">Homologação Final</p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800/80 space-y-1">
+            <div className="p-4 rounded-2xl bg-slate-50/70 dark:bg-zinc-900/60 border border-slate-100 dark:border-zinc-800/80 space-y-1">
               <div className="flex items-center justify-between text-slate-400 dark:text-zinc-500">
                 <span className="text-[10px] font-bold uppercase tracking-wider font-hud">Saúde do Cronograma</span>
                 <ShieldCheck className="h-4 w-4 text-emerald-600" />
@@ -1765,7 +1747,6 @@ function ClienteDashboardPage() {
               <p className="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400 font-hud">
                 100% No Prazo
               </p>
-              <p className="text-[11px] text-slate-400 font-medium font-hud">SLA Rigorosamente em Dia</p>
             </div>
           </div>
 
@@ -1784,94 +1765,65 @@ function ClienteDashboardPage() {
             <TabsContent value="escopo" className="space-y-6">
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                 {/* Coluna da Esquerda (7 colunas): Briefing & Escopo Técnico */}
-                <div className="lg:col-span-7 rounded-3xl p-6 bg-slate-50/70 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 space-y-5">
-                  <div className="flex items-center gap-2 border-b border-slate-200/60 dark:border-zinc-800 pb-3">
+                <div className="lg:col-span-7 rounded-2xl p-5 sm:p-6 bg-slate-50/50 dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800 space-y-4">
+                  <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-blue-600" />
-                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white font-hud">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white font-hud">
                       Briefing & Escopo Técnico
                     </h4>
                   </div>
 
-                  <div className="space-y-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-hud">
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-hud">
                       Resumo do Briefing
                     </span>
-                    <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed font-medium">
+                    <p className="text-xs sm:text-sm text-slate-700 dark:text-zinc-300 leading-relaxed font-medium">
                       {selectedProject?.briefing_content ||
-                        "Implementação de automação de prospecção comercial ativa, qualificação inteligente de leads via Inteligência Artificial e esteira de atendimento integrada."}
+                        "Entrega de automação do processo de prospecção ativa..."}
                     </p>
-                  </div>
-
-                  <div className="space-y-2.5 pt-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-hud">
-                      Principais Entregáveis
-                    </span>
-                    <div className="space-y-2">
-                      {[
-                        "Integrador de Prospecção & Automação Comercial",
-                        "Agente WhatsApp & Assistente de IA Personalizado",
-                        "Pipeline de Vendas & Qualificação de Leads em Tempo Real",
-                        "Dashboard Analítico & Relatórios Semanais de Performance",
-                      ].map((item, idx) => (
-                        <div
-                          key={idx}
-                          className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-950 border border-slate-200/70 dark:border-zinc-800 text-xs font-medium text-slate-800 dark:text-zinc-200 font-hud"
-                        >
-                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
-                          <span>{item}</span>
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 </div>
 
-                {/* Coluna da Direita (5 colunas): Dados para Contrato & Gestão */}
-                <div className="lg:col-span-5 rounded-3xl p-6 bg-slate-50/70 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 space-y-5">
-                  <div className="flex items-center gap-2 border-b border-slate-200/60 dark:border-zinc-800 pb-3">
+                {/* Coluna da Direita (5 colunas): Dados para Contrato */}
+                <div className="lg:col-span-5 rounded-2xl p-5 sm:p-6 bg-slate-50/50 dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800 space-y-4">
+                  <div className="flex items-center gap-2">
                     <Briefcase className="h-4 w-4 text-blue-600" />
-                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white font-hud">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white font-hud">
                       Dados para Contrato
                     </h4>
                   </div>
 
-                  <div className="space-y-3.5 text-xs">
+                  <div className="space-y-3 text-xs">
                     <div>
                       <span className="text-[10px] font-bold uppercase text-slate-400 font-hud">Razão Social / Nome</span>
-                      <p className="font-extrabold text-slate-900 dark:text-white font-hud mt-0.5">
-                        {client?.corporate_name || client?.company_name || client?.full_name || "Econecttla Soluções Ltda"}
+                      <p className="font-bold text-slate-900 dark:text-white font-hud mt-0.5">
+                        {client?.corporate_name || client?.company_name || client?.full_name || "Eduardo Cavali"}
                       </p>
                     </div>
 
                     <div>
                       <span className="text-[10px] font-bold uppercase text-slate-400 font-hud">CNPJ / CPF</span>
-                      <p className="font-extrabold text-slate-900 dark:text-white font-hud mt-0.5">
+                      <p className="font-bold text-slate-900 dark:text-white font-hud mt-0.5">
                         {client?.cnpj ? formatCNPJ(client.cnpj) : "45.123.890/0001-22"}
                       </p>
                     </div>
 
                     <div>
                       <span className="text-[10px] font-bold uppercase text-slate-400 font-hud">Tipo de Contrato</span>
-                      <p className="font-extrabold text-blue-600 dark:text-blue-400 font-hud mt-0.5">
+                      <p className="font-bold text-blue-600 dark:text-blue-400 font-hud mt-0.5">
                         Prestação de Serviços Tech PJ
                       </p>
                     </div>
 
-                    <div>
-                      <span className="text-[10px] font-bold uppercase text-slate-400 font-hud">Responsável Delski</span>
-                      <p className="font-extrabold text-slate-900 dark:text-white font-hud mt-0.5">
-                        Gestor de Contas Delski (Eduardo & Equipe)
-                      </p>
-                    </div>
-
                     {selectedProject?.google_drive_link && (
-                      <div className="pt-2">
+                      <div className="pt-1">
                         <Button
                           type="button"
                           variant="outline"
                           onClick={() => window.open(selectedProject.google_drive_link!, "_blank")}
-                          className="w-full h-10 text-xs font-bold rounded-2xl gap-2 font-hud"
+                          className="w-full h-9 text-xs font-bold rounded-xl gap-2 font-hud"
                         >
-                          <ExternalLink className="h-3.5 w-3.5 text-blue-600" /> Acessar Workspace de Arquivos
+                          <ExternalLink className="h-3.5 w-3.5 text-blue-600" /> Acessar Workspace
                         </Button>
                       </div>
                     )}
