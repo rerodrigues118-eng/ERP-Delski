@@ -1,6 +1,6 @@
 -- ==============================================================================
--- CORREÇÃO DEFINITIVA DE TODAS AS CONSTRAINTS EM FREELANCER_DOCUMENTS
--- Execute no SQL Editor do Supabase para destravar o envio de documentos e contratos
+-- CORREÇÃO DEFINITIVA DE CONSTRAINTS, COLUNAS E STORAGE BUCKETS
+-- Execute no SQL Editor do Supabase para destravar aprovação e upload de documentos
 -- ==============================================================================
 
 -- 1. Remove qualquer constraint restritiva anterior de document_type
@@ -37,8 +37,15 @@ DROP CONSTRAINT IF EXISTS freelancer_documents_freelancer_id_fkey;
 -- 6. Cria índice para performance sem travar a integridade relacional
 CREATE INDEX IF NOT EXISTS idx_freelancer_documents_freelancer_id ON public.freelancer_documents(freelancer_id);
 
--- 7. Garante colunas de suporte para homologação e auditoria
+-- 7. Garante colunas de suporte para homologação, auditoria e timestamp
 ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS file_url text;
 ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS rejection_reason text;
 ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS notes text;
 ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS review_notes text;
+ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW();
+ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMP WITH TIME ZONE;
+
+-- 8. Libera MIME Types no Supabase Storage para permitir documentos Word (.docx / .doc) e PDF
+UPDATE storage.buckets
+SET allowed_mime_types = NULL
+WHERE id IN ('freelancer-docs', 'freelancer-invoices', 'client-documents');

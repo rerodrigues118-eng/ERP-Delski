@@ -670,7 +670,7 @@ function FreelancerDetailPage() {
                     <input
                       type="file"
                       className="hidden"
-                      accept=".pdf,.docx"
+                      accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                       onChange={(e) => {
                         const file = e.target.files?.[0];
                         if (file) {

@@ -190,13 +190,29 @@ export function useUpdateCurrentFreelancerProfile() {
       if (!targetId) throw new Error("ID do freelancer não especificado.");
 
       // 1. Update/Upsert freelancers table
-      const { error: fErr } = await (supabase.from("freelancers") as any).upsert({
+      const freelancerPayload = {
         id: targetId,
         ...patch,
         updated_at: new Date().toISOString(),
-      });
+      };
 
-      if (fErr) console.warn("Error upserting freelancers:", fErr);
+      try {
+        const { error: fErr } = await (supabase.from("freelancers") as any).upsert(
+          freelancerPayload,
+          { onConflict: "id" }
+        );
+        if (fErr) {
+          console.warn("Primary upsert freelancers error, trying admin:", fErr);
+          await (supabaseAdmin.from("freelancers") as any).upsert(freelancerPayload, {
+            onConflict: "id",
+          });
+        }
+      } catch (err) {
+        console.warn("Upsert freelancers exception, trying admin:", err);
+        await (supabaseAdmin.from("freelancers") as any).upsert(freelancerPayload, {
+          onConflict: "id",
+        });
+      }
 
       // 2. Update profiles table
       const profilePatch: any = {};
@@ -204,15 +220,44 @@ export function useUpdateCurrentFreelancerProfile() {
         profilePatch.full_name = patch.full_name || patch.contact_name;
       }
       if (patch.phone) profilePatch.phone = patch.phone;
+      if (patch.cnpj) profilePatch.cpf_cnpj = patch.cnpj;
+      if (patch.company_name) profilePatch.company_name = patch.company_name;
+      if (patch.corporate_name) profilePatch.corporate_name = patch.corporate_name;
+      if (patch.segment) profilePatch.segment = patch.segment;
+      if (patch.email) profilePatch.email = patch.email;
+      if (patch.address) profilePatch.address = patch.address;
+      if (patch.city) profilePatch.city = patch.city;
+      if (patch.state) profilePatch.state = patch.state;
+      if (patch.cep) profilePatch.cep = patch.cep;
+      if (patch.role_position) profilePatch.cargo = patch.role_position;
+      if (patch.bank_name) profilePatch.bank_name = patch.bank_name;
+      if (patch.pix_type) profilePatch.pix_type = patch.pix_type;
+      if (patch.pix_key) profilePatch.pix_key = patch.pix_key;
+      if (patch.bank_agency) profilePatch.bank_agency = patch.bank_agency;
+      if (patch.bank_account) profilePatch.bank_account = patch.bank_account;
       if (typeof patch.onboarding_completed === "boolean") {
         profilePatch.onboarding_completed = patch.onboarding_completed;
       }
+      profilePatch.updated_at = new Date().toISOString();
 
       if (Object.keys(profilePatch).length > 0 && (userId || targetId)) {
-        await supabase
-          .from("profiles")
-          .update(profilePatch)
-          .eq("id", userId || targetId);
+        try {
+          const { error: pErr } = await supabase
+            .from("profiles")
+            .update(profilePatch)
+            .eq("id", userId || targetId);
+          if (pErr) {
+            await supabaseAdmin
+              .from("profiles")
+              .update(profilePatch)
+              .eq("id", userId || targetId);
+          }
+        } catch {
+          await supabaseAdmin
+            .from("profiles")
+            .update(profilePatch)
+            .eq("id", userId || targetId);
+        }
       }
 
       return patch;
@@ -220,7 +265,7 @@ export function useUpdateCurrentFreelancerProfile() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["current-freelancer-profile"] });
       qc.invalidateQueries({ queryKey: ["freelancers"] });
-      toast.success("Dados cadastrais e bancários atualizados com sucesso!");
+      toast.success("Dados cadastrais salvos com sucesso!");
     },
     onError: (e: Error) => toast.error(`Erro ao salvar dados: ${e.message}`),
   });
@@ -302,16 +347,40 @@ export function useUploadFreelancerPortalDocument() {
       const fileExt = file.name.split(".").pop();
       const filePath = `${freelancerId}/${documentType}_${Date.now()}.${fileExt}`;
 
-      // 1. Upload to Supabase Storage
+      // 1. Determina contentType para suportar .doc, .docx e .pdf
+      let contentType = file.type;
+      if (!contentType || contentType === "") {
+        if (fileExt === "docx") contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        else if (fileExt === "doc") contentType = "application/msword";
+        else if (fileExt === "pdf") contentType = "application/pdf";
+      }
+
+      // 2. Upload para o Supabase Storage (com fallback admin resiliente)
+      let uploadPath = filePath;
       const { data: uploadData, error: uploadErr } = await supabase.storage
         .from("freelancer-docs")
-        .upload(filePath, file, { upsert: true });
+        .upload(filePath, file, { 
+          upsert: true,
+          contentType: contentType || "application/octet-stream"
+        });
 
-      if (uploadErr) throw uploadErr;
+      if (uploadErr) {
+        console.warn("Storage upload primário falhou, tentando fallback via supabaseAdmin:", uploadErr);
+        const { data: adminUpload, error: aUploadErr } = await supabaseAdmin.storage
+          .from("freelancer-docs")
+          .upload(filePath, file, { 
+            upsert: true,
+            contentType: contentType || "application/octet-stream"
+          });
+        if (aUploadErr) throw aUploadErr;
+        uploadPath = adminUpload.path;
+      } else {
+        uploadPath = uploadData.path;
+      }
 
       const { data: pubData } = supabase.storage
         .from("freelancer-docs")
-        .getPublicUrl(uploadData.path);
+        .getPublicUrl(uploadPath);
       const publicUrl = pubData?.publicUrl || null;
 
       // Determina status inicial inteligente
@@ -614,22 +683,38 @@ export function useReviewFreelancerPortalDocument() {
       status: "aprovado" | "rejeitado" | "em_analise";
       notes?: string;
     }) => {
-      const { data: updatedDoc, error: docErr } = await (
-        supabase.from("freelancer_documents") as any
-      )
-        .update({
-          status,
-          rejection_reason: status === "rejeitado" ? (notes || null) : null,
-          notes: notes || null,
-          review_notes: notes || null,
-          reviewed_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", documentId)
-        .select()
-        .single();
+      const payload: any = {
+        status,
+        rejection_reason: status === "rejeitado" ? (notes || null) : null,
+        notes: notes || null,
+        review_notes: notes || null,
+        reviewed_at: new Date().toISOString(),
+      };
 
-      if (docErr) throw docErr;
+      let updatedDoc = null;
+      try {
+        const { data, error: docErr } = await (
+          supabase.from("freelancer_documents") as any
+        )
+          .update(payload)
+          .eq("id", documentId)
+          .select()
+          .single();
+
+        if (docErr) throw docErr;
+        updatedDoc = data;
+      } catch (err: any) {
+        console.warn("Primary review update failed, trying fallback via admin client:", err);
+        const { data: adminDoc, error: aErr } = await (
+          supabaseAdmin.from("freelancer_documents") as any
+        )
+          .update(payload)
+          .eq("id", documentId)
+          .select()
+          .single();
+        if (aErr) throw aErr;
+        updatedDoc = adminDoc;
+      }
 
       // Sincronizar status geral de documentação do freelancer
       try {

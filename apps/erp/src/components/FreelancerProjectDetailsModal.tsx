@@ -192,21 +192,21 @@ export function FreelancerProjectDetailsModal({
 
         {/* ── CONTEÚDO COM ABAS INTERNAS CENTRALIZADAS E ALINHADAS ──────────── */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col min-h-0">
-          <div className="px-6 sm:px-8 py-3 bg-slate-50/70 dark:bg-zinc-900/50 border-b border-slate-100 dark:border-zinc-800/80 flex items-center justify-center">
-            <TabsList className="bg-slate-200/70 dark:bg-zinc-800/90 p-1 rounded-xl w-full max-w-lg grid grid-cols-2">
+          <div className="px-6 sm:px-8 py-3.5 bg-slate-50/70 dark:bg-zinc-900/50 border-b border-slate-100 dark:border-zinc-800/80 flex items-center justify-center">
+            <TabsList className="bg-slate-200/80 dark:bg-zinc-800/90 p-1.5 rounded-2xl w-full max-w-lg grid grid-cols-2 gap-1.5 h-12 items-center">
               <TabsTrigger
                 value="briefing"
-                className="rounded-lg px-4 py-2 text-xs sm:text-sm font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-xs transition-all flex items-center justify-center gap-2"
+                className="h-full rounded-xl px-4 text-xs sm:text-sm font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-xs transition-all flex items-center justify-center gap-2 border-0 m-0"
               >
-                <FileText className="w-4 h-4 text-blue-600" />
-                <span>Briefing & Documentos</span>
+                <FileText className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="truncate">Briefing & Documentos</span>
               </TabsTrigger>
               <TabsTrigger
                 value="tarefas"
-                className="rounded-lg px-4 py-2 text-xs sm:text-sm font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-xs transition-all flex items-center justify-center gap-2"
+                className="h-full rounded-xl px-4 text-xs sm:text-sm font-bold data-[state=active]:bg-white dark:data-[state=active]:bg-zinc-900 data-[state=active]:text-slate-900 dark:data-[state=active]:text-white data-[state=active]:shadow-xs transition-all flex items-center justify-center gap-2 border-0 m-0"
               >
-                <Layers className="w-4 h-4 text-blue-600" />
-                <span>Tarefas & Cronograma ({tasks.length})</span>
+                <Layers className="w-4 h-4 text-blue-600 shrink-0" />
+                <span className="truncate">Tarefas & Cronograma ({tasks.length})</span>
               </TabsTrigger>
             </TabsList>
           </div>
