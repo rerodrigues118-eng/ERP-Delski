@@ -258,6 +258,9 @@ END $$;
 -- 8. POLÍTICAS DE RLS — TABELA: FREELANCER_DOCUMENTS
 -- ------------------------------------------------------------------------------
 ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS file_url text;
+ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS rejection_reason text;
+ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS notes text;
+ALTER TABLE public.freelancer_documents ADD COLUMN IF NOT EXISTS review_notes text;
 
 DROP POLICY IF EXISTS "freelancer_documents_select_policy" ON public.freelancer_documents;
 DROP POLICY IF EXISTS "freelancer_documents_modify_policy" ON public.freelancer_documents;

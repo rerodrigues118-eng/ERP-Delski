@@ -67,6 +67,7 @@ import {
   useFreelancerPortalDocuments,
   useUploadFreelancerPortalDocument,
   useDeleteFreelancerPortalDocument,
+  useReviewFreelancerPortalDocument,
   useUploadFreelancerPaymentReceipt,
   useUpdateFreelancerFinancialTerms,
   type FreelancerPortalDocumentItem,
@@ -106,12 +107,13 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
   Pendente: "bg-amber-50 text-amber-700 border-amber-200",
   Pago: "bg-emerald-50 text-emerald-700 border-emerald-200",
   Atrasado: "bg-red-50 text-red-700 border-red-200",
-  "Em análise": "bg-purple-50 text-purple-700 border-purple-200",
+  "Em análise": "bg-amber-50 text-amber-700 border-amber-200",
   Aprovada: "bg-emerald-50 text-emerald-700 border-emerald-200",
   Reprovada: "bg-red-50 text-red-700 border-red-200",
   aprovado: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  em_analise: "bg-purple-50 text-purple-700 border-purple-200",
-  rejeitado: "bg-red-50 text-red-700 border-red-200",
+  em_analise: "bg-amber-50 text-amber-700 border-amber-200",
+  rejeitado: "bg-orange-50 text-orange-700 border-orange-200",
+  adequacao_solicitada: "bg-orange-50 text-orange-700 border-orange-200",
   pendente: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
@@ -148,6 +150,7 @@ function FreelancerDetailPage() {
   const updateProfile = useUpdateCurrentFreelancerProfile();
   const uploadDoc = useUploadFreelancerPortalDocument();
   const deleteDoc = useDeleteFreelancerPortalDocument();
+  const reviewDoc = useReviewFreelancerPortalDocument();
   const uploadReceipt = useUploadFreelancerPaymentReceipt();
   const updateFinancial = useUpdateFreelancerFinancialTerms();
   const reviewInvoice = useReviewFreelancerInvoice();
@@ -260,43 +263,27 @@ function FreelancerDetailPage() {
   };
 
   const handleApproveDoc = async (docId: string) => {
-    const { error } = await (supabase.from("freelancer_documents") as any)
-      .update({
-        status: "aprovado",
-        review_notes: null,
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", docId);
-
-    if (error) {
-      toast.error(`Erro ao aprovar documento: ${error.message}`);
-    } else {
-      qc.invalidateQueries({ queryKey: ["freelancer_documents"] });
-      toast.success("Documento aprovado!");
-    }
+    reviewDoc.mutate({
+      documentId: docId,
+      freelancerId: id,
+      status: "aprovado",
+    });
   };
 
   const handleRejectDocSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!rejectingDoc) return;
 
-    const { error } = await (supabase.from("freelancer_documents") as any)
-      .update({
-        status: "rejeitado",
-        review_notes: docRejectReason.trim() || "Documento rejeitado na análise",
-        reviewed_at: new Date().toISOString(),
-      })
-      .eq("id", rejectingDoc.id);
+    await reviewDoc.mutateAsync({
+      documentId: rejectingDoc.id,
+      freelancerId: id,
+      status: "rejeitado",
+      notes: docRejectReason.trim() || "Adequação solicitada pela gestão",
+    });
 
-    if (error) {
-      toast.error(`Erro ao rejeitar documento: ${error.message}`);
-    } else {
-      qc.invalidateQueries({ queryKey: ["freelancer_documents"] });
-      toast.success("Documento marcado como rejeitado.");
-      setOpenDocRejectModal(false);
-      setRejectingDoc(null);
-      setDocRejectReason("");
-    }
+    setOpenDocRejectModal(false);
+    setRejectingDoc(null);
+    setDocRejectReason("");
   };
 
   const handleRejectInvoiceSubmit = async (e: React.FormEvent) => {
@@ -698,33 +685,38 @@ function FreelancerDetailPage() {
                             {DOC_LABELS[doc.document_type] || doc.document_type}
                           </span>
                           <Badge
-                            className={`text-[10px] py-0 px-2 font-medium ${
-                              STATUS_BADGE_STYLES[doc.status] || "bg-muted text-muted-foreground"
+                            className={`text-[10px] py-0.5 px-2.5 font-semibold ${
+                              doc.status === "aprovado"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : doc.status === "rejeitado" || doc.status === "adequacao_solicitada"
+                                ? "bg-orange-50 text-orange-700 border-orange-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
                             }`}
                           >
                             {doc.status === "aprovado"
                               ? "Aprovado"
-                              : doc.status === "rejeitado"
-                                ? "Rejeitado"
-                                : "Em Análise"}
+                              : doc.status === "rejeitado" || doc.status === "adequacao_solicitada"
+                              ? "Adequação Solicitada"
+                              : "Em Análise"}
                           </Badge>
                         </div>
                         <p className="text-[11px] text-muted-foreground">
                           Anexado em {formatDate(doc.uploaded_at || doc.created_at)}
-                          {doc.review_notes && (
-                            <span className="text-rose-500 font-medium ml-2">
-                              • Motivo: {doc.review_notes}
-                            </span>
-                          )}
                         </p>
+                        {(doc.rejection_reason || doc.notes || doc.review_notes) && (
+                          <div className="mt-1.5 p-2 rounded-lg bg-orange-50/80 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900/40 text-[11px] text-orange-800 dark:text-orange-300">
+                            <strong>Instrução da Gestão:</strong>{" "}
+                            {doc.rejection_reason || doc.notes || doc.review_notes}
+                          </div>
+                        )}
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <a
                           href={doc.file_url || doc.public_url || "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border text-xs font-semibold hover:bg-muted"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg border text-xs font-semibold hover:bg-muted text-foreground transition-colors"
                         >
                           <Eye className="h-3.5 w-3.5" /> Ver Arquivo
                         </a>
@@ -733,25 +725,24 @@ function FreelancerDetailPage() {
                           <Button
                             size="sm"
                             onClick={() => handleApproveDoc(doc.id)}
-                            className="bg-emerald-600 hover:bg-emerald-700 text-white h-7 text-xs px-2.5"
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs px-3 rounded-lg shadow-xs"
                           >
                             <CheckCheck className="h-3.5 w-3.5 mr-1" /> Aprovar
                           </Button>
                         )}
 
-                        {doc.status !== "rejeitado" && (
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => {
-                              setRejectingDoc(doc);
-                              setOpenDocRejectModal(true);
-                            }}
-                            className="h-7 text-xs px-2.5"
-                          >
-                            <XOctagon className="h-3.5 w-3.5 mr-1" /> Rejeitar
-                          </Button>
-                        )}
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => {
+                            setRejectingDoc(doc);
+                            setDocRejectReason(doc.rejection_reason || doc.notes || doc.review_notes || "");
+                            setOpenDocRejectModal(true);
+                          }}
+                          className="border-amber-300 text-amber-700 hover:bg-amber-50 hover:text-amber-800 h-8 text-xs px-3 rounded-lg"
+                        >
+                          <AlertCircle className="h-3.5 w-3.5 mr-1 text-amber-600" /> Solicitar Adequação
+                        </Button>
 
                         <Button
                           variant="ghost"
@@ -762,7 +753,8 @@ function FreelancerDetailPage() {
                               filePath: doc.file_path,
                             })
                           }
-                          className="text-rose-500 hover:bg-rose-50 h-7 text-xs px-2"
+                          className="text-rose-500 hover:bg-rose-50 h-8 text-xs px-2 rounded-lg"
+                          title="Remover documento"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -1066,25 +1058,25 @@ function FreelancerDetailPage() {
         </TabsContent>
       </Tabs>
 
-      {/* ── MODAL: Rejeitar Documento ──────────────────────────────────────── */}
+      {/* ── MODAL: Solicitar Adequação de Documento ──────────────────────── */}
       <Dialog open={openDocRejectModal} onOpenChange={setOpenDocRejectModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-base font-bold text-rose-600">
-              Rejeitar Documento
+            <DialogTitle className="text-base font-bold text-amber-600 flex items-center gap-2">
+              <AlertCircle className="h-5 w-5" /> Solicitar Adequação do Documento
             </DialogTitle>
             <DialogDescription className="text-xs">
-              Informe a justificativa ou instrução para que o prestador possa reenviar o arquivo correto.
+              Explique o que precisa ser corrigido pelo prestador. Ao confirmar, o documento será marcado como <strong>Adequação Solicitada</strong> e liberado para reenvio no portal dele.
             </DialogDescription>
           </DialogHeader>
 
           <form onSubmit={handleRejectDocSubmit} className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Motivo da Rejeição</Label>
+              <Label className="text-xs font-semibold">Instruções de Adequação / Motivo *</Label>
               <Textarea
                 value={docRejectReason}
                 onChange={(e) => setDocRejectReason(e.target.value)}
-                placeholder="Ex: Documento com validade expirada ou ilegível..."
+                placeholder="Ex: Documento com imagem cortada ou ilegível, favor enviar arquivo em PDF de alta resolução..."
                 rows={3}
                 required
               />
@@ -1098,8 +1090,8 @@ function FreelancerDetailPage() {
               >
                 Cancelar
               </Button>
-              <Button type="submit" variant="destructive">
-                Confirmar Rejeição
+              <Button type="submit" className="bg-amber-600 hover:bg-amber-700 text-white font-semibold">
+                Enviar Solicitação de Adequação
               </Button>
             </DialogFooter>
           </form>

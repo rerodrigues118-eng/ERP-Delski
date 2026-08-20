@@ -10,6 +10,9 @@ import { toast } from "sonner";
 
 export interface FreelancerPortalDocumentItem extends FreelancerDocumentsRow {
   public_url?: string | null;
+  rejection_reason?: string | null;
+  notes?: string | null;
+  review_notes?: string | null;
 }
 
 // ── Query: Current Logged-in Freelancer Profile ──────────────────────────────
@@ -493,3 +496,83 @@ export function useUpdateFreelancerFinancialTerms() {
       toast.error(`Erro ao salvar parâmetros financeiros: ${e.message}`),
   });
 }
+
+// ── Mutation: Review Freelancer Portal Document (Aprovar / Solicitar Adequação) ──
+export function useReviewFreelancerPortalDocument() {
+  const qc = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      documentId,
+      freelancerId,
+      status,
+      notes,
+    }: {
+      documentId: string;
+      freelancerId: string;
+      status: "aprovado" | "rejeitado" | "em_analise";
+      notes?: string;
+    }) => {
+      const { data: updatedDoc, error: docErr } = await (
+        supabase.from("freelancer_documents") as any
+      )
+        .update({
+          status,
+          rejection_reason: status === "rejeitado" ? (notes || null) : null,
+          notes: notes || null,
+          review_notes: notes || null,
+          reviewed_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", documentId)
+        .select()
+        .single();
+
+      if (docErr) throw docErr;
+
+      // Sincronizar status geral de documentação do freelancer
+      try {
+        const { data: allDocs } = await (
+          supabase.from("freelancer_documents") as any
+        )
+          .select("status")
+          .eq("freelancer_id", freelancerId);
+
+        if (allDocs && allDocs.length > 0) {
+          const hasRejected = allDocs.some((d: any) => d.status === "rejeitado");
+          const hasPending = allDocs.some(
+            (d: any) => d.status === "em_analise" || d.status === "pendente"
+          );
+          let generalStatus = "aprovado";
+          if (hasRejected) generalStatus = "rejeitado";
+          else if (hasPending) generalStatus = "em_analise";
+
+          await (supabase.from("freelancers") as any)
+            .update({ documents_status: generalStatus })
+            .eq("id", freelancerId);
+        }
+      } catch (e) {
+        console.warn("Aviso ao atualizar documents_status do freelancer:", e);
+      }
+
+      return updatedDoc;
+    },
+    onSuccess: (_, v) => {
+      qc.invalidateQueries({ queryKey: ["freelancer_documents", v.freelancerId] });
+      qc.invalidateQueries({ queryKey: ["freelancer_documents"] });
+      qc.invalidateQueries({ queryKey: ["current-freelancer-profile", v.freelancerId] });
+      qc.invalidateQueries({ queryKey: ["freelancers"] });
+      if (v.status === "aprovado") {
+        toast.success("Documento aprovado com sucesso!");
+      } else if (v.status === "rejeitado") {
+        toast.success("Solicitação de adequação enviada com sucesso!");
+      } else {
+        toast.success("Status do documento atualizado!");
+      }
+    },
+    onError: (err: Error) => {
+      toast.error(`Erro ao atualizar documento: ${err.message}`);
+    },
+  });
+}
+

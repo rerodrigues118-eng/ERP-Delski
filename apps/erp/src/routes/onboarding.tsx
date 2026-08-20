@@ -382,12 +382,23 @@ function OnboardingPage() {
     toast.info("Documento removido.");
   };
 
-  // Lista dos 4 Documentos Obrigatórios / Requeridos do Prestador
+  // Lista dos Documentos Obrigatórios / Requeridos do Prestador
   const prestadorDocs = [
+    {
+      id: "rg_cnh",
+      title: "RG ou CNH do Responsável",
+      desc: "Documento oficial com foto do responsável legal pela empresa/PJ.",
+      format: "PDF ou JPG até 10MB",
+      required: true,
+    },
     {
       id: "antecedentes_criminais",
       title: "Certidão de Antecedentes Criminais",
       desc: "Documento oficial de certidão de antecedentes criminais atualizado.",
+      link: {
+        label: "Emitir certidão ↗",
+        url: "https://servicos.pf.gov.br/epol-sinic-publico/",
+      },
       format: "PDF ou JPG até 10MB",
       required: true,
     },
@@ -395,6 +406,10 @@ function OnboardingPage() {
       id: "situacao_cpf",
       title: "Comprovante de Situação Cadastral do CPF",
       desc: "Comprovante de inscrição e situação cadastral emitido pela Receita Federal.",
+      link: {
+        label: "Emitir comprovante ↗",
+        url: "https://servicos.receita.fazenda.gov.br/servicos/cpf/consultasituacao/consultapublica.asp",
+      },
       format: "PDF ou JPG até 10MB",
       required: true,
     },
@@ -440,6 +455,15 @@ function OnboardingPage() {
 
   // Finalização do Onboarding
   const handleFinalize = async () => {
+    // 1. Validação Estrita de Documentos Obrigatórios
+    const pendingRequired = prestadorDocs.filter((d) => d.required && !documents[d.id]);
+    if (pendingRequired.length > 0) {
+      toast.error(
+        `Anexe todos os documentos obrigatórios antes de prosseguir: ${pendingRequired.map((d) => d.title).join(", ")}.`
+      );
+      return;
+    }
+
     let currentUserId = user?.id;
     let currentUserEmail = (user?.email || corporateEmail || "").trim().toLowerCase();
 
@@ -527,6 +551,27 @@ function OnboardingPage() {
           });
         } catch (fErr) {
           console.warn("Erro no freelancers upsert:", fErr);
+        }
+
+        // Sincronizar todos os documentos anexados na tabela freelancer_documents
+        try {
+          for (const [docType, docItem] of Object.entries(documents)) {
+            if (docItem?.filePath) {
+              await (supabase.from("freelancer_documents") as any).upsert(
+                {
+                  freelancer_id: effectiveUserId,
+                  document_type: docType,
+                  file_path: docItem.filePath,
+                  file_url: docItem.fileUrl || null,
+                  status: "em_analise",
+                  uploaded_at: new Date().toISOString(),
+                },
+                { onConflict: "freelancer_id,document_type" }
+              );
+            }
+          }
+        } catch (dErr) {
+          console.warn("Erro ao sincronizar documentos no banco:", dErr);
         }
       }
 
@@ -627,12 +672,12 @@ function OnboardingPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
-                    Nome Fantasia
+                    Nome
                   </Label>
                   <Input
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="Ex: Delski Studios"
+                    placeholder=""
                     className="h-9.5 text-xs rounded-xl bg-slate-50/50 border-slate-200"
                   />
                 </div>
@@ -644,7 +689,7 @@ function OnboardingPage() {
                   <Input
                     value={corporateName}
                     onChange={(e) => setCorporateName(e.target.value)}
-                    placeholder="Ex: Mateus Costa Serviços ME"
+                    placeholder=""
                     className="h-9.5 text-xs rounded-xl bg-slate-50/50 border-slate-200"
                   />
                 </div>
@@ -764,7 +809,7 @@ function OnboardingPage() {
                   <Input
                     value={rolePosition}
                     onChange={(e) => setRolePosition(e.target.value)}
-                    placeholder="Ex: Diretor Técnico / Freelancer Senior"
+                    placeholder=""
                     className="h-9.5 text-xs rounded-xl bg-slate-50/50 border-slate-200"
                   />
                 </div>
@@ -832,14 +877,25 @@ function OnboardingPage() {
               exit="exit"
               className="space-y-6"
             >
-              <div className="space-y-1">
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <FileCheck className="h-5 w-5 text-slate-700 dark:text-zinc-300" />
-                  Homologação de Documentos & Certidões
-                </h3>
-                <p className="text-xs text-slate-500">
-                  Anexe os arquivos abaixo em formato PDF ou imagem nítida (JPG/PNG).
-                </p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-zinc-800 pb-3">
+                <div className="space-y-1">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <FileCheck className="h-5 w-5 text-slate-700 dark:text-zinc-300" />
+                    Homologação de Documentos & Certidões
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Anexe os arquivos obrigatórios abaixo em formato PDF ou imagem nítida (JPG/PNG).
+                  </p>
+                </div>
+                {pendingRequiredDocs.length > 0 ? (
+                  <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 px-3 py-1 rounded-full shrink-0">
+                    {pendingRequiredDocs.length} obrigatório(s) pendente(s)
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 px-3 py-1 rounded-full shrink-0 flex items-center gap-1">
+                    <Check className="h-3 w-3" /> Todos os obrigatórios anexados
+                  </span>
+                )}
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -857,11 +913,23 @@ function OnboardingPage() {
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3 mb-2">
-                        <div className="space-y-0.5">
+                        <div className="space-y-1">
                           <h4 className="font-bold text-xs text-slate-900 dark:text-white">
                             {doc.title} {doc.required && <span className="text-rose-500">*</span>}
                           </h4>
                           <p className="text-[11px] text-slate-500 leading-snug">{doc.desc}</p>
+                          {(doc as any).link && (
+                            <div className="pt-0.5">
+                              <a
+                                href={(doc as any).link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 hover:underline"
+                              >
+                                <span>{(doc as any).link.label}</span>
+                              </a>
+                            </div>
+                          )}
                         </div>
                         {uploaded && (
                           <span className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 text-[10px] font-semibold py-0.5 px-2 rounded-full shrink-0 flex items-center gap-1">
@@ -964,8 +1032,17 @@ function OnboardingPage() {
             <button
               type="button"
               onClick={handleFinalize}
-              disabled={submitting}
-              className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-sm transition-all disabled:opacity-50"
+              disabled={submitting || pendingRequiredDocs.length > 0}
+              className={`px-6 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-sm transition-all ${
+                pendingRequiredDocs.length > 0
+                  ? "bg-slate-200 dark:bg-zinc-800 text-slate-400 dark:text-zinc-500 cursor-not-allowed border border-slate-300 dark:border-zinc-700"
+                  : "bg-slate-900 hover:bg-black text-white cursor-pointer"
+              }`}
+              title={
+                pendingRequiredDocs.length > 0
+                  ? `Anexe os documentos obrigatórios para concluir: ${pendingRequiredDocs.map((d) => d.title).join(", ")}`
+                  : "Finalizar cadastro e ativar conta"
+              }
             >
               {submitting ? (
                 <>

@@ -53,6 +53,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { FreelancerProjectDetailsModal } from "@/components/FreelancerProjectDetailsModal";
 import {
   Select,
   SelectContent,
@@ -132,12 +133,13 @@ const STATUS_BADGE_STYLES: Record<string, string> = {
   Pendente: "bg-amber-50 text-amber-700 border-amber-200",
   Pago: "bg-emerald-50 text-emerald-700 border-emerald-200",
   Atrasado: "bg-red-50 text-red-700 border-red-200",
-  "Em análise": "bg-purple-50 text-purple-700 border-purple-200",
+  "Em análise": "bg-amber-50 text-amber-700 border-amber-200",
   Aprovada: "bg-emerald-50 text-emerald-700 border-emerald-200",
   Reprovada: "bg-red-50 text-red-700 border-red-200",
   aprovado: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  em_analise: "bg-purple-50 text-purple-700 border-purple-200",
-  rejeitado: "bg-red-50 text-red-700 border-red-200",
+  em_analise: "bg-amber-50 text-amber-700 border-amber-200",
+  rejeitado: "bg-orange-50 text-orange-700 border-orange-200",
+  adequacao_solicitada: "bg-orange-50 text-orange-700 border-orange-200",
   pendente: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
@@ -1169,6 +1171,26 @@ function FreelancerDashboardPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 {
+                  id: "rg_cnh",
+                  title: "RG ou CNH do Responsável",
+                  desc: "Documento oficial com foto do responsável legal pela PJ",
+                },
+                {
+                  id: "antecedentes_criminais",
+                  title: "Certidão de Antecedentes Criminais",
+                  desc: "Certidão de antecedentes criminais emitida pela Polícia Federal",
+                },
+                {
+                  id: "situacao_cpf",
+                  title: "Comprovante de Situação Cadastral do CPF",
+                  desc: "Comprovante de inscrição e situação cadastral do CPF na Receita Federal",
+                },
+                {
+                  id: "foto_rosto",
+                  title: "Foto do Rosto (Tipo 3x4)",
+                  desc: "Foto frontal nítida com boa iluminação e fundo neutro",
+                },
+                {
                   id: "cartao_cnpj",
                   title: "Comprovante de CNPJ Ativo",
                   desc: "Cartão CNPJ atualizado da Receita Federal",
@@ -1184,48 +1206,57 @@ function FreelancerDashboardPage() {
                   desc: "Certidão ou comprovante de distribuição judicial",
                 },
                 {
-                  id: "rg_cnh",
-                  title: "RG ou CNH do Responsável",
-                  desc: "Documento com foto do responsável legal pela PJ",
-                },
-                {
                   id: "certidao_trabalhista",
                   title: "Certidão de Débitos Trabalhistas (CNDT)",
                   desc: "Certidão negativa emitida pela Justiça do Trabalho",
                 },
               ].map((item) => {
                 const existing = freelancerDocs.find(
-                  (d) => d.document_type === item.id
+                  (d) => d.document_type === item.id || (item.id === "cartao_cnpj" && d.document_type === "situacao_cnpj")
                 );
                 const isUploading = uploadingType === item.id;
+                const isApproved = existing?.status === "aprovado";
+                const isAdequacyRequested = existing?.status === "rejeitado" || existing?.status === "adequacao_solicitada";
+                const isInAnalysis = Boolean(existing && !isApproved && !isAdequacyRequested);
 
                 return (
                   <div
                     key={item.id}
-                    className={`p-5 rounded-xl border transition-all ${
-                      existing
-                        ? "bg-emerald-50/40 border-emerald-200"
+                    className={`p-5 rounded-2xl border transition-all space-y-3 ${
+                      isApproved
+                        ? "bg-emerald-50/30 border-emerald-200"
+                        : isAdequacyRequested
+                        ? "bg-orange-50/40 border-orange-300 shadow-xs"
+                        : existing
+                        ? "bg-amber-50/20 border-amber-200"
                         : "bg-white border-gray-200 hover:border-blue-300"
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-sm text-gray-900">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h3 className="font-bold text-sm text-gray-900">
                             {item.title}
                           </h3>
-                          {existing && (
+                          {existing ? (
                             <Badge
-                              className={`text-[10px] py-0 px-2 font-medium ${
-                                STATUS_BADGE_STYLES[existing.status] ||
-                                "bg-gray-100 text-gray-700"
+                              className={`text-[10px] py-0.5 px-2.5 font-semibold ${
+                                isApproved
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : isAdequacyRequested
+                                  ? "bg-orange-50 text-orange-700 border-orange-200"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
                               }`}
                             >
-                              {existing.status === "aprovado"
+                              {isApproved
                                 ? "Aprovado"
-                                : existing.status === "em_analise"
-                                  ? "Em Análise"
-                                  : "Pendente"}
+                                : isAdequacyRequested
+                                ? "Adequação Solicitada"
+                                : "Em Análise"}
+                            </Badge>
+                          ) : (
+                            <Badge className="text-[10px] py-0.5 px-2 font-medium bg-slate-100 text-slate-600 border-slate-200">
+                              Pendente
                             </Badge>
                           )}
                         </div>
@@ -1233,9 +1264,23 @@ function FreelancerDashboardPage() {
                       </div>
                     </div>
 
+                    {/* Alerta em destaque de Adequação Solicitada pela Gestão */}
+                    {isAdequacyRequested && (
+                      <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-xs text-orange-900 space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold text-orange-800">
+                          <AlertCircle className="h-4 w-4 text-orange-600 shrink-0" />
+                          <span>Adequação Solicitada pela Gestão:</span>
+                        </div>
+                        <p className="text-[11px] leading-relaxed text-orange-800">
+                          {(existing as any).rejection_reason || (existing as any).notes || (existing as any).review_notes || "Favor reenviar o documento corrigido conforme as orientações da equipe."}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Ações e Trava de Edição */}
                     <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                       {existing ? (
-                        <div className="flex items-center justify-between w-full">
+                        <div className="flex items-center justify-between w-full gap-2">
                           <a
                             href={
                               existing.file_url || existing.public_url || "#"
@@ -1247,22 +1292,46 @@ function FreelancerDashboardPage() {
                             <ExternalLink className="h-3.5 w-3.5" /> Visualizar Arquivo
                           </a>
 
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              deleteDoc.mutate({
-                                documentId: existing.id,
-                                filePath: existing.file_path,
-                              })
-                            }
-                            className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 text-xs px-2"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" /> Substituir
-                          </Button>
+                          {/* Se aprovado ou em análise: Read-Only (Trava de Edição) */}
+                          {isApproved && (
+                            <span className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                              <CheckCircle2 className="h-3.5 w-3.5" /> Validado pela Gestão
+                            </span>
+                          )}
+
+                          {isInAnalysis && (
+                            <span className="text-[11px] font-semibold text-amber-700 flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-lg">
+                              <Clock className="h-3.5 w-3.5" /> Em análise pela Gestão
+                            </span>
+                          )}
+
+                          {/* Se Adequação Solicitada: Botão de Upload liberado para reenvio */}
+                          {isAdequacyRequested && (
+                            <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-700 text-white transition-colors shadow-xs">
+                              <input
+                                type="file"
+                                className="hidden"
+                                accept=".pdf,.png,.jpg,.jpeg"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleDocUpload(item.id, file);
+                                }}
+                                disabled={isUploading}
+                              />
+                              {isUploading ? (
+                                <>
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Reenviando...
+                                </>
+                              ) : (
+                                <>
+                                  <UploadCloud className="h-3.5 w-3.5" /> Reenviar Ajustado
+                                </>
+                              )}
+                            </label>
+                          )}
                         </div>
                       ) : (
-                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
                           <input
                             type="file"
                             className="hidden"
@@ -1750,107 +1819,10 @@ function FreelancerDashboardPage() {
       </Dialog>
 
       {/* Project Details Modal Dialog */}
-      <Dialog
-        open={Boolean(selectedProjectForDetails)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedProjectForDetails(null);
-        }}
-      >
-        <DialogContent className="sm:max-w-xl max-h-[85vh] overflow-y-auto rounded-3xl p-6 sm:p-8">
-          {selectedProjectForDetails && (
-            <div className="space-y-6">
-              <DialogHeader className="space-y-2 text-left">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="text-xs font-bold text-blue-600 uppercase tracking-wider">
-                    {selectedProjectForDetails.service_type || "Projeto"}
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                      selectedProjectForDetails.status === "Concluido"
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : selectedProjectForDetails.status === "Em Andamento" ||
-                          selectedProjectForDetails.status === "Em Producao"
-                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                        : "bg-amber-50 text-amber-700 border-amber-200"
-                    }`}
-                  >
-                    {selectedProjectForDetails.status}
-                  </span>
-                </div>
-                <DialogTitle className="text-xl font-bold text-gray-900">
-                  {selectedProjectForDetails.title}
-                </DialogTitle>
-                <DialogDescription className="text-xs text-gray-500">
-                  Cliente:{" "}
-                  <strong className="text-gray-700">
-                    {selectedProjectForDetails.client?.full_name || "Cliente Delski"}
-                  </strong>
-                </DialogDescription>
-              </DialogHeader>
-
-              {/* Info Metrics Grid */}
-              <div className="grid grid-cols-2 gap-3 p-4 rounded-2xl bg-gray-50 border border-gray-100 text-xs">
-                <div>
-                  <span className="text-[11px] text-gray-400 font-semibold uppercase block">
-                    Prazo de Entrega
-                  </span>
-                  <p className="text-sm font-bold text-gray-900 mt-0.5">
-                    {formatDate(selectedProjectForDetails.deadline)}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-[11px] text-gray-400 font-semibold uppercase block">
-                    Honorário Combinado
-                  </span>
-                  <p className="text-sm font-bold text-emerald-600 mt-0.5">
-                    {money(selectedProjectForDetails.freelancer_cost || 0)}
-                  </p>
-                </div>
-              </div>
-
-              {/* Briefing Section */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5 text-blue-600" /> Escopo & Briefing da Demanda
-                </h4>
-                <div className="p-4 rounded-2xl bg-white border border-gray-200 text-xs text-gray-700 leading-relaxed max-h-48 overflow-y-auto whitespace-pre-wrap">
-                  {selectedProjectForDetails.briefing_content ||
-                    "Nenhuma instrução ou briefing específico foi detalhado para este projeto."}
-                </div>
-              </div>
-
-              {/* Links & Entregáveis */}
-              {selectedProjectForDetails.google_drive_link && (
-                <div className="space-y-2">
-                  <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-                    <ExternalLink className="w-3.5 h-3.5 text-blue-600" /> Pasta de Entregáveis / Drive
-                  </h4>
-                  <a
-                    href={selectedProjectForDetails.google_drive_link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-between p-3.5 rounded-xl bg-blue-50/60 border border-blue-200/80 text-blue-700 hover:bg-blue-100/70 transition-colors text-xs font-semibold"
-                  >
-                    <span className="truncate max-w-sm">
-                      {selectedProjectForDetails.google_drive_link}
-                    </span>
-                    <ExternalLink className="w-4 h-4 shrink-0" />
-                  </a>
-                </div>
-              )}
-
-              <DialogFooter className="pt-2">
-                <Button
-                  onClick={() => setSelectedProjectForDetails(null)}
-                  className="w-full h-10 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-semibold"
-                >
-                  Fechar Detalhes
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <FreelancerProjectDetailsModal
+        project={selectedProjectForDetails}
+        onClose={() => setSelectedProjectForDetails(null)}
+      />
     </div>
   );
 }
