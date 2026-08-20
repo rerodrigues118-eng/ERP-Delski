@@ -1,7 +1,7 @@
 -- ==============================================================================
 -- DELSKI CLOUD — CORREÇÃO DEFINITIVA DE PERSISTÊNCIA DE PERFIL & AVATAR DO CLIENTE
 -- Execute este script no SQL Editor do seu Dashboard Supabase (https://app.supabase.com)
--- Script Idempotente e Seguro (IF NOT EXISTS / ON CONFLICT / POLICIES REFRESH)
+-- Script 100% Seguro e Idempotente (Com validação segura de auth.users foreign key)
 -- ==============================================================================
 
 -- 1. GARANTIR COLUNAS NA TABELA PUBLIC.PROFILES
@@ -108,11 +108,21 @@ CREATE POLICY "Storage leitura publica avatars e client-documents"
   ON storage.objects FOR SELECT
   USING (bucket_id IN ('client-documents', 'avatars', 'freelancer-docs'));
 
--- 7. SINCRONIZAÇÃO AUTOMÁTICA: CRIAR CLIENTS AUTOMATICAMENTE PARA CADA PERFIL CLIENTE
-INSERT INTO public.clients (id, auth_user_id, full_name, email, company_name, phone, avatar_url, onboarding_completed, status)
+-- 7. SINCRONIZAÇÃO SEGURA: CRIAR/ATUALIZAR CLIENTS COM FOREIGN KEY VÁLIDA
+INSERT INTO public.clients (
+  id,
+  auth_user_id,
+  full_name,
+  email,
+  company_name,
+  phone,
+  avatar_url,
+  onboarding_completed,
+  status
+)
 SELECT 
   p.id,
-  p.id,
+  (SELECT u.id FROM auth.users u WHERE u.id = p.id OR LOWER(u.email) = LOWER(p.email) LIMIT 1) AS auth_user_id,
   p.full_name,
   p.email,
   COALESCE(p.company_name, p.full_name),
@@ -122,24 +132,41 @@ SELECT
   'ativo'
 FROM public.profiles p
 WHERE p.role = 'cliente'
-ON CONFLICT (email) DO UPDATE 
+ON CONFLICT (id) DO UPDATE 
 SET 
-  auth_user_id = EXCLUDED.auth_user_id,
+  auth_user_id = COALESCE(EXCLUDED.auth_user_id, public.clients.auth_user_id),
   avatar_url = COALESCE(EXCLUDED.avatar_url, public.clients.avatar_url),
   phone = COALESCE(EXCLUDED.phone, public.clients.phone),
   updated_at = NOW();
 
--- 8. TRIGGER DE SINCRONIZAÇÃO AUTOMÁTICA PROFILES -> CLIENTS
+-- 8. TRIGGER DE SINCRONIZAÇÃO AUTOMÁTICA PROFILES -> CLIENTS COM VALIDAÇÃO DE AUTH.USERS
 CREATE OR REPLACE FUNCTION public.sync_profile_to_client()
 RETURNS TRIGGER AS $$
+DECLARE
+  matched_auth_id UUID;
 BEGIN
   IF NEW.role = 'cliente' THEN
+    -- Obter auth_user_id apenas se o usuário existir de fato em auth.users
+    SELECT u.id INTO matched_auth_id 
+    FROM auth.users u 
+    WHERE u.id = NEW.id OR LOWER(u.email) = LOWER(NEW.email) 
+    LIMIT 1;
+
     INSERT INTO public.clients (
-      id, auth_user_id, full_name, email, company_name, phone, avatar_url, onboarding_completed, status, updated_at
+      id,
+      auth_user_id,
+      full_name,
+      email,
+      company_name,
+      phone,
+      avatar_url,
+      onboarding_completed,
+      status,
+      updated_at
     )
     VALUES (
       NEW.id,
-      NEW.id,
+      matched_auth_id,
       NEW.full_name,
       NEW.email,
       COALESCE(NEW.company_name, NEW.full_name),
@@ -149,9 +176,9 @@ BEGIN
       'ativo',
       NOW()
     )
-    ON CONFLICT (email) DO UPDATE
+    ON CONFLICT (id) DO UPDATE
     SET 
-      auth_user_id = EXCLUDED.auth_user_id,
+      auth_user_id = COALESCE(EXCLUDED.auth_user_id, public.clients.auth_user_id),
       full_name = EXCLUDED.full_name,
       avatar_url = COALESCE(EXCLUDED.avatar_url, public.clients.avatar_url),
       phone = COALESCE(EXCLUDED.phone, public.clients.phone),
