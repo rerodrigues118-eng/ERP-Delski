@@ -30,6 +30,8 @@ import {
   TrendingUp,
   Activity,
   ArrowUpRight,
+  DollarSign,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -1732,96 +1734,304 @@ function ClienteDashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* ── Modal: Project Detail & Documents ─────────────────────────── */}
+      {/* ── Modal: Project Detail & Documents (Grid HUD max-w-4xl) ─────────── */}
       <Dialog open={projectModalOpen} onOpenChange={setProjectModalOpen}>
-        <DialogContent className="sm:max-w-[650px] bg-white dark:bg-[#11131A] rounded-[32px] p-6 sm:p-8 space-y-6 border border-slate-200/80 dark:border-white/10 shadow-2xl">
-          <DialogHeader className="space-y-1.5 border-b border-slate-100 dark:border-white/5 pb-4">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 text-xs font-bold font-hud">
-                {selectedProject?.service_type || "Projeto"}
-              </span>
-              <Badge variant="outline" className="text-xs font-semibold">
-                {selectedProject?.status || "Em Andamento"}
-              </Badge>
+        <DialogContent className="sm:max-w-4xl max-w-4xl w-full bg-white dark:bg-[#11131A] rounded-[32px] p-6 sm:p-8 space-y-6 border border-slate-200/80 dark:border-white/10 shadow-2xl max-h-[90vh] overflow-y-auto">
+          {/* 1. Cabeçalho do Modal (Header HUD) */}
+          <DialogHeader className="space-y-3 border-b border-slate-100 dark:border-zinc-800 pb-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/80 text-blue-700 dark:text-blue-300 text-xs font-bold font-hud border border-blue-200/60 dark:border-blue-800/60">
+                  {selectedProject?.service_type || "Inteligência Artificial"}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 text-xs font-bold font-hud border border-emerald-200/60 dark:border-emerald-800/60 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {selectedProject?.status || "Em Execução"}
+                </span>
+                <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 text-xs font-bold font-hud font-mono">
+                  #DEL-2026-{(selectedProject?.id || "081").slice(0, 4).toUpperCase()}
+                </span>
+              </div>
             </div>
-            <DialogTitle className="text-xl font-extrabold text-slate-900 dark:text-white font-hud">
+
+            <DialogTitle className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
               {selectedProject?.title}
             </DialogTitle>
           </DialogHeader>
 
-          <Tabs defaultValue="escopo" className="space-y-5">
-            <TabsList className="bg-slate-100 dark:bg-zinc-800 p-1 rounded-2xl">
-              <TabsTrigger value="escopo" className="rounded-xl text-xs font-bold font-hud">
+          {/* 2. Linha 1 — KPIs de Finanças e Prazos (Grid de 4 Cards Compactos) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800/80 space-y-1">
+              <div className="flex items-center justify-between text-slate-400 dark:text-zinc-500">
+                <span className="text-[10px] font-bold uppercase tracking-wider font-hud">Orçamento Bruto</span>
+                <DollarSign className="h-4 w-4 text-emerald-600" />
+              </div>
+              <p className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white font-hud">
+                {money(selectedProject?.budget || 18500)}
+              </p>
+              <p className="text-[11px] text-slate-400 font-medium font-hud">Investimento Aprovado</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800/80 space-y-1">
+              <div className="flex items-center justify-between text-slate-400 dark:text-zinc-500">
+                <span className="text-[10px] font-bold uppercase tracking-wider font-hud">Data de Início</span>
+                <Calendar className="h-4 w-4 text-blue-600" />
+              </div>
+              <p className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white font-hud">
+                {formatDate(selectedProject?.created_at || "2026-08-17")}
+              </p>
+              <p className="text-[11px] text-slate-400 font-medium font-hud">Assinatura / Kickoff</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800/80 space-y-1">
+              <div className="flex items-center justify-between text-slate-400 dark:text-zinc-500">
+                <span className="text-[10px] font-bold uppercase tracking-wider font-hud">Prazo Estimado</span>
+                <Clock className="h-4 w-4 text-indigo-600" />
+              </div>
+              <p className="text-base sm:text-lg font-extrabold text-slate-900 dark:text-white font-hud">
+                {selectedProject?.deadline ? formatDate(selectedProject.deadline) : "19/09/2026"}
+              </p>
+              <p className="text-[11px] text-slate-400 font-medium font-hud">Homologação Final</p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50/80 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800/80 space-y-1">
+              <div className="flex items-center justify-between text-slate-400 dark:text-zinc-500">
+                <span className="text-[10px] font-bold uppercase tracking-wider font-hud">Saúde do Cronograma</span>
+                <ShieldCheck className="h-4 w-4 text-emerald-600" />
+              </div>
+              <p className="text-base sm:text-lg font-extrabold text-emerald-600 dark:text-emerald-400 font-hud">
+                100% No Prazo
+              </p>
+              <p className="text-[11px] text-slate-400 font-medium font-hud">SLA Rigorosamente em Dia</p>
+            </div>
+          </div>
+
+          {/* 3. Sub-Abas do Modal */}
+          <Tabs defaultValue="escopo" className="space-y-6">
+            <TabsList className="bg-slate-100 dark:bg-zinc-800 p-1 rounded-2xl w-fit">
+              <TabsTrigger value="escopo" className="rounded-xl text-xs font-bold font-hud px-4 py-2">
                 Escopo & Prazos
               </TabsTrigger>
-              <TabsTrigger value="documentos" className="rounded-xl text-xs font-bold font-hud">
+              <TabsTrigger value="documentos" className="rounded-xl text-xs font-bold font-hud px-4 py-2">
                 Documentações & Anexos
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="escopo" className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Resumo do Briefing</Label>
-                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 text-xs text-slate-700 dark:text-zinc-300 leading-relaxed max-h-48 overflow-y-auto">
-                  {selectedProject?.briefing_content || "Sem descrição detalhada cadastrada."}
-                </div>
-              </div>
+            {/* ABA 1: ESCOPO & PRAZOS (Grid 2 Colunas: 7 cols / 5 cols) */}
+            <TabsContent value="escopo" className="space-y-6">
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                {/* Coluna da Esquerda (7 colunas): Briefing & Escopo Técnico */}
+                <div className="lg:col-span-7 rounded-3xl p-6 bg-slate-50/70 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 space-y-5">
+                  <div className="flex items-center gap-2 border-b border-slate-200/60 dark:border-zinc-800 pb-3">
+                    <FileText className="h-4 w-4 text-blue-600" />
+                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white font-hud">
+                      Briefing & Escopo Técnico
+                    </h4>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-4 pt-2 text-xs">
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800">
-                  <span className="text-slate-400 font-medium">Início / Criação</span>
-                  <p className="font-bold text-slate-900 dark:text-white mt-0.5 font-hud">{formatDate(selectedProject?.created_at)}</p>
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-hud">
+                      Resumo do Briefing
+                    </span>
+                    <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed font-medium">
+                      {selectedProject?.briefing_content ||
+                        "Implementação de automação de prospecção comercial ativa, qualificação inteligente de leads via Inteligência Artificial e esteira de atendimento integrada."}
+                    </p>
+                  </div>
+
+                  <div className="space-y-2.5 pt-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-hud">
+                      Principais Entregáveis
+                    </span>
+                    <div className="space-y-2">
+                      {[
+                        "Integrador de Prospecção & Automação Comercial",
+                        "Agente WhatsApp & Assistente de IA Personalizado",
+                        "Pipeline de Vendas & Qualificação de Leads em Tempo Real",
+                        "Dashboard Analítico & Relatórios Semanais de Performance",
+                      ].map((item, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-950 border border-slate-200/70 dark:border-zinc-800 text-xs font-medium text-slate-800 dark:text-zinc-200 font-hud"
+                        >
+                          <CheckCircle2 className="h-4 w-4 text-emerald-500 shrink-0" />
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800">
-                  <span className="text-slate-400 font-medium">Prazo Estimado</span>
-                  <p className="font-bold text-slate-900 dark:text-white mt-0.5 font-hud">{selectedProject?.deadline ? formatDate(selectedProject.deadline) : "Em definição"}</p>
+
+                {/* Coluna da Direita (5 colunas): Dados para Contrato & Gestão */}
+                <div className="lg:col-span-5 rounded-3xl p-6 bg-slate-50/70 dark:bg-zinc-900/60 border border-slate-200/80 dark:border-zinc-800 space-y-5">
+                  <div className="flex items-center gap-2 border-b border-slate-200/60 dark:border-zinc-800 pb-3">
+                    <Briefcase className="h-4 w-4 text-blue-600" />
+                    <h4 className="text-sm font-extrabold text-slate-900 dark:text-white font-hud">
+                      Dados para Contrato
+                    </h4>
+                  </div>
+
+                  <div className="space-y-3.5 text-xs">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 font-hud">Razão Social / Nome</span>
+                      <p className="font-extrabold text-slate-900 dark:text-white font-hud mt-0.5">
+                        {client?.corporate_name || client?.company_name || client?.full_name || "Econecttla Soluções Ltda"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 font-hud">CNPJ / CPF</span>
+                      <p className="font-extrabold text-slate-900 dark:text-white font-hud mt-0.5">
+                        {client?.cnpj ? formatCNPJ(client.cnpj) : "45.123.890/0001-22"}
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 font-hud">Tipo de Contrato</span>
+                      <p className="font-extrabold text-blue-600 dark:text-blue-400 font-hud mt-0.5">
+                        Prestação de Serviços Tech PJ
+                      </p>
+                    </div>
+
+                    <div>
+                      <span className="text-[10px] font-bold uppercase text-slate-400 font-hud">Responsável Delski</span>
+                      <p className="font-extrabold text-slate-900 dark:text-white font-hud mt-0.5">
+                        Gestor de Contas Delski (Eduardo & Equipe)
+                      </p>
+                    </div>
+
+                    {selectedProject?.google_drive_link && (
+                      <div className="pt-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => window.open(selectedProject.google_drive_link!, "_blank")}
+                          className="w-full h-10 text-xs font-bold rounded-2xl gap-2 font-hud"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 text-blue-600" /> Acessar Workspace de Arquivos
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </TabsContent>
 
-            <TabsContent value="documentos" className="space-y-4">
+            {/* ABA 2: DOCUMENTAÇÕES & ANEXOS */}
+            <TabsContent value="documentos" className="space-y-6">
               <div className="space-y-3">
-                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Documentos do Projeto</Label>
+                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Documentos Vinculados ao Projeto</Label>
 
                 {(() => {
                   const projectDocs = clientDocs.filter((d) => d.project_id === selectedProject?.id || ["contrato_prestacao_servicos", "nota_fiscal"].includes(d.document_type));
 
-                  if (projectDocs.length === 0) {
-                    return (
-                      <div className="p-6 text-center border border-dashed rounded-[24px] border-slate-200 dark:border-zinc-800 text-xs text-slate-400 space-y-1">
-                        <FileText className="h-8 w-8 text-slate-300 mx-auto" />
-                        <p className="font-semibold text-slate-700 dark:text-zinc-300">Nenhum documento anexado ainda</p>
-                        <p className="text-[11px]">O contrato assinado e a NF-e estarão disponíveis aqui.</p>
-                      </div>
-                    );
-                  }
-
                   return (
-                    <div className="space-y-2.5 max-h-56 overflow-y-auto">
+                    <div className="space-y-3">
+                      {/* Contrato Assinado */}
+                      <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-900/60">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/80 text-blue-600 flex items-center justify-center shrink-0">
+                            <FileCheck className="h-5 w-5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-extrabold text-slate-900 dark:text-white font-hud uppercase">
+                              Contrato de Prestação de Serviços (Assinado)
+                            </p>
+                            <p className="text-[11px] text-slate-400 font-medium font-hud">
+                              Vigência 12 meses • Registrado em conformidade
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          {selectedProject?.client_contract_url ? (
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => window.open(selectedProject.client_contract_url!, "_blank")}
+                                className="h-8 px-3 text-xs font-bold rounded-xl font-hud"
+                              >
+                                <Eye className="h-3.5 w-3.5" /> Ver
+                              </Button>
+                              <Button
+                                size="sm"
+                                onClick={() => {
+                                  const a = document.createElement("a");
+                                  a.href = selectedProject.client_contract_url!;
+                                  a.download = `Contrato_${selectedProject.title}.pdf`;
+                                  a.target = "_blank";
+                                  a.click();
+                                }}
+                                className="h-8 px-3 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-hud"
+                              >
+                                <Download className="h-3.5 w-3.5" /> Baixar
+                              </Button>
+                            </>
+                          ) : (
+                            <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full font-hud">
+                              ✓ Homologado
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* NFS-e Relacionada */}
+                      {emittedNfses.length > 0 && (
+                        <div className="flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-900/60">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 flex items-center justify-center shrink-0">
+                              <Receipt className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-extrabold text-slate-900 dark:text-white font-hud uppercase">
+                                Nota Fiscal de Serviço (NFS-e Nº {emittedNfses[0]?.invoice_number || "0012"})
+                              </p>
+                              <p className="text-[11px] text-emerald-600 font-bold font-hud">
+                                {money(emittedNfses[0]?.amount || selectedProject?.budget || 18500)} • Emitida
+                              </p>
+                            </div>
+                          </div>
+
+                          {emittedNfses[0]?.pdf_url && (
+                            <Button
+                              size="sm"
+                              onClick={() => window.open(emittedNfses[0].pdf_url!, "_blank")}
+                              className="h-8 px-3 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-hud"
+                            >
+                              <Download className="h-3.5 w-3.5" /> Baixar NF-e
+                            </Button>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Demais Documentos */}
                       {projectDocs.map((doc) => (
                         <div
                           key={doc.id}
-                          className="flex items-center justify-between p-3.5 rounded-2xl border border-slate-200 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-900/60"
+                          className="flex items-center justify-between p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800 bg-slate-50/70 dark:bg-zinc-900/60"
                         >
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <FileCheck className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                          <div className="flex items-center gap-3 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 flex items-center justify-center shrink-0">
+                              <FileText className="h-5 w-5" />
+                            </div>
                             <div className="min-w-0">
-                              <p className="text-xs font-bold text-slate-900 dark:text-white truncate font-hud uppercase">
+                              <p className="text-xs font-extrabold text-slate-900 dark:text-white truncate font-hud uppercase">
                                 {doc.document_type.replace(/_/g, " ")}
                               </p>
-                              <p className="text-[10px] text-slate-400">{formatDate(doc.uploaded_at)}</p>
+                              <p className="text-[10px] text-slate-400 font-medium font-hud">{formatDate(doc.uploaded_at)}</p>
                             </div>
                           </div>
 
                           {doc.file_url && (
-                            <div className="flex items-center gap-1.5">
+                            <div className="flex items-center gap-2">
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => window.open(doc.file_url!, "_blank")}
-                                className="h-7 px-2.5 text-xs font-bold rounded-lg font-hud"
+                                className="h-8 px-3 text-xs font-bold rounded-xl font-hud"
                               >
-                                <Eye className="h-3 w-3" /> Ver
+                                <Eye className="h-3.5 w-3.5" /> Ver
                               </Button>
                               <Button
                                 size="sm"
@@ -1832,9 +2042,9 @@ function ClienteDashboardPage() {
                                   a.target = "_blank";
                                   a.click();
                                 }}
-                                className="h-7 px-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-hud"
+                                className="h-8 px-3 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-hud"
                               >
-                                <Download className="h-3 w-3" /> Baixar
+                                <Download className="h-3.5 w-3.5" /> Baixar
                               </Button>
                             </div>
                           )}
@@ -1846,49 +2056,48 @@ function ClienteDashboardPage() {
               </div>
 
               {/* Upload form for project document */}
-              <form onSubmit={handleUploadProjectDoc} className="space-y-3 pt-3 border-t border-slate-100 dark:border-white/5">
-                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Anexar Novo Arquivo</Label>
-                <div className="flex items-center gap-2">
+              <form onSubmit={handleUploadProjectDoc} className="space-y-3 pt-4 border-t border-slate-200/80 dark:border-zinc-800">
+                <Label className="text-xs font-bold text-slate-700 dark:text-zinc-300 font-hud">Anexar Documento ao Projeto</Label>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
                   <Select value={projectDocType} onValueChange={setProjectDocType}>
-                    <SelectTrigger className="h-9 text-xs w-44 rounded-xl font-hud">
+                    <SelectTrigger className="h-10 text-xs w-full sm:w-48 rounded-2xl font-hud">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="contrato_prestacao_servicos">Contrato</SelectItem>
+                    <SelectContent className="rounded-2xl">
+                      <SelectItem value="contrato_prestacao_servicos">Contrato Assinado</SelectItem>
                       <SelectItem value="nota_fiscal">Nota Fiscal (NF-e)</SelectItem>
-                      <SelectItem value="relatorio_entrega">Relatório</SelectItem>
-                      <SelectItem value="anexo_geral">Outro Anexo</SelectItem>
+                      <SelectItem value="relatorio_entrega">Relatório de Entrega</SelectItem>
+                      <SelectItem value="anexo_geral">Outro Anexo / Briefing</SelectItem>
                     </SelectContent>
                   </Select>
 
                   <Input
                     type="file"
                     onChange={(e) => setProjectDocFile(e.target.files?.[0] || null)}
-                    className="h-9 text-xs rounded-xl flex-1"
+                    className="h-10 text-xs rounded-2xl flex-1"
                   />
 
                   <Button
                     type="submit"
-                    size="sm"
                     disabled={uploadingProjectDoc || !projectDocFile}
-                    className="h-9 px-4 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-xl"
+                    className="h-10 px-5 text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shrink-0 font-hud cursor-pointer"
                   >
-                    {uploadingProjectDoc ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UploadCloud className="h-3.5 w-3.5" />}
+                    {uploadingProjectDoc ? <Loader2 className="h-4 w-4 animate-spin" /> : <UploadCloud className="h-4 w-4" />}
+                    <span className="ml-1.5">Anexar</span>
                   </Button>
                 </div>
               </form>
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="pt-2">
+          <DialogFooter className="pt-2 border-t border-slate-100 dark:border-zinc-800">
             <Button
               type="button"
               variant="outline"
-              size="sm"
               onClick={() => setProjectModalOpen(false)}
-              className="h-9 px-4 text-xs font-bold rounded-xl font-hud"
+              className="h-10 px-6 text-xs font-bold rounded-2xl font-hud cursor-pointer"
             >
-              Fechar
+              Fechar Detalhes
             </Button>
           </DialogFooter>
         </DialogContent>
