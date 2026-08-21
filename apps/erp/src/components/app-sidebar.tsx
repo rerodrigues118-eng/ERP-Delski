@@ -19,6 +19,7 @@ import {
   ChevronRight,
   Target,
   UserCheck,
+  TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { DEFAULT_COMPANY_SETTINGS } from "@/hooks/useContractFieldResolver";
@@ -59,6 +60,7 @@ const NAV_EQUIPE = [
 ];
 
 const NAV_NEGOCIO = [
+  { title: "Vendas", url: "/app/vendas", icon: TrendingUp, gestor: true, freelancer: false, cliente: false },
   { title: "Financeiro", url: "/app/finance", icon: DollarSign, gestor: true, freelancer: true, cliente: false },
   { title: "Gerador de Contratos", url: "/app/contract-generator", icon: FileSignature, gestor: true, freelancer: false, cliente: false },
   { title: "Modelos de Contrato", url: "/app/contract-models", icon: FilePlus, gestor: true, freelancer: false, cliente: false },

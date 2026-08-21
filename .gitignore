@@ -21,6 +21,9 @@ inspect_db.mjs
 *.local
 .env
 .env.*
+client_secret*.json
+credentials*.json
+token*.json
 
 # Wrangler / Cloudflare
 .wrangler/

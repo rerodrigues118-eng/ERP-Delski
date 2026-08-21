@@ -28,6 +28,7 @@ import { Route as AppPerfilRouteImport } from './routes/app.perfil'
 import { Route as AppProjetosRouteImport } from './routes/app.projetos'
 import { Route as AppRisksRouteImport } from './routes/app.risks'
 import { Route as AppSuporteRouteImport } from './routes/app.suporte'
+import { Route as AppVendasRouteImport } from './routes/app.vendas'
 import { Route as CandidaturaIdRouteImport } from './routes/candidatura.$id'
 import { Route as ClienteIndexRouteImport } from './routes/cliente.index'
 import { Route as ClienteDashboardRouteImport } from './routes/cliente.dashboard'
@@ -142,6 +143,11 @@ const AppRisksRoute = AppRisksRouteImport.update({
 const AppSuporteRoute = AppSuporteRouteImport.update({
   id: '/suporte',
   path: '/suporte',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppVendasRoute = AppVendasRouteImport.update({
+  id: '/vendas',
+  path: '/vendas',
   getParentRoute: () => AppRoute,
 } as any)
 const CandidaturaIdRoute = CandidaturaIdRouteImport.update({
@@ -264,6 +270,7 @@ export interface FileRoutesByFullPath {
   '/app/projetos': typeof AppProjetosRoute
   '/app/risks': typeof AppRisksRoute
   '/app/suporte': typeof AppSuporteRoute
+  '/app/vendas': typeof AppVendasRoute
   '/candidatura/$id': typeof CandidaturaIdRoute
   '/cliente/dashboard': typeof ClienteDashboardRoute
   '/freelancer/dashboard': typeof FreelancerDashboardRoute
@@ -302,6 +309,7 @@ export interface FileRoutesByTo {
   '/app/projetos': typeof AppProjetosRoute
   '/app/risks': typeof AppRisksRoute
   '/app/suporte': typeof AppSuporteRoute
+  '/app/vendas': typeof AppVendasRoute
   '/candidatura/$id': typeof CandidaturaIdRoute
   '/cliente/dashboard': typeof ClienteDashboardRoute
   '/freelancer/dashboard': typeof FreelancerDashboardRoute
@@ -344,6 +352,7 @@ export interface FileRoutesById {
   '/app/projetos': typeof AppProjetosRoute
   '/app/risks': typeof AppRisksRoute
   '/app/suporte': typeof AppSuporteRoute
+  '/app/vendas': typeof AppVendasRoute
   '/candidatura/$id': typeof CandidaturaIdRoute
   '/cliente/dashboard': typeof ClienteDashboardRoute
   '/freelancer/dashboard': typeof FreelancerDashboardRoute
@@ -387,6 +396,7 @@ export interface FileRouteTypes {
     | '/app/projetos'
     | '/app/risks'
     | '/app/suporte'
+    | '/app/vendas'
     | '/candidatura/$id'
     | '/cliente/dashboard'
     | '/freelancer/dashboard'
@@ -425,6 +435,7 @@ export interface FileRouteTypes {
     | '/app/projetos'
     | '/app/risks'
     | '/app/suporte'
+    | '/app/vendas'
     | '/candidatura/$id'
     | '/cliente/dashboard'
     | '/freelancer/dashboard'
@@ -466,6 +477,7 @@ export interface FileRouteTypes {
     | '/app/projetos'
     | '/app/risks'
     | '/app/suporte'
+    | '/app/vendas'
     | '/candidatura/$id'
     | '/cliente/dashboard'
     | '/freelancer/dashboard'
@@ -642,6 +654,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSuporteRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/vendas': {
+      id: '/app/vendas'
+      path: '/vendas'
+      fullPath: '/app/vendas'
+      preLoaderRoute: typeof AppVendasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/candidatura/$id': {
       id: '/candidatura/$id'
       path: '/candidatura/$id'
@@ -796,6 +815,7 @@ interface AppRouteChildren {
   AppProjetosRoute: typeof AppProjetosRoute
   AppRisksRoute: typeof AppRisksRoute
   AppSuporteRoute: typeof AppSuporteRoute
+  AppVendasRoute: typeof AppVendasRoute
   AppIndexRoute: typeof AppIndexRoute
   AppClientsIdRoute: typeof AppClientsIdRoute
   AppContractModelsIdRoute: typeof AppContractModelsIdRoute
@@ -819,6 +839,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProjetosRoute: AppProjetosRoute,
   AppRisksRoute: AppRisksRoute,
   AppSuporteRoute: AppSuporteRoute,
+  AppVendasRoute: AppVendasRoute,
   AppIndexRoute: AppIndexRoute,
   AppClientsIdRoute: AppClientsIdRoute,
   AppContractModelsIdRoute: AppContractModelsIdRoute,

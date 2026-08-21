@@ -477,42 +477,58 @@ function RetentionDonutCard({
   );
 }
 
-/* ── Custom Funnel Tooltip ───────────────────────────────── */
-const CustomFunnelTooltip = ({ active, payload }: any) => {
-  if (!active || !payload || !payload.length) return null;
-  const item = payload[0]?.payload || payload[0];
-  if (!item) return null;
-  const name = item.name || "Serviço";
-  const count = item.count ?? item.value ?? 0;
-  const percent = item.percent ?? 0;
-  return (
-    <div className="bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl shadow-purple-500/10 px-3.5 py-2.5 text-xs font-medium space-y-1">
-      <p className="font-bold text-foreground flex items-center gap-1.5">
-        <span
-          className="h-2.5 w-2.5 rounded-full"
-          style={{ backgroundColor: item.fill || "#8B5CF6" }}
-        />
-        {name}
-      </p>
-      <div className="flex items-center justify-between gap-4 text-muted-foreground pt-1 border-t border-border/50">
-        <span>Volume de Projetos:</span>
-        <span className="text-foreground font-bold">{count}</span>
-      </div>
-      <div className="flex items-center justify-between gap-4 text-muted-foreground">
-        <span>Participação:</span>
-        <span className="text-purple-600 dark:text-purple-400 font-bold">{percent}%</span>
-      </div>
-    </div>
-  );
-};
-
-/* ── Gráfico de Funil Tecnológico: Top Serviços ─────────── */
-const FUNNEL_COLORS = [
-  { fill: "#3B82F6", stroke: "#60A5FA" },
-  { fill: "#6366F1", stroke: "#818CF8" },
-  { fill: "#8B5CF6", stroke: "#A78BFA" },
-  { fill: "#A855F7", stroke: "#C084FC" },
-  { fill: "#EC4899", stroke: "#F472B6" },
+/* ── Cores Vivas com Gradiente Elegante (Não Agressivo) ──── */
+const SERVICE_LAYER_THEMES = [
+  {
+    gradient: "from-blue-600 to-sky-500",
+    bg: "bg-blue-500/10 dark:bg-blue-500/15",
+    border: "border-blue-500/30",
+    text: "text-blue-600 dark:text-blue-400",
+    badgeBg: "bg-blue-50 dark:bg-blue-950/50",
+    dot: "bg-blue-600",
+    fillHexStart: "#2563EB",
+    fillHexEnd: "#38BDF8",
+  },
+  {
+    gradient: "from-indigo-600 to-blue-500",
+    bg: "bg-indigo-500/10 dark:bg-indigo-500/15",
+    border: "border-indigo-500/30",
+    text: "text-indigo-600 dark:text-indigo-400",
+    badgeBg: "bg-indigo-50 dark:bg-indigo-950/50",
+    dot: "bg-indigo-600",
+    fillHexStart: "#4F46E5",
+    fillHexEnd: "#60A5FA",
+  },
+  {
+    gradient: "from-violet-600 to-indigo-500",
+    bg: "bg-violet-500/10 dark:bg-violet-500/15",
+    border: "border-violet-500/30",
+    text: "text-violet-600 dark:text-violet-400",
+    badgeBg: "bg-violet-50 dark:bg-violet-950/50",
+    dot: "bg-violet-600",
+    fillHexStart: "#7C3AED",
+    fillHexEnd: "#818CF8",
+  },
+  {
+    gradient: "from-purple-600 to-fuchsia-500",
+    bg: "bg-purple-500/10 dark:bg-purple-500/15",
+    border: "border-purple-500/30",
+    text: "text-purple-600 dark:text-purple-400",
+    badgeBg: "bg-purple-50 dark:bg-purple-950/50",
+    dot: "bg-purple-600",
+    fillHexStart: "#9333EA",
+    fillHexEnd: "#E879F9",
+  },
+  {
+    gradient: "from-teal-600 to-cyan-500",
+    bg: "bg-teal-500/10 dark:bg-teal-500/15",
+    border: "border-teal-500/30",
+    text: "text-teal-600 dark:text-teal-400",
+    badgeBg: "bg-teal-50 dark:bg-teal-950/50",
+    dot: "bg-teal-600",
+    fillHexStart: "#0D9488",
+    fillHexEnd: "#06B6D4",
+  },
 ];
 
 function ServicesFunnelCard({
@@ -520,27 +536,33 @@ function ServicesFunnelCard({
 }: {
   data?: Array<{ name: string; key: string; count: number; percent: number }>;
 }) {
-  const funnelData = useMemo(() => {
-    if (!Array.isArray(data)) return [];
-    return data.map((item, index) => ({
-      ...item,
-      name: item?.name || "Serviço",
-      value: item?.count || 0,
-      label: `${item?.name || "Serviço"} (${item?.percent || 0}%)`,
-      fill: FUNNEL_COLORS[index % FUNNEL_COLORS.length].fill,
-      stroke: FUNNEL_COLORS[index % FUNNEL_COLORS.length].stroke,
-    }));
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+  const safeData = useMemo(() => {
+    if (!Array.isArray(data) || data.length === 0) return [];
+    return data.map((item, index) => {
+      const theme = SERVICE_LAYER_THEMES[index % SERVICE_LAYER_THEMES.length];
+      return {
+        ...item,
+        name: item?.name || "Serviço",
+        count: item?.count || 0,
+        percent: item?.percent || 0,
+        theme,
+      };
+    });
   }, [data]);
+
+  const totalLayers = safeData.length;
 
   return (
     <motion.div
       variants={itemVariants}
-      className="bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-300 flex flex-col justify-between"
+      className="bg-card rounded-2xl border border-border/80 p-5 sm:p-6 shadow-subtle hover:border-indigo-500/30 hover:shadow-lg hover:shadow-indigo-500/5 transition-all duration-300 flex flex-col justify-between"
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div>
           <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
-            <Award className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            <Award className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
             Top Serviços Mais Contratados
           </h3>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -549,8 +571,8 @@ function ServicesFunnelCard({
         </div>
       </div>
 
-      {funnelData.length === 0 ? (
-        <div className="py-12 text-center border border-dashed border-border rounded-xl space-y-1">
+      {safeData.length === 0 ? (
+        <div className="py-10 text-center border border-dashed border-border rounded-xl space-y-1">
           <Inbox className="h-6 w-6 text-muted-foreground mx-auto" />
           <p className="text-xs text-muted-foreground font-medium">Nenhum serviço registrado</p>
           <p className="text-[11px] text-muted-foreground/70">
@@ -558,27 +580,130 @@ function ServicesFunnelCard({
           </p>
         </div>
       ) : (
-        <div className="w-full h-[240px] min-w-0">
-          <ResponsiveContainer width="100%" height="100%">
-            <FunnelChart>
-              <Tooltip content={<CustomFunnelTooltip />} />
-              <Funnel
-                dataKey="value"
-                data={funnelData}
-                isAnimationActive={true}
-                animationDuration={2500}
-                animationEasing="ease-in-out"
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center min-h-[185px]">
+          {/* Lado Esquerdo: Funil Suave e Proporcional em SVG */}
+          <div className="md:col-span-5 flex items-center justify-center py-1">
+            <div className="relative w-full max-w-[165px] h-[175px]">
+              <svg
+                viewBox="0 0 200 180"
+                className="w-full h-full overflow-visible drop-shadow-xs"
               >
-                <LabelList
-                  position="right"
-                  dataKey="label"
-                  fill="currentColor"
-                  stroke="none"
-                  className="text-xs font-semibold fill-foreground"
-                />
-              </Funnel>
-            </FunnelChart>
-          </ResponsiveContainer>
+                <defs>
+                  {safeData.map((d, i) => (
+                    <linearGradient
+                      key={`funnel-grad-${i}`}
+                      id={`funnel-grad-${i}`}
+                      x1="0"
+                      y1="0"
+                      x2="1"
+                      y2="0"
+                    >
+                      <stop offset="0%" stopColor={d.theme.fillHexStart} stopOpacity={0.95} />
+                      <stop offset="100%" stopColor={d.theme.fillHexEnd} stopOpacity={0.88} />
+                    </linearGradient>
+                  ))}
+                </defs>
+
+                {safeData.map((d, i) => {
+                  // Cálculo proporcional dos trapézios com gap suave de 5px
+                  const gap = 5;
+                  const totalGaps = (totalLayers - 1) * gap;
+                  const availableHeight = 180 - totalGaps;
+                  const layerHeight = availableHeight / totalLayers;
+
+                  const yTop = i * (layerHeight + gap);
+                  const yBottom = yTop + layerHeight;
+
+                  // Afunilamento suave: do topo (largura 200) até a base (largura ~75)
+                  const topWidthFactor = 1 - (i / Math.max(1, totalLayers)) * 0.55;
+                  const bottomWidthFactor = 1 - ((i + 1) / Math.max(1, totalLayers)) * 0.55;
+
+                  const topInset = (200 * (1 - topWidthFactor)) / 2;
+                  const bottomInset = (200 * (1 - bottomWidthFactor)) / 2;
+
+                  const x1 = topInset + 4; // top-left
+                  const x2 = 200 - topInset - 4; // top-right
+                  const x3 = 200 - bottomInset - 4; // bottom-right
+                  const x4 = bottomInset + 4; // bottom-left
+
+                  const isHovered = hoveredIdx === i;
+
+                  return (
+                    <motion.polygon
+                      key={d.key || i}
+                      points={`${x1},${yTop} ${x2},${yTop} ${x3},${yBottom} ${x4},${yBottom}`}
+                      fill={`url(#funnel-grad-${i})`}
+                      stroke={isHovered ? "#ffffff" : "rgba(255, 255, 255, 0.25)"}
+                      strokeWidth={isHovered ? 2 : 1}
+                      className="cursor-pointer transition-all duration-300"
+                      initial={{ opacity: 0, scaleY: 0.7, y: -6 }}
+                      animate={{
+                        opacity: hoveredIdx !== null && !isHovered ? 0.45 : 1,
+                        scaleY: 1,
+                        y: 0,
+                        scale: isHovered ? 1.04 : 1,
+                      }}
+                      transition={{
+                        duration: 1.8,
+                        delay: 0.15 * i,
+                        ease: [0.16, 1, 0.3, 1],
+                      }}
+                      onMouseEnter={() => setHoveredIdx(i)}
+                      onMouseLeave={() => setHoveredIdx(null)}
+                    />
+                  );
+                })}
+              </svg>
+            </div>
+          </div>
+
+          {/* Lado Direito: Badges Minimalistas e Rótulos Clean */}
+          <div className="md:col-span-7 flex flex-col justify-center gap-2">
+            {safeData.map((d, i) => {
+              const isHovered = hoveredIdx === i;
+              return (
+                <motion.div
+                  key={d.key || i}
+                  onMouseEnter={() => setHoveredIdx(i)}
+                  onMouseLeave={() => setHoveredIdx(null)}
+                  className={`group flex items-center justify-between p-2 rounded-xl border transition-all duration-200 cursor-pointer ${
+                    isHovered
+                      ? `${d.theme.badgeBg} ${d.theme.border} shadow-sm scale-[1.01]`
+                      : "bg-slate-50/70 dark:bg-zinc-900/50 border-slate-200/70 dark:border-zinc-800 hover:border-border"
+                  }`}
+                  initial={{ opacity: 0, x: 12 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.6, delay: 0.12 * i }}
+                >
+                  <div className="flex items-center gap-2 min-w-0 pr-2">
+                    <span
+                      className={`h-2.5 w-2.5 rounded-full flex-shrink-0 ${d.theme.dot} ${
+                        isHovered ? "ring-2 ring-indigo-500/30" : ""
+                      }`}
+                    />
+                    <span className="text-xs font-semibold text-foreground truncate">
+                      {d.name}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <span className="text-[11px] font-medium text-muted-foreground">
+                      {d.count} {d.count === 1 ? "proj." : "projs."}
+                    </span>
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-lg ${
+                        isHovered
+                          ? `${d.theme.bg} ${d.theme.text}`
+                          : "bg-slate-200/60 dark:bg-zinc-800 text-foreground"
+                      }`}
+                    >
+                      {d.percent}%
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
       )}
     </motion.div>
