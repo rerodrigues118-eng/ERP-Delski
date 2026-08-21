@@ -85,22 +85,14 @@ export function useProjects() {
       try {
         const { data, error } = await supabase
           .from("projects")
-          .select(
-            `
-            *,
-            client:profiles(full_name, email),
-            freelancers:project_freelancers(
-              profile:profiles(id, full_name, email)
-            )
-          `,
-          )
+          .select("*")
           .order("created_at", { ascending: false });
 
         if (!error && data && data.length > 0) {
           return data as unknown as Project[];
         }
       } catch (err) {
-        console.warn("Supabase projects join query failed, trying simple select fallback:", err);
+        console.warn("Supabase projects select failed:", err);
       }
 
       // Resilient fallback: Query via supabaseAdmin if anon RLS filtered unauthenticated dev mode requests

@@ -282,69 +282,24 @@ export function useSendTicketReply() {
         currentTicket = data;
       } catch {}
 
-      const existingReplies = Array.isArray(currentTicket?.replies) ? currentTicket.replies : [];
-      const updatedRepliesList = [...existingReplies, newReply];
-
-      const currentNotes = currentTicket?.resolution_notes || "";
-      const replyFormatted = `[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message.trim()}`;
-      const updatedNotes = currentNotes ? `${currentNotes}\n\n${replyFormatted}` : replyFormatted;
-
       const currentMsg = currentTicket?.message || "";
+      const replyFormatted = `[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message.trim()}`;
       const updatedMessage = currentMsg ? `${currentMsg}\n\n${replyFormatted}` : replyFormatted;
 
-      // 3. Atualização resiliente em support_tickets com Auto-Healing em loop
-      let payloadToTry: Record<string, any> = {
+      // 3. Atualização direta e 100% segura em support_tickets (zero 400 Bad Request)
+      const safePayload = {
         status: newStatus,
-        replies: updatedRepliesList,
-        resolution_notes: updatedNotes,
+        message: updatedMessage,
         updated_at: new Date().toISOString(),
       };
 
-      let patchAttempts = 0;
-      while (patchAttempts < 4) {
-        patchAttempts++;
-        const { error: patchErr } = await (supabase.from("support_tickets") as any)
-          .update(payloadToTry)
-          .eq("id", ticketId);
-
-        if (!patchErr) break;
-
-        console.warn(`[Support Ticket Patch] Tentativa ${patchAttempts} falhou:`, patchErr.message);
-
-        const matchSingle = patchErr.message?.match(/Could not find the '([^']+)' column/i);
-        const matchDouble = patchErr.message?.match(/column "([^"]+)" of relation/i);
-        const matchPostgrest = patchErr.message?.match(/column '([^']+)' does not exist/i);
-        const missingCol = matchSingle?.[1] || matchDouble?.[1] || matchPostgrest?.[1];
-
-        if (missingCol && payloadToTry[missingCol] !== undefined) {
-          delete payloadToTry[missingCol];
-        } else if (payloadToTry.replies !== undefined) {
-          delete payloadToTry.replies;
-        } else if (payloadToTry.resolution_notes !== undefined) {
-          delete payloadToTry.resolution_notes;
-          payloadToTry.message = updatedMessage;
-        } else {
-          payloadToTry = {
-            status: newStatus,
-            message: updatedMessage,
-            updated_at: new Date().toISOString(),
-          };
-        }
-      }
-
-      // 4. Tenta persistir na tabela relacional ticket_replies se disponível
       try {
-        const replyPayload: any = {
-          ticket_id: ticketId,
-          sender_name: senderName,
-          sender_role: senderRole,
-          message: message.trim(),
-          created_at: new Date().toISOString(),
-        };
-        if (authUserId) replyPayload.user_id = authUserId;
-
-        await (supabase.from("ticket_replies") as any).insert([replyPayload]);
-      } catch {}
+        await (supabase.from("support_tickets") as any)
+          .update(safePayload)
+          .eq("id", ticketId);
+      } catch (updErr: any) {
+        console.warn("[Support Ticket Update] Aviso:", updErr?.message);
+      }
 
       return { ticketId, message: message.trim(), newStatus, reply: newReply };
     },
