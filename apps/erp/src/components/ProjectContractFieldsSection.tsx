@@ -727,7 +727,7 @@ export function ProjectContractFieldsSection({
         <CardHeader className="pb-3">
           <CardTitle className="text-base font-bold flex items-center gap-2">
             <FileText className="h-4 w-4 text-indigo-500" />
-            Dados para Contrato
+            Dados contratuais
           </CardTitle>
           <CardDescription>
             Selecione uma Vertical de Serviço acima para carregar os campos contratuais e técnicos do projeto.
@@ -744,7 +744,7 @@ export function ProjectContractFieldsSection({
           <div>
             <CardTitle className="text-base font-bold flex items-center gap-2">
               <FileText className="h-4 w-4 text-indigo-500" />
-              Dados para Contrato — Vertical: {serviceType === "IA" ? "Inteligência Artificial & Automação" : serviceType === "Trafego" ? "Tráfego Pago" : serviceType === "Sites" ? "Sites & Full Stack" : "Social Media"}
+              Dados contratuais - Vertical: {serviceType === "IA" ? "Inteligência Artificial & Automação" : serviceType === "Trafego" ? "Tráfego Pago" : serviceType === "Sites" ? "Sites & Full Stack" : "Social Media"}
             </CardTitle>
             <CardDescription className="text-xs">
               Estes campos preenchem automaticamente os contratos emitidos para o Freelancer e para o Cliente.
@@ -815,14 +815,9 @@ export function ProjectContractFieldsSection({
                         key={v.name}
                         className={isLong ? "space-y-1.5 sm:col-span-2" : "space-y-1.5"}
                       >
-                        <div className="flex items-center justify-between">
-                          <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                            {v.label || v.name}
-                          </Label>
-                          <span className="text-[10px] text-muted-foreground font-mono">
-                            {`{{${v.name}}}`}
-                          </span>
-                        </div>
+                        <Label className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                          {v.label || v.name}
+                        </Label>
 
                         {isTextarea ? (
                           <Textarea

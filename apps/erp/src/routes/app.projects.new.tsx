@@ -161,210 +161,213 @@ function NewProjectPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 pb-16">
+    <div className="max-w-4xl mx-auto space-y-6 pb-16">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <button
           onClick={() => navigate({ to: "/app/projects" })}
-          className="hover:underline flex items-center gap-1"
+          className="hover:underline flex items-center gap-1 text-xs sm:text-sm font-medium"
         >
           <ArrowLeft className="h-4 w-4" /> Voltar aos Projetos
         </button>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-bold flex items-center gap-2">
-            <FolderPlus className="h-5 w-5 text-indigo-500" />
-            Cadastrar Novo Projeto
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Título do Projeto / Empresa</Label>
-                <Input placeholder="Inserir nome" {...register("title")} />
-                {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
-              </div>
+      <div>
+        <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2.5 text-foreground">
+          <FolderPlus className="h-6 w-6 text-indigo-500" />
+          Cadastrar Novo Projeto
+        </h1>
+        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+          Defina as configurações iniciais, cliente, vertical de serviço e os termos contratuais do projeto.
+        </p>
+      </div>
 
-              <div className="space-y-2">
-                <Label>Vertical de Serviço</Label>
-                <Select
-                  value={selectedType || ""}
-                  onValueChange={(val) => setValue("service_type", val as ServiceType)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Nenhum" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="IA">Automação com IA</SelectItem>
-                    <SelectItem value="Trafego">Tráfego Pago</SelectItem>
-                    <SelectItem value="Sites">Desenvolvimento de Sites</SelectItem>
-                    <SelectItem value="Social Media">Social Media</SelectItem>
-                  </SelectContent>
-                </Select>
-                {errors.service_type && (
-                  <p className="text-xs text-destructive">{errors.service_type.message}</p>
-                )}
-              </div>
-            </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold">Título do Projeto / Empresa</Label>
+            <Input placeholder="Inserir nome" {...register("title")} className="bg-card" />
+            {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
+          </div>
 
-            {/* Vinculação Opcional de Cliente */}
-            <div className="space-y-2 pt-2 border-t border-border">
-              <Label className="flex items-center gap-1.5 text-sm font-semibold">
-                <UserCheck className="h-4 w-4 text-emerald-400" />
-                Vincular Cliente do Projeto (Opcional)
-              </Label>
-              <p className="text-xs text-muted-foreground">
-                Se vinculado, este projeto será visível exclusivamente para a conta deste cliente no
-                Portal do Cliente.
-              </p>
-              <Select
-                value={selectedClientId || "none"}
-                onValueChange={(val) => setValue("client_id", val === "none" ? "" : val)}
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold">Vertical de Serviço</Label>
+            <Select
+              value={selectedType || ""}
+              onValueChange={(val) => setValue("service_type", val as ServiceType)}
+            >
+              <SelectTrigger className="bg-card">
+                <SelectValue placeholder="Nenhum" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="IA">Automação com IA</SelectItem>
+                <SelectItem value="Trafego">Tráfego Pago</SelectItem>
+                <SelectItem value="Sites">Desenvolvimento de Sites</SelectItem>
+                <SelectItem value="Social Media">Social Media</SelectItem>
+              </SelectContent>
+            </Select>
+            {errors.service_type && (
+              <p className="text-xs text-destructive">{errors.service_type.message}</p>
+            )}
+          </div>
+        </div>
+
+        {/* Vinculação Opcional de Cliente */}
+        <div className="space-y-2 pt-4 border-t border-border">
+          <Label className="flex items-center gap-1.5 text-xs font-semibold">
+            <UserCheck className="h-4 w-4 text-emerald-400" />
+            Vincular Cliente do Projeto (Opcional)
+          </Label>
+          <p className="text-xs text-muted-foreground">
+            Se vinculado, este projeto será visível exclusivamente para a conta deste cliente no
+            Portal do Cliente.
+          </p>
+          <Select
+            value={selectedClientId || "none"}
+            onValueChange={(val) => setValue("client_id", val === "none" ? "" : val)}
+          >
+            <SelectTrigger className="bg-card border-border">
+              <SelectValue
+                placeholder={
+                  loadingClients
+                    ? "Carregando clientes..."
+                    : "Selecione um cliente cadastrado (Opcional)"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Nenhum (Projeto Sem Cliente Restrito)</SelectItem>
+              {clients.map((c) => (
+                <SelectItem key={c.id} value={c.auth_user_id || c.id}>
+                  {c.full_name} ({c.email})
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* Seção Dinâmica: Dados para Contrato */}
+        <ProjectContractFieldsSection
+          serviceType={selectedType}
+          values={contractFieldValues}
+          onChange={(newVals, complete) => {
+            setContractFieldValues(newVals);
+            setIsContractFieldsComplete(complete);
+          }}
+        />
+
+        {/* Client Contract & Invite */}
+        <div className="space-y-2 pt-4 border-t border-border">
+          <Label className="text-xs font-semibold">Contrato do Cliente (Opcional)</Label>
+          <p className="text-xs text-muted-foreground">
+            Anexe o contrato assinado com o cliente para fins administrativos. Opcionalmente,
+            envie acesso ao portal do cliente.
+          </p>
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer">
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={handleClientContractSelect}
+                className="hidden"
+              />
+              <Button variant="outline" size="sm" disabled={clientContractUploading}>
+                {clientContractUploading ? "Enviando..." : "Enviar Contrato do Cliente (PDF)"}
+              </Button>
+            </label>
+            {clientContractUrl && (
+              <a
+                href={clientContractUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-indigo-500 hover:underline text-xs"
               >
-                <SelectTrigger className="bg-card border-border">
-                  <SelectValue
-                    placeholder={
-                      loadingClients
-                        ? "Carregando clientes..."
-                        : "Selecione um cliente cadastrado (Opcional)"
-                    }
-                  />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Nenhum (Projeto Sem Cliente Restrito)</SelectItem>
-                  {clients.map((c) => (
-                    <SelectItem key={c.id} value={c.auth_user_id || c.id}>
-                      {c.full_name} ({c.email})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Seção Dinâmica: Dados para Contrato */}
-            <ProjectContractFieldsSection
-              serviceType={selectedType}
-              values={contractFieldValues}
-              onChange={(newVals, complete) => {
-                setContractFieldValues(newVals);
-                setIsContractFieldsComplete(complete);
-              }}
+                Visualizar contrato carregado
+              </a>
+            )}
+          </div>
+          <div className="flex items-center gap-2 pt-1">
+            <input
+              id="sendAccess"
+              type="checkbox"
+              checked={sendClientAccess}
+              onChange={(e) => setSendClientAccess(e.target.checked)}
+              className="rounded border-border"
             />
+            <label htmlFor="sendAccess" className="text-xs text-foreground cursor-pointer">
+              Criar Acesso / Enviar Convite para o Cliente
+            </label>
+          </div>
+        </div>
 
-            {/* Client Contract & Invite */}
-            <div className="space-y-2 pt-2 border-t border-border">
-              <Label className="text-sm font-semibold">Contrato do Cliente (Opcional)</Label>
-              <p className="text-xs text-muted-foreground">
-                Anexe o contrato assinado com o cliente para fins administrativos. Opcionalmente,
-                envie acesso ao portal do cliente.
-              </p>
-              <div className="flex items-center gap-3">
-                <label className="cursor-pointer">
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    onChange={handleClientContractSelect}
-                    className="hidden"
-                  />
-                  <Button variant="outline" size="sm" disabled={clientContractUploading}>
-                    {clientContractUploading ? "Enviando..." : "Enviar Contrato do Cliente (PDF)"}
-                  </Button>
-                </label>
-                {clientContractUrl && (
-                  <a
-                    href={clientContractUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-indigo-500 hover:underline text-sm"
-                  >
-                    Visualizar contrato carregado
-                  </a>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  id="sendAccess"
-                  type="checkbox"
-                  checked={sendClientAccess}
-                  onChange={(e) => setSendClientAccess(e.target.checked)}
-                />
-                <label htmlFor="sendAccess" className="text-sm">
-                  Criar Acesso / Enviar Convite para o Cliente
-                </label>
-              </div>
-            </div>
+        <div className="space-y-2 pt-2 border-t border-border">
+          <Label className="text-xs font-semibold">Descrição / Briefing do Escopo</Label>
+          <Textarea
+            rows={4}
+            placeholder="Ex: Desenvolvimento de agente IA para atendimento e agendamento via WhatsApp..."
+            {...register("briefing_content")}
+            className="bg-card"
+          />
+          {errors.briefing_content && (
+            <p className="text-xs text-destructive">{errors.briefing_content.message}</p>
+          )}
+        </div>
 
-            <div className="space-y-2">
-              <Label>Descrição / Briefing do Escopo</Label>
-              <Textarea
-                rows={4}
-                placeholder="Ex: Desenvolvimento de agente IA para atendimento e agendamento via WhatsApp..."
-                {...register("briefing_content")}
-              />
-              {errors.briefing_content && (
-                <p className="text-xs text-destructive">{errors.briefing_content.message}</p>
-              )}
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold">Orçamento Bruto (R$)</Label>
+            <Input type="number" placeholder="5000" {...register("budget")} className="bg-card" />
+            {errors.budget && (
+              <p className="text-xs text-destructive">{errors.budget.message}</p>
+            )}
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label>Orçamento Bruto (R$)</Label>
-                <Input type="number" placeholder="5000" {...register("budget")} />
-                {errors.budget && (
-                  <p className="text-xs text-destructive">{errors.budget.message}</p>
-                )}
-              </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold">Custo Freelancer (R$)</Label>
+            <Input type="number" placeholder="1800" {...register("freelancer_cost")} className="bg-card" />
+            {errors.freelancer_cost && (
+              <p className="text-xs text-destructive">{errors.freelancer_cost.message}</p>
+            )}
+          </div>
 
-              <div className="space-y-2">
-                <Label>Custo Freelancer (R$)</Label>
-                <Input type="number" placeholder="1800" {...register("freelancer_cost")} />
-                {errors.freelancer_cost && (
-                  <p className="text-xs text-destructive">{errors.freelancer_cost.message}</p>
-                )}
-              </div>
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold">Prazo Final de Entrega</Label>
+            <Input type="date" {...register("deadline")} className="bg-card" />
+            {errors.deadline && (
+              <p className="text-xs text-destructive">{errors.deadline.message}</p>
+            )}
+          </div>
+        </div>
 
-              <div className="space-y-2">
-                <Label>Prazo Final de Entrega</Label>
-                <Input type="date" {...register("deadline")} />
-                {errors.deadline && (
-                  <p className="text-xs text-destructive">{errors.deadline.message}</p>
-                )}
-              </div>
-            </div>
+        <div className="space-y-2">
+          <Label className="text-xs font-semibold">Link da Pasta do Google Drive (Opcional)</Label>
+          <Input
+            placeholder="https://drive.google.com/drive/folders/..."
+            {...register("google_drive_link")}
+            className="bg-card"
+          />
+          {errors.google_drive_link && (
+            <p className="text-xs text-destructive">{errors.google_drive_link.message}</p>
+          )}
+        </div>
 
-            <div className="space-y-2">
-              <Label>Link da Pasta do Google Drive (Opcional)</Label>
-              <Input
-                placeholder="https://drive.google.com/drive/folders/..."
-                {...register("google_drive_link")}
-              />
-              {errors.google_drive_link && (
-                <p className="text-xs text-destructive">{errors.google_drive_link.message}</p>
-              )}
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => navigate({ to: "/app/projects" })}
-              >
-                Cancelar
-              </Button>
-              <Button
-                type="submit"
-                disabled={createProject.isPending}
-                className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium gap-2 shadow-xs border-0"
-              >
-                {createProject.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Salvar Projeto
-              </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
+        <div className="flex justify-end gap-3 pt-6 border-t border-border">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate({ to: "/app/projects" })}
+          >
+            Cancelar
+          </Button>
+          <Button
+            type="submit"
+            disabled={createProject.isPending}
+            className="bg-gradient-to-r from-[#1e3a8a] via-[#1d4ed8] to-[#2563eb] hover:from-[#1e3269] hover:via-[#1a44c2] hover:to-[#1d4ed8] text-white font-medium gap-2 shadow-xs border-0"
+          >
+            {createProject.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+            Salvar Projeto
+          </Button>
+        </div>
+      </form>
     </div>
   );
 }
