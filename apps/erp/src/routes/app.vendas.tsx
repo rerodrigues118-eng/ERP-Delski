@@ -209,7 +209,7 @@ function VendasPage() {
               value="historico"
               className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
             >
-              <ListOrdered className="h-4 w-4" /> Histórico de Vendas ({sales.length})
+              <ListOrdered className="h-4 w-4" /> Histórico de Vendas
             </TabsTrigger>
           </TabsList>
         </div>

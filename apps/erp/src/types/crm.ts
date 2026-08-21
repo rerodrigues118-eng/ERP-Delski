@@ -25,6 +25,9 @@ export interface CrmLead {
   seller_name?: string;
   notes?: string;
   meetingDate?: string | null;
+  meeting_link?: string;
+  meeting_date?: string;
+  meeting_time?: string;
   convertedSaleId?: string | null;
   createdAt: string;
   updatedAt: string;

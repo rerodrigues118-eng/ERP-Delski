@@ -818,7 +818,7 @@ function FreelancerDetailPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-4 rounded-xl bg-muted/40 border">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 p-4 rounded-xl bg-muted/40 border">
                 <div>
                   <span className="text-xs text-muted-foreground">Instituição Bancária:</span>
                   <p className="text-sm font-bold text-foreground mt-0.5">
@@ -835,13 +835,6 @@ function FreelancerDetailPage() {
                   <span className="text-xs text-muted-foreground">Chave PIX:</span>
                   <p className="text-sm font-bold text-foreground font-mono mt-0.5">
                     {freelancer?.pix_key || "—"}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">Agência / Conta:</span>
-                  <p className="text-sm font-bold text-foreground font-mono mt-0.5">
-                    {freelancer?.bank_agency ? `Ag: ${freelancer.bank_agency}` : ""}{" "}
-                    {freelancer?.bank_account ? `Cc: ${freelancer.bank_account}` : "—"}
                   </p>
                 </div>
               </div>

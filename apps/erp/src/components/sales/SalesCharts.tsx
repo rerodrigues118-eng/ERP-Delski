@@ -224,17 +224,18 @@ export function SalesCharts({ sales, periodType }: SalesChartsProps) {
                   <stop offset="100%" stopColor="#1E3A8A" stopOpacity={0.95} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.6} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border, #334155)" opacity={0.4} />
               <XAxis
                 dataKey="dia"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12, fontWeight: 500 }}
+                tick={{ fill: "var(--muted-foreground, #94a3b8)", fontSize: 12, fontWeight: 600 }}
+                dy={6}
               />
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                tick={{ fill: "var(--muted-foreground, #94a3b8)", fontSize: 11, fontWeight: 600 }}
                 tickFormatter={(val) => `R$ ${val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val}`}
               />
               <Tooltip content={<CustomEvolutionTooltip />} />
@@ -305,7 +306,7 @@ export function SalesCharts({ sales, periodType }: SalesChartsProps) {
                     key={`cell-${index}`}
                     fill={entry.fill}
                     className="hover:opacity-80 transition-opacity cursor-pointer outline-none"
-                    stroke="hsl(var(--card))"
+                    stroke="var(--card, #0f172a)"
                     strokeWidth={2}
                   />
                 ))}

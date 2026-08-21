@@ -44,6 +44,8 @@ import {
   Lock,
   Clock,
   UserCheck,
+  UserPlus,
+  Search,
   Layers,
   Link as LinkIcon,
   Trash2,
@@ -694,7 +696,7 @@ function ProjectDetailPage() {
             <Card className="bg-card">
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground font-medium">Orçamento Bruto</div>
-                <div className="text-lg font-bold mt-1 text-emerald-400">
+                <div className="text-lg font-bold mt-1 text-emerald-600 dark:text-emerald-400">
                   R${" "}
                   {Number(project.budget || 0).toLocaleString("pt-BR", {
                     minimumFractionDigits: 2,
@@ -706,7 +708,7 @@ function ProjectDetailPage() {
             <Card className="bg-card">
               <CardContent className="p-4">
                 <div className="text-xs text-muted-foreground font-medium">Custo Freelancer</div>
-                <div className="text-lg font-bold mt-1 text-rose-400">
+                <div className="text-lg font-bold mt-1 text-rose-600 dark:text-rose-400">
                   R${" "}
                   {Number(project.freelancer_cost || 0).toLocaleString("pt-BR", {
                     minimumFractionDigits: 2,
@@ -736,7 +738,7 @@ function ProjectDetailPage() {
           <Card className="bg-card border-emerald-500/20 bg-emerald-500/5">
             <CardContent className="p-4">
               <div className="text-xs text-emerald-300 font-medium">Valor do Contrato</div>
-              <div className="text-lg font-bold mt-1 text-emerald-400 flex items-center gap-1">
+              <div className="text-lg font-bold mt-1 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                 <DollarSign className="h-4 w-4" />
                 R${" "}
                 {Number(project.budget || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
@@ -770,12 +772,17 @@ function ProjectDetailPage() {
           </TabsTrigger>
           {isGestor && (
             <TabsTrigger value="candidaturas" className="gap-1.5">
-              <UserCheck className="h-4 w-4 text-emerald-400" /> Candidaturas
+              <UserCheck className="h-4 w-4" /> Candidaturas
             </TabsTrigger>
           )}
           {isGestor && (
             <TabsTrigger value="matchmaking" className="gap-1.5">
-              <Sparkles className="h-4 w-4 text-amber-400" /> Triagem & Matchmaking
+              <Sparkles className="h-4 w-4" /> Triagem Freelas
+            </TabsTrigger>
+          )}
+          {isGestor && (
+            <TabsTrigger value="alocar" className="gap-1.5">
+              <UserPlus className="h-4 w-4" /> Alocar Freela Existente
             </TabsTrigger>
           )}
         </TabsList>
@@ -1277,56 +1284,156 @@ function ProjectDetailPage() {
               }
               saving={updateProject.isPending}
             />
+          </TabsContent>
+        )}
 
-            {/* Manual Assignment Panel */}
+        {/* Nova Aba Dedicada: Alocar Freela Existente (Gestor Only) */}
+        {isGestor && (
+          <TabsContent value="alocar" className="pt-4 space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg font-bold flex items-center gap-2">
-                  <Sparkles className="h-5 w-5 text-amber-500" />
-                  Alocação de Freelancer para o Projeto
-                </CardTitle>
-                <CardDescription>
-                  Selecione um freelancer cadastrado no banco de dados para assumir este projeto.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {currentFreelancer ? (
-                  <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex items-center justify-between">
-                    <div>
-                      <div className="text-xs text-emerald-600 font-semibold uppercase tracking-wider">
-                        Freelancer Atribuído
-                      </div>
-                      <div className="text-lg font-bold text-foreground mt-0.5">
-                        {currentFreelancer.full_name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">{currentFreelancer.email}</div>
-                    </div>
-                    <Badge className="bg-emerald-600 text-white">Alocado(a)</Badge>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-bold flex items-center gap-2">
+                      <UserPlus className="h-5 w-5 text-foreground" />
+                      Alocar Freelancer Cadastrado no ERP
+                    </CardTitle>
+                    <CardDescription>
+                      Selecione um freelancer já existente no banco de dados para vincular imediatamente a este projeto.
+                    </CardDescription>
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Nenhum freelancer alocado neste projeto. Escolha um abaixo:
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {freelancers.map((f) => (
-                        <Card key={f.id} className="p-4 bg-card flex justify-between items-center">
-                          <div>
-                            <div className="font-bold text-sm text-foreground">{f.full_name}</div>
-                            <div className="text-xs text-muted-foreground">{f.email}</div>
-                          </div>
-                          <Button
-                            size="sm"
-                            onClick={() => handleAssignFreelancer(f.id)}
-                            className="bg-indigo-600 hover:bg-indigo-700 text-white text-xs"
-                          >
-                            Atribuir ao Projeto
-                          </Button>
-                        </Card>
-                      ))}
+                  {currentFreelancer && (
+                    <Badge className="bg-emerald-600 text-white gap-1.5 px-3 py-1">
+                      <CheckCircle2 className="h-3.5 w-3.5" /> 1 Freela Alocado
+                    </Badge>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                {/* Se já houver freelancer alocado */}
+                {currentFreelancer && (
+                  <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="h-11 w-11 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+                        {currentFreelancer.full_name?.charAt(0)?.toUpperCase() || "F"}
+                      </div>
+                      <div>
+                        <div className="text-xs text-emerald-600 font-bold uppercase tracking-wider">
+                          Freelancer Atribuído ao Projeto
+                        </div>
+                        <div className="text-base font-bold text-foreground mt-0.5">
+                          {currentFreelancer.full_name}
+                        </div>
+                        <div className="text-xs text-muted-foreground">{currentFreelancer.email}</div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-emerald-600/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-xs">
+                        Alocado(a)
+                      </Badge>
                     </div>
                   </div>
                 )}
+
+                {/* Seleção rápida via Select / Dropdown */}
+                <div className="p-5 rounded-2xl border border-border bg-muted/30 space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-foreground">
+                      Selecione um Freelancer da Base de Dados
+                    </Label>
+                    <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
+                      <div className="flex-1">
+                        <Select
+                          value={directAssignFreelancerId}
+                          onValueChange={setDirectAssignFreelancerId}
+                        >
+                          <SelectTrigger className="h-10 text-xs bg-card">
+                            <SelectValue placeholder="Escolha um freelancer cadastrado no ERP..." />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-72">
+                            {freelancers.map((f) => (
+                              <SelectItem key={f.id} value={f.id} className="text-xs">
+                                {f.full_name} — {f.email}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button
+                        type="button"
+                        disabled={!directAssignFreelancerId || assignFreelancer.isPending}
+                        onClick={() => {
+                          if (directAssignFreelancerId) {
+                            handleAssignFreelancer(directAssignFreelancerId);
+                            setDirectAssignFreelancerId("");
+                          }
+                        }}
+                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-xs h-10 px-5 gap-1.5 shadow-sm"
+                      >
+                        {assignFreelancer.isPending ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" /> Vinculando...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="h-4 w-4" /> Vincular ao Projeto
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grid com lista de Freelancers Cadastrados */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Todos os Freelancers Disponíveis ({freelancers.length})
+                    </h4>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 max-h-96 overflow-y-auto pr-1">
+                    {freelancers.map((f) => {
+                      const isCurrent =
+                        currentFreelancer &&
+                        (currentFreelancer.id === f.id || currentFreelancer.email === f.email);
+                      return (
+                        <div
+                          key={f.id}
+                          className={`p-4 rounded-xl border transition-all flex items-center justify-between gap-3 ${
+                            isCurrent
+                              ? "bg-emerald-500/5 border-emerald-500/30"
+                              : "bg-card border-border hover:border-border/80 shadow-2xs"
+                          }`}
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="font-bold text-sm text-foreground truncate">
+                              {f.full_name}
+                            </div>
+                            <div className="text-xs text-muted-foreground truncate">{f.email}</div>
+                          </div>
+
+                          {isCurrent ? (
+                            <Badge className="bg-emerald-600/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30 text-[11px] shrink-0">
+                              Vinculado
+                            </Badge>
+                          ) : (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleAssignFreelancer(f.id)}
+                              disabled={assignFreelancer.isPending}
+                              className="text-xs shrink-0 hover:bg-indigo-50 hover:text-indigo-600 dark:hover:bg-indigo-950/50"
+                            >
+                              Alocar
+                            </Button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

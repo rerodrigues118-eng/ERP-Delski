@@ -444,7 +444,7 @@ function GestorProjectsView() {
         <div className="flex items-center justify-between px-1 pb-3 border-b border-border/70">
           <div className="flex items-center gap-2">
             <span className="text-[12px] font-bold text-foreground uppercase tracking-wider">{title}</span>
-            <span className="flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-primary/15 text-[11px] font-bold text-primary">
+            <span className="flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-muted text-[11px] font-bold text-muted-foreground border border-border/80">
               {items.length}
             </span>
           </div>

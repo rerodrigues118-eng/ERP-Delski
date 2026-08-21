@@ -244,7 +244,7 @@ function KanbanColumn({
           <CardTitle className="text-sm font-bold text-foreground truncate" title={stage.label}>
             {stage.label}
           </CardTitle>
-          <Badge variant="outline" className={`text-xs font-bold px-2 py-0.5 h-6 rounded-full shrink-0 ${stage.badge}`}>
+          <Badge variant="outline" className="text-xs font-bold px-2 py-0.5 h-6 rounded-full shrink-0 bg-muted/80 text-muted-foreground border-border/80">
             {leads.length}
           </Badge>
         </div>
@@ -391,9 +391,24 @@ export function CrmKanban({ onConvertLeadToSale }: CrmKanbanProps) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas Temperaturas</SelectItem>
-              <SelectItem value="quente">🔥 Quente</SelectItem>
-              <SelectItem value="morno">⚡ Morno</SelectItem>
-              <SelectItem value="frio">❄️ Frio</SelectItem>
+              <SelectItem value="quente">
+                <div className="flex items-center gap-1.5">
+                  <Flame className="h-3.5 w-3.5 text-rose-500 fill-rose-500/20" />
+                  <span>Quente</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="morno">
+                <div className="flex items-center gap-1.5">
+                  <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" />
+                  <span>Morno</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="frio">
+                <div className="flex items-center gap-1.5">
+                  <Snowflake className="h-3.5 w-3.5 text-blue-500" />
+                  <span>Frio</span>
+                </div>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

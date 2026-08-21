@@ -1048,17 +1048,17 @@ function GestorFinanceView() {
   );
 
   const totals = useMemo(() => {
-    // 1. Receita de Vendas Aprovadas/Concluídas (Single Source of Truth)
-    const salesCompleted = sales
+    // 1. Receita Total Estrita dos Projetos Ativos (/projetos)
+    // Regra: Considera exclusivamente os orçamentos (budget) dos projetos listados no sistema ou vendas concluídas.
+    // Leads em aberto no CRM (propostas/qualificação) NÃO somam na Receita do Financeiro.
+    const projectsBudget = projects.reduce((a, p) => a + Number(p.budget || 0), 0);
+    const completedSalesRevenue = sales
       .filter((s) => s.status === "concluida")
       .reduce((a, s) => a + Number(s.amount || 0), 0);
 
-    const projectsBudget = projects.reduce((a, p) => a + Number(p.budget || 0), 0);
+    const revenue = projects.length > 0 ? projectsBudget : completedSalesRevenue;
 
-    // Receita Total Unificada com o Módulo de Vendas
-    const revenue = salesCompleted > 0 ? salesCompleted : projectsBudget;
-
-    // 2. Custos com Freelancers (Repasses acordados)
+    // 2. Custos com Freelancers (Repasses acordados dos projetos)
     const freelancerCosts = projects.reduce((a, p) => a + Number(p.freelancer_cost || 0), 0);
 
     // 3. Despesas (Diretas de Projetos + Corporativas Gerais)
@@ -1069,6 +1069,7 @@ function GestorFinanceView() {
     const totalExpenses = combinedExpenses.reduce((a, e) => a + Number(e.amount || 0), 0);
 
     // 4. Lucro Real Consolidado e Margem Líquida
+    // Cálculo: (Receita Total dos Projetos) - (Custos com Freelancers + Despesas Operacionais)
     const totalCosts = freelancerCosts + totalExpenses;
     const realProfit = revenue - totalCosts;
     const profitMargin = revenue > 0 ? (realProfit / revenue) * 100 : 0;
@@ -1960,7 +1961,7 @@ function GestorFinanceView() {
               value="relatorios"
               className="data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:font-bold text-xs sm:text-sm px-4 py-2 rounded-lg transition-all flex items-center gap-2"
             >
-              <BarChart3 className="h-4 w-4" /> Relatórios & Contabilidade
+              <BarChart3 className="h-4 w-4" /> Relatórios Contábeis
             </TabsTrigger>
           </TabsList>
         </div>
@@ -2154,13 +2155,15 @@ function GestorFinanceView() {
           </DialogContent>
         </Dialog>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
         {/* Card 1: Receita Total */}
-        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-4 sm:p-5 shadow-sm">
           <CardContent className="p-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Receita Total</div>
+                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate">
+                  Receita Total
+                </div>
                 <div className="mt-1 text-xl sm:text-2xl font-bold text-foreground break-all">
                   {money(totals.revenue)}
                 </div>
@@ -2173,28 +2176,32 @@ function GestorFinanceView() {
         </Card>
 
         {/* Card 2: Custos com Freelancers */}
-        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-4 sm:p-5 shadow-sm">
           <CardContent className="p-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Custos com Freelancers</div>
-                <div className="mt-1 text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 break-all">
+                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate" title="Custos com Freelancers">
+                  Custos com Freelancers
+                </div>
+                <div className="mt-1 text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400 break-all">
                   {money(totals.freelancerCosts)}
                 </div>
               </div>
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-500/10 text-rose-600 dark:text-rose-400">
                 <Users className="h-5 w-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Card 3: Despesas Operacionais / Projetos */}
-        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+        {/* Card 3: Despesas Operacionais */}
+        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-4 sm:p-5 shadow-sm">
           <CardContent className="p-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Despesas Operacionais / Projetos</div>
+                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate" title="Despesas Operacionais">
+                  Despesas Operacionais
+                </div>
                 <div className="mt-1 text-xl sm:text-2xl font-bold text-rose-600 dark:text-rose-400 break-all">
                   {money(totals.totalExpenses)}
                 </div>
@@ -2211,11 +2218,13 @@ function GestorFinanceView() {
         </Card>
 
         {/* Card 4: Lucro Real Consolidado */}
-        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-5 shadow-sm">
+        <Card className="border border-slate-200/80 dark:border-border bg-white dark:bg-card rounded-2xl p-4 sm:p-5 shadow-sm">
           <CardContent className="p-0">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0 flex-1">
-                <div className="text-xs text-muted-foreground font-medium uppercase tracking-wider">Lucro Real Consolidado</div>
+                <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider truncate" title="Lucro Real Consolidado">
+                  Lucro Real Consolidado
+                </div>
                 <div
                   className={`mt-1 text-xl sm:text-2xl font-bold break-all ${
                     totals.realProfit >= 0

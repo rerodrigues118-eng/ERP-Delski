@@ -218,9 +218,24 @@ export function NewLeadModal({ open, onOpenChange }: NewLeadModalProps) {
                   <SelectValue placeholder="Temperatura" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="quente">🔥 Quente (Alta Intenção)</SelectItem>
-                  <SelectItem value="morno">⚡ Morno (Em Avaliação)</SelectItem>
-                  <SelectItem value="frio">❄️ Frio (Primeiro Contato)</SelectItem>
+                  <SelectItem value="quente" className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <Flame className="h-3.5 w-3.5 text-rose-500 fill-rose-500/20" />
+                      <span>Quente (Alta Intenção)</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="morno" className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <Zap className="h-3.5 w-3.5 text-amber-500 fill-amber-500/20" />
+                      <span>Morno (Em Avaliação)</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="frio" className="text-xs">
+                    <div className="flex items-center gap-2">
+                      <Snowflake className="h-3.5 w-3.5 text-blue-500" />
+                      <span>Frio (Primeiro Contato)</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
