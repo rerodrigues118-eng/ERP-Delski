@@ -262,6 +262,23 @@ export function useCreateTicket() {
           );
         }
 
+        // Se for erro de foreign key (23503), remove chaves relacionais e tenta novamente
+        if (insertError.code === "23503" || insertError.message?.includes("foreign key")) {
+          if (workingPayload.user_id !== undefined || workingPayload.created_by !== undefined) {
+            delete workingPayload.user_id;
+            delete workingPayload.created_by;
+            continue;
+          }
+          if (workingPayload.client_id !== undefined) {
+            delete workingPayload.client_id;
+            continue;
+          }
+          if (workingPayload.project_id !== undefined) {
+            delete workingPayload.project_id;
+            continue;
+          }
+        }
+
         // Detecta coluna ausente no cache do schema do Supabase (PGRST204 ou similar)
         const matchSingleQuote = insertError.message?.match(/Could not find the '([^']+)' column/i);
         const matchDoubleQuote = insertError.message?.match(/column "([^"]+)" of relation/i);
@@ -314,7 +331,7 @@ export function useCreateTicket() {
 
       return {
         id: insertedId || `ticket-${Date.now()}`,
-        ...ticketData,
+        ...initialPayload,
         replies: [],
       } as SupportTicket;
     },

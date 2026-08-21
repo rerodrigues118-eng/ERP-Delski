@@ -181,6 +181,11 @@ ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS user_id UUID;
 ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS project_id UUID;
 ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS client_id UUID;
 
+-- Remover constraints bloqueantes de foreign key que impedem abertura de chamados quando profile/client não existir
+ALTER TABLE public.support_tickets DROP CONSTRAINT IF EXISTS support_tickets_user_id_fkey;
+ALTER TABLE public.support_tickets DROP CONSTRAINT IF EXISTS support_tickets_client_id_fkey;
+ALTER TABLE public.support_tickets DROP CONSTRAINT IF EXISTS support_tickets_created_by_fkey;
+
 ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "support_tickets_all_policy" ON public.support_tickets;
 DROP POLICY IF EXISTS "Clientes e Gestores gerenciam chamados" ON public.support_tickets;
