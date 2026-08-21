@@ -47,11 +47,34 @@ export interface CreateClientInput {
   lead_id?: string;
 }
 
+function getDeletedClientsFromStorage(): Set<string> {
+  try {
+    const raw = localStorage.getItem("delski_deleted_clients");
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr.map((x) => String(x).toLowerCase().trim()));
+    }
+  } catch {}
+  return new Set();
+}
+
+export function markClientDeletedInStorage(identifiers: (string | null | undefined)[]) {
+  try {
+    const current = getDeletedClientsFromStorage();
+    identifiers.forEach((id) => {
+      if (id) current.add(String(id).toLowerCase().trim());
+    });
+    localStorage.setItem("delski_deleted_clients", JSON.stringify(Array.from(current)));
+  } catch {}
+}
+
 // ── Query: list all clients ──────────────────────────────────────────────────
 export function useClientsList() {
   return useQuery({
     queryKey: ["clients-list"],
     queryFn: async () => {
+      const deletedStorage = getDeletedClientsFromStorage();
+
       // 1. Fetch from public.clients
       const { data: clientsData, error: clientsErr } = await (supabase.from("clients") as any)
         .select("*")
@@ -68,9 +91,16 @@ export function useClientsList() {
       const profileById = new Map<string, any>();
       (profilesData ?? []).forEach((p: any) => {
         if (p.deleted_at || p.status === "inativo" || p.role !== "cliente") return;
+        const normEmail = (p.email || "").toLowerCase().trim();
+        if (
+          deletedStorage.has(String(p.id).toLowerCase()) ||
+          (normEmail && deletedStorage.has(normEmail))
+        ) {
+          return;
+        }
         profileById.set(p.id, p);
         if (p.email) {
-          profileByEmail.set(p.email.toLowerCase().trim(), p);
+          profileByEmail.set(normEmail, p);
         }
       });
 
@@ -95,6 +125,14 @@ export function useClientsList() {
         (clientsData as any[]).forEach((c) => {
           if (c.deleted_at || c.status === "inativo") return;
           const normEmail = (c.email || "").toLowerCase().trim();
+          if (
+            deletedStorage.has(String(c.id).toLowerCase()) ||
+            (c.auth_user_id && deletedStorage.has(String(c.auth_user_id).toLowerCase())) ||
+            (normEmail && deletedStorage.has(normEmail))
+          ) {
+            return;
+          }
+
           const matchedProfile = normEmail ? profileByEmail.get(normEmail) : null;
           if (matchedProfile?.deleted_at || matchedProfile?.status === "inativo") return;
 
@@ -137,6 +175,12 @@ export function useClientsList() {
       (profilesData ?? []).forEach((p: any) => {
         if (p.deleted_at || p.status === "inativo" || p.role !== "cliente") return;
         const normEmail = (p.email || "").toLowerCase().trim();
+        if (
+          deletedStorage.has(String(p.id).toLowerCase()) ||
+          (normEmail && deletedStorage.has(normEmail))
+        ) {
+          return;
+        }
         if (normEmail && !processedEmails.has(normEmail)) {
           processedEmails.add(normEmail);
           const projects = projectsMap.get(p.id) ?? [];
@@ -478,77 +522,78 @@ export function useDeleteClient() {
           if (cRow) {
             if (cRow.auth_user_id) idsToUnlink.add(cRow.auth_user_id);
             if (cRow.id) idsToUnlink.add(cRow.id);
+            if (cRow.email) idsToUnlink.add(cRow.email.toLowerCase().trim());
           }
         } catch {}
       }
 
-      // 1. Desvincular e limpar dependências em paralelo
+      // 1. Marca imediatamente como excluído no storage local persistente
+      markClientDeletedInStorage([
+        clientId,
+        authUserId,
+        clientEmail,
+        ...Array.from(idsToUnlink),
+      ]);
+
+      const db = supabaseAdmin || supabase;
+
+      // 2. Desvincular e limpar dependências em paralelo
       const unlinkPromises: Promise<any>[] = [];
       idsToUnlink.forEach((targetId) => {
         unlinkPromises.push(
-          supabase.from("projects").update({ client_id: null }).eq("client_id", targetId),
-          (supabase.from("client_documents") as any).delete().eq("client_id", targetId),
-          (supabase.from("support_tickets") as any).delete().eq("client_id", targetId),
-          (supabase.from("support_tickets") as any).delete().eq("user_id", targetId),
-          (supabase.from("notifications") as any).delete().eq("user_id", targetId),
-          (supabase.from("leads") as any).update({ client_id: null }).eq("client_id", targetId)
+          db.from("projects").update({ client_id: null }).eq("client_id", targetId).then(() => {}).catch(() => {}),
+          (db.from("client_documents") as any).delete().eq("client_id", targetId).then(() => {}).catch(() => {}),
+          (db.from("support_tickets") as any).delete().eq("client_id", targetId).then(() => {}).catch(() => {}),
+          (db.from("support_tickets") as any).delete().eq("user_id", targetId).then(() => {}).catch(() => {}),
+          (db.from("notifications") as any).delete().eq("user_id", targetId).then(() => {}).catch(() => {})
         );
       });
       await Promise.allSettled(unlinkPromises);
 
-      // 2. Exclusão da tabela CLIENTS (física + soft-delete)
+      // 3. Exclusão da tabela CLIENTS (física + soft-delete)
       const clientDeletePromises: Promise<any>[] = [];
       idsToUnlink.forEach((targetId) => {
         clientDeletePromises.push(
-          (supabase.from("clients") as any).delete().eq("id", targetId),
-          (supabase.from("clients") as any).delete().eq("auth_user_id", targetId),
-          (supabase.from("clients") as any)
+          (db.from("clients") as any).delete().eq("id", targetId).then(() => {}).catch(() => {}),
+          (db.from("clients") as any).delete().eq("auth_user_id", targetId).then(() => {}).catch(() => {}),
+          (db.from("clients") as any)
             .update({ status: "inativo", deleted_at: new Date().toISOString() })
-            .eq("id", targetId)
+            .eq("id", targetId).then(() => {}).catch(() => {})
         );
       });
       if (clientEmail) {
         clientDeletePromises.push(
-          (supabase.from("clients") as any).delete().ilike("email", clientEmail),
-          (supabase.from("clients") as any)
+          (db.from("clients") as any).delete().ilike("email", clientEmail).then(() => {}).catch(() => {}),
+          (db.from("clients") as any)
             .update({ status: "inativo", deleted_at: new Date().toISOString() })
-            .ilike("email", clientEmail)
+            .ilike("email", clientEmail).then(() => {}).catch(() => {})
         );
       }
       await Promise.allSettled(clientDeletePromises);
 
-      // 3. Exclusão / Desativação da tabela PROFILES
+      // 4. Exclusão / Desativação da tabela PROFILES
       const profilePromises: Promise<any>[] = [];
       idsToUnlink.forEach((targetId) => {
         profilePromises.push(
-          supabase
-            .from("profiles")
-            .delete()
-            .eq("id", targetId)
-            .then(async ({ error }) => {
-              if (error) {
-                await supabase
-                  .from("profiles")
-                  .update({
-                    role: "inativo" as any,
-                    status: "inativo",
-                    deleted_at: new Date().toISOString(),
-                  })
-                  .eq("id", targetId);
-              }
-            })
-        );
-      });
-      if (clientEmail) {
-        profilePromises.push(
-          supabase
-            .from("profiles")
+          db.from("profiles").delete().eq("id", targetId).then(() => {}).catch(() => {}),
+          db.from("profiles")
             .update({
               role: "inativo" as any,
               status: "inativo",
               deleted_at: new Date().toISOString(),
             })
-            .ilike("email", clientEmail)
+            .eq("id", targetId).then(() => {}).catch(() => {})
+        );
+      });
+      if (clientEmail) {
+        profilePromises.push(
+          db.from("profiles")
+            .update({
+              role: "inativo" as any,
+              status: "inativo",
+              deleted_at: new Date().toISOString(),
+            })
+            .ilike("email", clientEmail).then(() => {}).catch(() => {})
         );
       }
       await Promise.allSettled(profilePromises);

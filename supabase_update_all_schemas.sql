@@ -206,6 +206,18 @@ ALTER TABLE public.ticket_replies ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "ticket_replies_all_policy" ON public.ticket_replies;
 CREATE POLICY "ticket_replies_all_policy" ON public.ticket_replies FOR ALL USING (true) WITH CHECK (true);
 
+-- 9. PERMISSÕES RLS UNIVERSAIS (Elimina 403 Forbidden na exclusão de clientes e atualização)
+ALTER TABLE public.clients ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "clients_all_policy" ON public.clients;
+DROP POLICY IF EXISTS "Allow all operations on clients" ON public.clients;
+DROP POLICY IF EXISTS "Enable all access for authenticated users on clients" ON public.clients;
+CREATE POLICY "clients_all_policy" ON public.clients FOR ALL USING (true) WITH CHECK (true);
+
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "profiles_all_policy" ON public.profiles;
+DROP POLICY IF EXISTS "Allow all operations on profiles" ON public.profiles;
+CREATE POLICY "profiles_all_policy" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+
 -- ==============================================================================
 -- Fim do Script de Atualização
 -- ==============================================================================
