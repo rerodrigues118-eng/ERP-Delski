@@ -37,44 +37,47 @@ export interface SupportTicket {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function parseRepliesForTicket(ticket: any, dbReplies: TicketReply[] = []): TicketReply[] {
-  const map = new Map<string, TicketReply>();
+  const list: TicketReply[] = [];
+  const seenKeys = new Set<string>();
+
+  const addReply = (r: any, defaultRole: "gestor" | "cliente" = "gestor") => {
+    if (!r || !r.message || typeof r.message !== "string") return;
+    const msg = r.message.trim();
+    if (!msg) return;
+    const sender = r.sender_name || (defaultRole === "gestor" ? "Gestor Delski" : "Cliente");
+    const role = r.sender_role || defaultRole;
+    const date = r.created_at || ticket.updated_at || ticket.created_at || new Date().toISOString();
+    const key = `${sender}:::${msg}`;
+
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      list.push({
+        id: r.id || `rep-${list.length}-${Date.now()}`,
+        ticket_id: ticket.id,
+        user_id: r.user_id,
+        sender_name: sender,
+        sender_role: role,
+        message: msg,
+        created_at: date,
+      });
+    }
+  };
 
   // 1. Respostas vindas da tabela ticket_replies
-  dbReplies.forEach((r) => {
-    const key = `${r.sender_name}_${r.message}_${r.created_at?.slice(0, 16)}`;
-    map.set(r.id || key, r);
-  });
+  dbReplies.forEach((r) => addReply(r, r.sender_role));
 
-  // 2. Respostas gravadas diretamente na coluna JSON do ticket
+  // 2. Respostas gravadas na coluna JSON replies do ticket
   if (Array.isArray(ticket.replies)) {
-    ticket.replies.forEach((r: any) => {
-      if (r && r.message) {
-        const key = `${r.sender_name}_${r.message}_${r.created_at?.slice(0, 16)}`;
-        map.set(r.id || key, {
-          id: r.id || `json-reply-${Date.now()}`,
-          ticket_id: ticket.id,
-          sender_name: r.sender_name || "Atendente",
-          sender_role: r.sender_role || "gestor",
-          message: r.message,
-          created_at: r.created_at || ticket.updated_at || ticket.created_at,
-        });
-      }
-    });
+    ticket.replies.forEach((r: any) => addReply(r, r.sender_role));
   }
 
   // 3. Fallback do localStorage local
   try {
-    const localKey = `ticket_replies_${ticket.id}`;
-    const localData = localStorage.getItem(localKey);
+    const localData = localStorage.getItem(`ticket_replies_${ticket.id}`);
     if (localData) {
       const parsed = JSON.parse(localData);
       if (Array.isArray(parsed)) {
-        parsed.forEach((r: any) => {
-          if (r && r.message) {
-            const key = `${r.sender_name}_${r.message}_${r.created_at?.slice(0, 16)}`;
-            map.set(r.id || key, r);
-          }
-        });
+        parsed.forEach((r: any) => addReply(r, r.sender_role));
       }
     }
   } catch {}
@@ -82,7 +85,7 @@ function parseRepliesForTicket(ticket: any, dbReplies: TicketReply[] = []): Tick
   // 4. Fallback: Parse das notas de resolução
   if (ticket.resolution_notes && typeof ticket.resolution_notes === "string") {
     const noteBlocks = ticket.resolution_notes.split("\n\n");
-    noteBlocks.forEach((block: string, idx: number) => {
+    noteBlocks.forEach((block: string) => {
       const match = block.match(/^\[(.*?)(?: - (.*?))?\]:\s*([\s\S]*)$/);
       if (match) {
         const senderName = match[1] || "Atendimento";
@@ -93,22 +96,20 @@ function parseRepliesForTicket(ticket: any, dbReplies: TicketReply[] = []): Tick
           senderName.toLowerCase().includes("delski")
             ? "gestor"
             : "cliente";
-        const key = `${senderName}_${msg}_${dateStr}`;
-        if (!map.has(key)) {
-          map.set(key, {
-            id: `note-${ticket.id}-${idx}`,
-            ticket_id: ticket.id,
+        addReply(
+          {
             sender_name: senderName,
             sender_role: role,
-            message: msg.trim(),
-            created_at: ticket.updated_at || ticket.created_at,
-          });
-        }
+            message: msg,
+            created_at: dateStr,
+          },
+          role
+        );
       }
     });
   }
 
-  return Array.from(map.values()).sort(
+  return list.sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 }
@@ -134,7 +135,9 @@ async function fetchRepliesMap(): Promise<Map<string, TicketReply[]>> {
 export function useSupportTickets() {
   return useQuery({
     queryKey: ["support_tickets"],
-    staleTime: 0,
+    staleTime: 1000,
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<SupportTicket[]> => {
       const { data: tickets, error } = await (supabase.from("support_tickets") as any)
         .select("*")
@@ -162,8 +165,9 @@ export function useClientSupportTickets(clientId?: string, clientEmail?: string)
   return useQuery({
     queryKey: ["support_tickets", "client", clientId || emailLower],
     enabled: !!(clientId || emailLower),
-    staleTime: 0,
-    gcTime: 0,
+    staleTime: 1000,
+    refetchInterval: 3000,
+    refetchOnWindowFocus: true,
     queryFn: async (): Promise<SupportTicket[]> => {
       let query = (supabase.from("support_tickets") as any).select("*");
 
@@ -223,7 +227,7 @@ export function useSendTicketReply() {
         user_id: authUserId || undefined,
         sender_name: senderName,
         sender_role: senderRole,
-        message,
+        message: message.trim(),
         created_at: new Date().toISOString(),
       };
 
@@ -250,27 +254,30 @@ export function useSendTicketReply() {
 
       const currentNotes = currentTicket?.resolution_notes || "";
       const updatedNotes = currentNotes
-        ? `${currentNotes}\n\n[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message}`
-        : `[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message}`;
+        ? `${currentNotes}\n\n[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message.trim()}`
+        : `[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message.trim()}`;
 
       // 3. Atualiza o ticket no banco com status, replies e notas
+      const updatedPayload: any = {
+        status: newStatus,
+        replies: updatedRepliesList,
+        resolution_notes: updatedNotes,
+        updated_at: new Date().toISOString(),
+      };
+
+      let saveOk = false;
       try {
-        await (supabase.from("support_tickets") as any)
-          .update({
-            status: newStatus,
-            replies: updatedRepliesList,
-            resolution_notes: updatedNotes,
-            updated_at: new Date().toISOString(),
-          })
+        const { error: updErr } = await (supabase.from("support_tickets") as any)
+          .update(updatedPayload)
           .eq("id", ticketId);
-      } catch {
+        if (!updErr) saveOk = true;
+      } catch {}
+
+      if (!saveOk) {
         try {
+          delete updatedPayload.replies;
           await (supabase.from("support_tickets") as any)
-            .update({
-              status: newStatus,
-              resolution_notes: updatedNotes,
-              updated_at: new Date().toISOString(),
-            })
+            .update(updatedPayload)
             .eq("id", ticketId);
         } catch {}
       }
@@ -281,7 +288,7 @@ export function useSendTicketReply() {
           ticket_id: ticketId,
           sender_name: senderName,
           sender_role: senderRole,
-          message,
+          message: message.trim(),
           created_at: new Date().toISOString(),
         };
         if (authUserId) replyPayload.user_id = authUserId;
@@ -291,7 +298,7 @@ export function useSendTicketReply() {
         console.warn("[Ticket Reply Insert] Aviso ao inserir em ticket_replies:", rErr);
       }
 
-      return { ticketId, message, newStatus, reply: newReply };
+      return { ticketId, message: message.trim(), newStatus, reply: newReply };
     },
     onSuccess: (data) => {
       queryClient.setQueriesData({ queryKey: ["support_tickets"] }, (oldData: any) => {
