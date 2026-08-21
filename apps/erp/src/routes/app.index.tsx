@@ -339,17 +339,20 @@ function DistributionMetricCard({
 
 /* ── Custom Donut Tooltip ────────────────────────────────── */
 const CustomDonutTooltip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
+  if (!active || !payload || !payload.length) return null;
   const item = payload[0];
+  if (!item) return null;
+  const name = item.name || item.payload?.name || "Retenção";
+  const val = Number(item.value ?? item.payload?.value ?? 0);
   return (
     <div className="bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl shadow-cyan-500/10 px-3.5 py-2 text-xs font-medium">
       <div className="flex items-center gap-2">
         <span
           className="h-2 w-2 rounded-full"
-          style={{ backgroundColor: item.payload?.fill || "#00F2FE" }}
+          style={{ backgroundColor: item.payload?.fill || item.fill || "#00F2FE" }}
         />
-        <span className="text-muted-foreground">{item.name}:</span>
-        <span className="text-foreground font-bold">{Number(item.value).toFixed(1)}%</span>
+        <span className="text-muted-foreground">{name}:</span>
+        <span className="text-foreground font-bold">{val.toFixed(1)}%</span>
       </div>
     </div>
   );
@@ -357,23 +360,24 @@ const CustomDonutTooltip = ({ active, payload }: any) => {
 
 /* ── Gráfico Donut Tecnológico: Taxa de Retenção ─────────── */
 function RetentionDonutCard({
-  rate,
-  p25,
-  median,
-  p75,
+  rate = 0,
+  p25 = "—",
+  median = "—",
+  p75 = "—",
 }: {
-  rate: number;
-  p25: string;
-  median: string;
-  p75: string;
+  rate?: number;
+  p25?: string;
+  median?: string;
+  p75?: string;
 }) {
+  const safeRate = typeof rate === "number" && !isNaN(rate) ? Math.min(100, Math.max(0, rate)) : 0;
+
   const chartData = useMemo(() => {
-    const validRate = Math.min(100, Math.max(0, rate || 0));
     return [
-      { name: "Clientes Recorrentes", value: validRate || 0.001, fill: "url(#neonElectricCyan)" },
-      { name: "Demais Clientes", value: Math.max(0, 100 - validRate), fill: "url(#emptyTrackGrad)" },
+      { name: "Clientes Recorrentes", value: safeRate || 0.001, fill: "url(#neonElectricCyan)" },
+      { name: "Demais Clientes", value: Math.max(0, 100 - safeRate), fill: "url(#emptyTrackGrad)" },
     ];
-  }, [rate]);
+  }, [safeRate]);
 
   return (
     <motion.div
@@ -418,7 +422,7 @@ function RetentionDonutCard({
                 innerRadius={50}
                 outerRadius={75}
                 cornerRadius={6}
-                paddingAngle={rate > 0 && rate < 100 ? 5 : 0}
+                paddingAngle={safeRate > 0 && safeRate < 100 ? 5 : 0}
                 dataKey="value"
                 isAnimationActive={true}
                 animationDuration={2500}
@@ -442,7 +446,7 @@ function RetentionDonutCard({
               TAXA GERAL
             </span>
             <div className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight flex items-baseline">
-              <AnimatedNumber value={rate} suffix="%" decimals={1} />
+              <AnimatedNumber value={safeRate} suffix="%" decimals={1} />
             </div>
           </div>
         </div>
@@ -475,9 +479,12 @@ function RetentionDonutCard({
 
 /* ── Custom Funnel Tooltip ───────────────────────────────── */
 const CustomFunnelTooltip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
-  const item = payload[0]?.payload;
+  if (!active || !payload || !payload.length) return null;
+  const item = payload[0]?.payload || payload[0];
   if (!item) return null;
+  const name = item.name || "Serviço";
+  const count = item.count ?? item.value ?? 0;
+  const percent = item.percent ?? 0;
   return (
     <div className="bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl shadow-purple-500/10 px-3.5 py-2.5 text-xs font-medium space-y-1">
       <p className="font-bold text-foreground flex items-center gap-1.5">
@@ -485,15 +492,15 @@ const CustomFunnelTooltip = ({ active, payload }: any) => {
           className="h-2.5 w-2.5 rounded-full"
           style={{ backgroundColor: item.fill || "#8B5CF6" }}
         />
-        {item.name}
+        {name}
       </p>
       <div className="flex items-center justify-between gap-4 text-muted-foreground pt-1 border-t border-border/50">
         <span>Volume de Projetos:</span>
-        <span className="text-foreground font-bold">{item.count}</span>
+        <span className="text-foreground font-bold">{count}</span>
       </div>
       <div className="flex items-center justify-between gap-4 text-muted-foreground">
         <span>Participação:</span>
-        <span className="text-purple-600 dark:text-purple-400 font-bold">{item.percent}%</span>
+        <span className="text-purple-600 dark:text-purple-400 font-bold">{percent}%</span>
       </div>
     </div>
   );
@@ -509,14 +516,17 @@ const FUNNEL_COLORS = [
 ];
 
 function ServicesFunnelCard({
-  data,
+  data = [],
 }: {
-  data: Array<{ name: string; key: string; count: number; percent: number }>;
+  data?: Array<{ name: string; key: string; count: number; percent: number }>;
 }) {
   const funnelData = useMemo(() => {
+    if (!Array.isArray(data)) return [];
     return data.map((item, index) => ({
       ...item,
-      value: item.count,
+      name: item?.name || "Serviço",
+      value: item?.count || 0,
+      label: `${item?.name || "Serviço"} (${item?.percent || 0}%)`,
       fill: FUNNEL_COLORS[index % FUNNEL_COLORS.length].fill,
       stroke: FUNNEL_COLORS[index % FUNNEL_COLORS.length].stroke,
     }));
@@ -561,10 +571,10 @@ function ServicesFunnelCard({
               >
                 <LabelList
                   position="right"
+                  dataKey="label"
                   fill="currentColor"
                   stroke="none"
                   className="text-xs font-semibold fill-foreground"
-                  formatter={(_val: any, entry: any) => `${entry.name} (${entry.percent}%)`}
                 />
               </Funnel>
             </FunnelChart>
@@ -577,22 +587,25 @@ function ServicesFunnelCard({
 
 /* ── Custom Bar Tooltip ──────────────────────────────────── */
 const CustomBarTooltip = ({ active, payload }: any) => {
-  if (!active || !payload?.length) return null;
-  const item = payload[0]?.payload;
+  if (!active || !payload || !payload.length) return null;
+  const item = payload[0]?.payload || payload[0];
   if (!item) return null;
+  const name = item.name || "Cliente";
+  const count = item.count ?? item.value ?? 0;
+  const percent = item.percent ?? 0;
   return (
     <div className="bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl shadow-blue-500/10 px-3.5 py-2.5 text-xs font-medium space-y-1">
       <p className="font-bold text-foreground flex items-center gap-1.5">
         <span className="h-2.5 w-2.5 rounded-full bg-cyan-500" />
-        {item.name}
+        {name}
       </p>
       <div className="flex items-center justify-between gap-4 text-muted-foreground pt-1 border-t border-border/50">
         <span>Demandas Contratadas:</span>
-        <span className="text-foreground font-bold">{item.count}</span>
+        <span className="text-foreground font-bold">{count}</span>
       </div>
       <div className="flex items-center justify-between gap-4 text-muted-foreground">
         <span>Participação:</span>
-        <span className="text-cyan-600 dark:text-cyan-400 font-bold">{item.percent}%</span>
+        <span className="text-cyan-600 dark:text-cyan-400 font-bold">{percent}%</span>
       </div>
     </div>
   );
@@ -600,10 +613,20 @@ const CustomBarTooltip = ({ active, payload }: any) => {
 
 /* ── Gráfico de Barras Tecnológico: Principais Clientes & Parceiros ── */
 function ClientsBarCard({
-  data,
+  data = [],
 }: {
-  data: Array<{ name: string; count: number; percent: number }>;
+  data?: Array<{ name: string; count: number; percent: number }>;
 }) {
+  const safeData = useMemo(() => {
+    if (!Array.isArray(data)) return [];
+    return data.map((d) => ({
+      ...d,
+      name: d?.name || "Cliente",
+      count: d?.count || 0,
+      percent: d?.percent || 0,
+    }));
+  }, [data]);
+
   return (
     <motion.div
       variants={itemVariants}
@@ -621,7 +644,7 @@ function ClientsBarCard({
         </div>
       </div>
 
-      {data.length === 0 ? (
+      {safeData.length === 0 ? (
         <div className="py-12 text-center border border-dashed border-border rounded-xl space-y-1">
           <Inbox className="h-6 w-6 text-muted-foreground mx-auto" />
           <p className="text-xs text-muted-foreground font-medium">Nenhum cliente com demandas ativas</p>
@@ -633,7 +656,7 @@ function ClientsBarCard({
         <div className="w-full h-[240px] min-w-0">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart
-              data={data}
+              data={safeData}
               layout="vertical"
               margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
             >
@@ -663,7 +686,10 @@ function ClientsBarCard({
                 tickLine={false}
                 tick={{ fontSize: 11, fill: "var(--foreground)", fontWeight: 600 }}
                 width={110}
-                tickFormatter={(val: string) => (val.length > 14 ? `${val.slice(0, 14)}…` : val)}
+                tickFormatter={(val: any) => {
+                  if (!val || typeof val !== "string") return "";
+                  return val.length > 14 ? `${val.slice(0, 14)}…` : val;
+                }}
               />
               <Tooltip content={<CustomBarTooltip />} />
               <Bar
