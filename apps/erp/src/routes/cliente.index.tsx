@@ -640,17 +640,6 @@ function ClienteDashboardPage() {
     }
   };
 
-  if (loadingClient) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
-        <div className="w-10 h-10 rounded-full border-2 border-slate-200 border-t-blue-600 animate-spin" />
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 font-hud">
-          Carregando DELSKI CLOUD...
-        </p>
-      </div>
-    );
-  }
-
   // Active Metrics & Dynamic Progress
   const activeProject = clientProjects[0];
   const activeProjectsCount = clientProjects.filter(
@@ -713,6 +702,17 @@ function ClienteDashboardPage() {
       { mes: "Set (Prev)", progresso: Math.min(p + 25, 100), entregas: (activeProjectsCount || 1) + 2 },
     ];
   }, [currentProgress, activeProjectsCount]);
+
+  if (loadingClient) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center space-y-4">
+        <div className="w-10 h-10 rounded-full border-2 border-slate-200 border-t-blue-600 animate-spin" />
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-500 font-hud">
+          Carregando DELSKI CLOUD...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
