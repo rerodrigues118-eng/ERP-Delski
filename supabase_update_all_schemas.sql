@@ -177,9 +177,9 @@ ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS client_email TEXT;
 ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS client_name TEXT;
 ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS responsible_name TEXT;
 ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS created_by UUID;
-ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS user_id UUID;
 ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS project_id UUID;
 ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS client_id UUID;
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS replies JSONB DEFAULT '[]'::jsonb;
 
 -- Remover constraints bloqueantes de foreign key que impedem abertura de chamados quando profile/client não existir
 ALTER TABLE public.support_tickets DROP CONSTRAINT IF EXISTS support_tickets_user_id_fkey;

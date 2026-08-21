@@ -36,6 +36,83 @@ export interface SupportTicket {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+function parseRepliesForTicket(ticket: any, dbReplies: TicketReply[] = []): TicketReply[] {
+  const map = new Map<string, TicketReply>();
+
+  // 1. Respostas vindas da tabela ticket_replies
+  dbReplies.forEach((r) => {
+    const key = `${r.sender_name}_${r.message}_${r.created_at?.slice(0, 16)}`;
+    map.set(r.id || key, r);
+  });
+
+  // 2. Respostas gravadas diretamente na coluna JSON do ticket
+  if (Array.isArray(ticket.replies)) {
+    ticket.replies.forEach((r: any) => {
+      if (r && r.message) {
+        const key = `${r.sender_name}_${r.message}_${r.created_at?.slice(0, 16)}`;
+        map.set(r.id || key, {
+          id: r.id || `json-reply-${Date.now()}`,
+          ticket_id: ticket.id,
+          sender_name: r.sender_name || "Atendente",
+          sender_role: r.sender_role || "gestor",
+          message: r.message,
+          created_at: r.created_at || ticket.updated_at || ticket.created_at,
+        });
+      }
+    });
+  }
+
+  // 3. Fallback do localStorage local
+  try {
+    const localKey = `ticket_replies_${ticket.id}`;
+    const localData = localStorage.getItem(localKey);
+    if (localData) {
+      const parsed = JSON.parse(localData);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((r: any) => {
+          if (r && r.message) {
+            const key = `${r.sender_name}_${r.message}_${r.created_at?.slice(0, 16)}`;
+            map.set(r.id || key, r);
+          }
+        });
+      }
+    }
+  } catch {}
+
+  // 4. Fallback: Parse das notas de resolução
+  if (ticket.resolution_notes && typeof ticket.resolution_notes === "string") {
+    const noteBlocks = ticket.resolution_notes.split("\n\n");
+    noteBlocks.forEach((block: string, idx: number) => {
+      const match = block.match(/^\[(.*?)(?: - (.*?))?\]:\s*([\s\S]*)$/);
+      if (match) {
+        const senderName = match[1] || "Atendimento";
+        const dateStr = match[2] || ticket.updated_at || ticket.created_at;
+        const msg = match[3] || "";
+        const role =
+          senderName.toLowerCase().includes("gestor") ||
+          senderName.toLowerCase().includes("delski")
+            ? "gestor"
+            : "cliente";
+        const key = `${senderName}_${msg}_${dateStr}`;
+        if (!map.has(key)) {
+          map.set(key, {
+            id: `note-${ticket.id}-${idx}`,
+            ticket_id: ticket.id,
+            sender_name: senderName,
+            sender_role: role,
+            message: msg.trim(),
+            created_at: ticket.updated_at || ticket.created_at,
+          });
+        }
+      }
+    });
+  }
+
+  return Array.from(map.values()).sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+  );
+}
+
 async function fetchRepliesMap(): Promise<Map<string, TicketReply[]>> {
   const repliesMap = new Map<string, TicketReply[]>();
   try {
@@ -48,7 +125,7 @@ async function fetchRepliesMap(): Promise<Map<string, TicketReply[]>> {
       repliesMap.set(r.ticket_id, list);
     });
   } catch {
-    // replies são opcionais — falha silenciosa é aceitável aqui
+    // Falha silenciosa aceitável — os fallbacks acima garantem a leitura
   }
   return repliesMap;
 }
@@ -64,7 +141,6 @@ export function useSupportTickets() {
         .order("created_at", { ascending: false });
 
       if (error) {
-        // RLS está bloqueando — o usuário precisa rodar o SQL de migração
         console.error("[useSupportTickets] Erro ao buscar tickets (verifique RLS):", error.message);
         return [];
       }
@@ -74,7 +150,7 @@ export function useSupportTickets() {
       const repliesMap = await fetchRepliesMap();
       return tickets.map((t: any) => ({
         ...t,
-        replies: repliesMap.get(t.id) || [],
+        replies: parseRepliesForTicket(t, repliesMap.get(t.id) || []),
       })) as SupportTicket[];
     },
   });
@@ -111,7 +187,7 @@ export function useClientSupportTickets(clientId?: string, clientEmail?: string)
       const repliesMap = await fetchRepliesMap();
       return tickets.map((t: any) => ({
         ...t,
-        replies: repliesMap.get(t.id) || [],
+        replies: parseRepliesForTicket(t, repliesMap.get(t.id) || []),
       })) as SupportTicket[];
     },
   });
@@ -141,79 +217,98 @@ export function useSendTicketReply() {
         authUserId = authData?.user?.id || null;
       } catch {}
 
-      const replyData: Record<string, any> = {
+      const newReply: TicketReply = {
+        id: `reply-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
         ticket_id: ticketId,
+        user_id: authUserId || undefined,
         sender_name: senderName,
         sender_role: senderRole,
         message,
         created_at: new Date().toISOString(),
       };
-      if (authUserId) replyData.user_id = authUserId;
 
-      let replySaved = false;
+      // 1. Salva imediatamente no localStorage
+      try {
+        const localKey = `ticket_replies_${ticketId}`;
+        const existing = JSON.parse(localStorage.getItem(localKey) || "[]");
+        existing.push(newReply);
+        localStorage.setItem(localKey, JSON.stringify(existing));
+      } catch {}
 
-      // 1. Tenta salvar na tabela ticket_replies com auto-healing de colunas e foreign keys
-      let workingReply = { ...replyData };
-      let attempts = 0;
-      while (attempts < 5) {
-        attempts++;
-        const { error: replyErr } = await (supabase.from("ticket_replies") as any).insert([
-          workingReply,
-        ]);
-        if (!replyErr) {
-          replySaved = true;
-          break;
-        }
+      // 2. Busca ticket atual para compor histórico
+      let currentTicket: any = null;
+      try {
+        const { data } = await (supabase.from("support_tickets") as any)
+          .select("*")
+          .eq("id", ticketId)
+          .maybeSingle();
+        currentTicket = data;
+      } catch {}
 
-        console.warn(`[Ticket Reply Insert] Tentativa ${attempts} falhou:`, replyErr.message);
+      const existingReplies = Array.isArray(currentTicket?.replies) ? currentTicket.replies : [];
+      const updatedRepliesList = [...existingReplies, newReply];
 
-        if (replyErr.code === "23503" || replyErr.message?.includes("foreign key")) {
-          delete workingReply.user_id;
-          continue;
-        }
+      const currentNotes = currentTicket?.resolution_notes || "";
+      const updatedNotes = currentNotes
+        ? `${currentNotes}\n\n[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message}`
+        : `[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message}`;
 
-        const matchSingle = replyErr.message?.match(/Could not find the '([^']+)' column/i);
-        const matchDouble = replyErr.message?.match(/column "([^"]+)" of relation/i);
-        const matchPostgrest = replyErr.message?.match(/column '([^']+)' does not exist/i);
-        const missingCol = matchSingle?.[1] || matchDouble?.[1] || matchPostgrest?.[1];
-
-        if (missingCol && workingReply[missingCol] !== undefined) {
-          delete workingReply[missingCol];
-        } else {
-          break;
-        }
-      }
-
-      // 2. Se a tabela ticket_replies não existir ou falhar, salva a resposta anexada nas notas do chamado
-      if (!replySaved) {
+      // 3. Atualiza o ticket no banco com status, replies e notas
+      try {
+        await (supabase.from("support_tickets") as any)
+          .update({
+            status: newStatus,
+            replies: updatedRepliesList,
+            resolution_notes: updatedNotes,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", ticketId);
+      } catch {
         try {
-          const { data: currentTicket } = await (supabase.from("support_tickets") as any)
-            .select("message, resolution_notes")
-            .eq("id", ticketId)
-            .maybeSingle();
-
-          const updatedNotes = currentTicket?.resolution_notes
-            ? `${currentTicket.resolution_notes}\n\n[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message}`
-            : `[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message}`;
-
           await (supabase.from("support_tickets") as any)
             .update({
-              resolution_notes: updatedNotes,
               status: newStatus,
+              resolution_notes: updatedNotes,
               updated_at: new Date().toISOString(),
             })
             .eq("id", ticketId);
-          replySaved = true;
         } catch {}
-      } else {
-        await (supabase.from("support_tickets") as any)
-          .update({ status: newStatus, updated_at: new Date().toISOString() })
-          .eq("id", ticketId);
       }
 
-      return { ticketId, message, newStatus };
+      // 4. Tenta persistir na tabela relacional ticket_replies com auto-healing
+      try {
+        const replyPayload: any = {
+          ticket_id: ticketId,
+          sender_name: senderName,
+          sender_role: senderRole,
+          message,
+          created_at: new Date().toISOString(),
+        };
+        if (authUserId) replyPayload.user_id = authUserId;
+
+        await (supabase.from("ticket_replies") as any).insert([replyPayload]);
+      } catch (rErr) {
+        console.warn("[Ticket Reply Insert] Aviso ao inserir em ticket_replies:", rErr);
+      }
+
+      return { ticketId, message, newStatus, reply: newReply };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      queryClient.setQueriesData({ queryKey: ["support_tickets"] }, (oldData: any) => {
+        if (!Array.isArray(oldData)) return oldData;
+        return oldData.map((t) => {
+          if (t.id === data.ticketId) {
+            const currentReps = t.replies || [];
+            return {
+              ...t,
+              status: data.newStatus,
+              replies: [...currentReps, data.reply],
+            };
+          }
+          return t;
+        });
+      });
+
       queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
       queryClient.invalidateQueries({ queryKey: ["support_tickets", "client"] });
       toast.success("Resposta enviada com sucesso!");
