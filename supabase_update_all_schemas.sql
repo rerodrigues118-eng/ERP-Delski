@@ -121,7 +121,8 @@ ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS contract_model TEXT DEFA
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS contract_value NUMERIC DEFAULT 0;
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS payment_date TEXT;
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS due_date TEXT;
-ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS financial_status TEXT DEFAULT 'Pendente';
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS full_name TEXT;
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS contact_name TEXT;
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS contract_field_values JSONB DEFAULT '{}'::jsonb;
 
 -- Remover bloqueio estrito de FK que pode falhar em upsert descentralizado

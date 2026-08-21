@@ -406,7 +406,6 @@ export function useUpdateCurrentFreelancerProfile() {
       const initialFreelancerPayload: Record<string, any> = {
         id: targetId,
         email: userEmail || undefined,
-        full_name: userName || undefined,
         updated_at: new Date().toISOString(),
       };
 
