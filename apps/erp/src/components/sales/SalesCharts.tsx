@@ -9,7 +9,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   PieChart,
   Pie,
   Cell,
@@ -23,7 +22,7 @@ interface SalesChartsProps {
 }
 
 const CHANNEL_LABELS: Record<SalesChannel, string> = {
-  inbound: "Inbound (Site/Forms)",
+  inbound: "Inbound",
   sdr_whatsapp: "SDR WhatsApp",
   indicacao: "Indicação",
   parceiros: "Parceiros",
@@ -31,12 +30,13 @@ const CHANNEL_LABELS: Record<SalesChannel, string> = {
   outro: "Outro",
 };
 
+// Paleta vibrante e tecnológica solicitada
 const CHANNEL_COLORS: Record<SalesChannel, string> = {
-  inbound: "#2563EB", // Royal Blue
-  sdr_whatsapp: "#10B981", // Emerald
-  indicacao: "#8B5CF6", // Purple
-  parceiros: "#06B6D4", // Cyan
-  outbound: "#F59E0B", // Amber
+  inbound: "#2563EB", // Azul Neon
+  sdr_whatsapp: "#8B5CF6", // Roxo Elétrico
+  indicacao: "#10B981", // Verde Esmeralda
+  parceiros: "#F97316", // Laranja
+  outbound: "#06B6D4", // Ciano
   outro: "#64748B", // Slate
 };
 
@@ -110,7 +110,6 @@ export function SalesCharts({ sales, periodType }: SalesChartsProps) {
     const days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"];
     const dailyTarget = 2500; // Meta diária base
 
-    // Map sales to days of current week
     const salesByDay: Record<string, number> = {
       Seg: 3200,
       Ter: 1800,
@@ -121,7 +120,6 @@ export function SalesCharts({ sales, periodType }: SalesChartsProps) {
       Dom: 800,
     };
 
-    // Calculate actual values from sales props if present
     sales.forEach((sale) => {
       if (sale.status === "concluida") {
         const d = new Date(sale.created_at);
@@ -163,38 +161,37 @@ export function SalesCharts({ sales, periodType }: SalesChartsProps) {
       }
     });
 
+    // Mock initial distribution if no dynamic data yet
     if (totalAmount === 0) {
-      // Default sample fallback
       return [
-        { name: CHANNEL_LABELS.inbound, value: 22100, count: 2, fill: CHANNEL_COLORS.inbound, percent: 38 },
-        { name: CHANNEL_LABELS.sdr_whatsapp, value: 13700, count: 2, fill: CHANNEL_COLORS.sdr_whatsapp, percent: 24 },
-        { name: CHANNEL_LABELS.indicacao, value: 12000, count: 1, fill: CHANNEL_COLORS.indicacao, percent: 21 },
-        { name: CHANNEL_LABELS.parceiros, value: 5500, count: 1, fill: CHANNEL_COLORS.parceiros, percent: 10 },
-        { name: CHANNEL_LABELS.outbound, value: 4000, count: 1, fill: CHANNEL_COLORS.outbound, percent: 7 },
+        { name: "Inbound", value: 18500, count: 4, percent: 48, fill: CHANNEL_COLORS.inbound },
+        { name: "SDR WhatsApp", value: 9200, count: 2, percent: 24, fill: CHANNEL_COLORS.sdr_whatsapp },
+        { name: "Indicação", value: 7400, count: 2, percent: 19, fill: CHANNEL_COLORS.indicacao },
+        { name: "Parceiros", value: 3500, count: 1, percent: 9, fill: CHANNEL_COLORS.parceiros },
       ];
     }
 
-    return Object.entries(counts)
-      .filter(([_, data]) => data.amount > 0)
-      .map(([ch, data]) => ({
-        name: CHANNEL_LABELS[ch as SalesChannel],
-        value: data.amount,
-        count: data.count,
-        fill: CHANNEL_COLORS[ch as SalesChannel],
-        percent: Math.round((data.amount / totalAmount) * 100),
+    return (Object.keys(counts) as SalesChannel[])
+      .filter((ch) => counts[ch].count > 0)
+      .map((ch) => ({
+        name: CHANNEL_LABELS[ch],
+        value: counts[ch].amount,
+        count: counts[ch].count,
+        percent: Math.round((counts[ch].amount / totalAmount) * 100) || 0,
+        fill: CHANNEL_COLORS[ch] || "#3B82F6",
       }));
   }, [sales]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-      {/* 1. Weekly Evolution Composed Chart (8 cols) */}
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+      {/* 1. Daily/Weekly Evolution Chart (7/8 cols) */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.2 }}
         className="lg:col-span-7 xl:col-span-8 rounded-2xl border border-border bg-card p-5 sm:p-6 shadow-sm flex flex-col justify-between"
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between gap-4 mb-3">
           <div className="flex items-center gap-2.5">
             <div className="p-2 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400">
               <TrendingUp className="h-4 w-4" />
@@ -203,9 +200,6 @@ export function SalesCharts({ sales, periodType }: SalesChartsProps) {
               <h3 className="text-sm sm:text-base font-bold text-foreground">
                 Evolução de Vendas vs. Meta
               </h3>
-              <p className="text-xs text-muted-foreground">
-                Acompanhamento diário das vendas realizadas vs. meta estipulada
-              </p>
             </div>
           </div>
           <div className="hidden sm:flex items-center gap-3 text-xs">
@@ -225,8 +219,9 @@ export function SalesCharts({ sales, periodType }: SalesChartsProps) {
             <ComposedChart data={evolutionData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
               <defs>
                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#3B82F6" stopOpacity={0.9} />
-                  <stop offset="100%" stopColor="#1D4ED8" stopOpacity={0.7} />
+                  <stop offset="0%" stopColor="#60A5FA" stopOpacity={1} />
+                  <stop offset="50%" stopColor="#2563EB" stopOpacity={0.95} />
+                  <stop offset="100%" stopColor="#1E3A8A" stopOpacity={0.95} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" opacity={0.6} />
@@ -286,11 +281,10 @@ export function SalesCharts({ sales, periodType }: SalesChartsProps) {
             <h3 className="text-sm sm:text-base font-bold text-foreground">
               Origem & Canais de Venda
             </h3>
-            <p className="text-xs text-muted-foreground">Distribuição da receita por canal</p>
           </div>
         </div>
 
-        <div className="h-[220px] w-full relative flex items-center justify-center">
+        <div className="h-[210px] w-full relative flex items-center justify-center">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <Tooltip content={<CustomDonutTooltip />} />
@@ -298,8 +292,8 @@ export function SalesCharts({ sales, periodType }: SalesChartsProps) {
                 data={channelData}
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={85}
+                innerRadius={58}
+                outerRadius={82}
                 paddingAngle={4}
                 dataKey="value"
                 isAnimationActive={true}
@@ -329,16 +323,18 @@ export function SalesCharts({ sales, periodType }: SalesChartsProps) {
           </div>
         </div>
 
-        {/* Legend list */}
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border/60">
+        {/* Legend list perfeitamente distribuída */}
+        <div className="grid grid-cols-2 gap-2 pt-3 border-t border-border/60">
           {channelData.slice(0, 4).map((item) => (
-            <div key={item.name} className="flex items-center gap-1.5 text-xs truncate">
-              <span
-                className="h-2 w-2 rounded-full flex-shrink-0"
-                style={{ backgroundColor: item.fill }}
-              />
-              <span className="text-muted-foreground truncate">{item.name}</span>
-              <span className="font-semibold text-foreground ml-auto">{item.percent}%</span>
+            <div key={item.name} className="flex items-center justify-between gap-1.5 text-xs truncate p-1 rounded-md bg-muted/20">
+              <div className="flex items-center gap-1.5 truncate">
+                <span
+                  className="h-2.5 w-2.5 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: item.fill }}
+                />
+                <span className="text-muted-foreground truncate">{item.name}</span>
+              </div>
+              <span className="font-bold text-foreground tabular-nums">{item.percent}%</span>
             </div>
           ))}
         </div>

@@ -362,9 +362,9 @@ export function SalesTable({ sales, isLoading, onOpenNewSaleModal }: SalesTableP
                       {/* Status */}
                       <td className="py-3.5 px-4">
                         <span
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border whitespace-nowrap ${statusInfo.bg} ${statusInfo.text} ${statusInfo.border}`}
                         >
-                          <StatusIcon className="h-3 w-3" />
+                          <StatusIcon className="h-3 w-3 shrink-0" />
                           {statusInfo.label}
                         </span>
                       </td>
@@ -430,9 +430,6 @@ export function SalesTable({ sales, isLoading, onOpenNewSaleModal }: SalesTableP
         <div className="flex items-center justify-between px-4 py-3 border-t border-border/60 bg-muted/20 text-xs text-muted-foreground">
           <span>
             Mostrando <strong>{filteredSales.length}</strong> de <strong>{sales.length}</strong> vendas registradas
-          </span>
-          <span className="font-semibold text-foreground">
-            Volume Filtrado: {formatCurrency(filteredSales.reduce((acc, s) => acc + s.amount, 0))}
           </span>
         </div>
       </div>

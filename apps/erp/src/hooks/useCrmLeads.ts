@@ -214,6 +214,41 @@ export function useCreateCrmLead() {
   });
 }
 
+export function useUpdateCrmLead() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      id,
+      patch,
+    }: {
+      id: string;
+      patch: Partial<CrmLead>;
+    }) => {
+      const current = getStoredLeads();
+      const updated = current.map((l) =>
+        l.id === id
+          ? {
+              ...l,
+              ...patch,
+              phone: patch.phone
+                ? patch.phone.replace(/\D/g, "")
+                : patch.contact
+                ? patch.contact.replace(/\D/g, "")
+                : l.phone,
+              updatedAt: new Date().toISOString(),
+            }
+          : l
+      );
+      setStoredLeads(updated);
+      return { id, patch };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["crm_leads"] });
+    },
+  });
+}
+
 export function useUpdateCrmLeadStage() {
   const queryClient = useQueryClient();
 

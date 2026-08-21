@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Target, PlusCircle, Zap, Calendar, Sparkles } from "lucide-react";
+import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SalesGoal, GoalPeriodType } from "@/types/sales";
 
@@ -15,6 +15,7 @@ const formatCurrency = (val: number) => {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
+    maximumFractionDigits: 0,
   }).format(val);
 };
 
@@ -28,40 +29,24 @@ export function SalesGoalTracker({
   const targetAmount = goal?.target_amount || (periodType === "weekly" ? 15000 : 60000);
   const percentage = Math.min(100, Math.round((currentRealized / targetAmount) * 100));
   const remaining = Math.max(0, targetAmount - currentRealized);
-  const isGoalReached = currentRealized >= targetAmount;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, delay: 0.15 }}
-      className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card via-card to-primary/5 p-6 shadow-sm"
+      className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-card via-card to-primary/5 p-5 sm:p-6 shadow-sm"
     >
       {/* Decorative neon gradient blur accents */}
       <div className="absolute top-0 right-1/4 h-32 w-48 rounded-full bg-blue-500/10 dark:bg-blue-500/20 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-10 h-32 w-48 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 blur-3xl pointer-events-none" />
+      <div className="absolute bottom-0 right-10 h-32 w-48 rounded-full bg-sky-500/10 dark:bg-sky-500/20 blur-3xl pointer-events-none" />
 
       {/* Header with Switcher & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-border/70">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-primary/10 text-primary dark:bg-primary/20">
-            <Target className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
-                Gestão & Acompanhamento de Metas
-              </h2>
-              {isGoalReached && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  <Sparkles className="h-3 w-3" /> Meta Batida!
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              {goal?.team_name || "Equipe Comercial"} • Monitoramento em tempo real do faturamento
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-border/70">
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-foreground tracking-tight">
+            Acompanhamento de Metas
+          </h2>
         </div>
 
         <div className="flex items-center gap-2">
@@ -104,9 +89,9 @@ export function SalesGoalTracker({
       </div>
 
       {/* Main Goal Stats and Neon Progress Bar */}
-      <div className="pt-6 space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="p-4 rounded-xl bg-background/50 border border-border/60">
+      <div className="pt-5 space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <div className="p-3.5 rounded-xl bg-background/50 border border-border/60">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
               <span className="font-semibold uppercase tracking-wider text-[10px]">Realizado</span>
               <span className="text-emerald-600 dark:text-emerald-400 font-bold">{percentage}%</span>
@@ -116,7 +101,7 @@ export function SalesGoalTracker({
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-background/50 border border-border/60">
+          <div className="p-3.5 rounded-xl bg-background/50 border border-border/60">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
               <span className="font-semibold uppercase tracking-wider text-[10px]">Meta Alvo</span>
               <span className="text-primary font-bold">{periodType === "weekly" ? "7 dias" : "30 dias"}</span>
@@ -126,7 +111,7 @@ export function SalesGoalTracker({
             </p>
           </div>
 
-          <div className="p-4 rounded-xl bg-background/50 border border-border/60">
+          <div className="p-3.5 rounded-xl bg-background/50 border border-border/60">
             <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
               <span className="font-semibold uppercase tracking-wider text-[10px]">Falta para atingir</span>
               <span className="text-muted-foreground font-bold">{100 - percentage}%</span>
@@ -137,29 +122,28 @@ export function SalesGoalTracker({
           </div>
         </div>
 
-        {/* Dynamic Neon Gradient Progress Bar */}
+        {/* Dynamic Blue Gradient Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between items-center text-xs">
-            <span className="font-medium text-muted-foreground flex items-center gap-1.5">
-              <Zap className="h-3.5 w-3.5 text-amber-500" />
+            <span className="font-medium text-muted-foreground">
               Progresso da Meta ({periodType === "weekly" ? "Semanal" : "Mensal"})
             </span>
             <span className="font-bold text-foreground">{percentage}% Concluído</span>
           </div>
 
-          <div className="relative h-4 w-full overflow-hidden rounded-full bg-muted/80 p-0.5 ring-1 ring-border">
+          <div className="relative h-3.5 w-full overflow-hidden rounded-full bg-muted/80 p-0.5 ring-1 ring-border">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${percentage}%` }}
               transition={{ duration: 1.5, ease: "easeOut" }}
-              className="relative h-full rounded-full bg-gradient-to-r from-blue-600 via-cyan-400 to-emerald-400 shadow-[0_0_15px_rgba(37,99,235,0.6)] dark:shadow-[0_0_20px_rgba(16,185,129,0.7)]"
+              className="relative h-full rounded-full bg-gradient-to-r from-blue-900 via-blue-600 to-sky-400 shadow-[0_0_15px_rgba(37,99,235,0.4)]"
             >
               {/* Subtle light shimmer sweep */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse" />
             </motion.div>
           </div>
 
-          <div className="flex justify-between text-[11px] text-muted-foreground pt-1">
+          <div className="flex justify-between text-[11px] text-muted-foreground pt-0.5">
             <span>R$ 0,00</span>
             <span className="font-semibold text-foreground">
               {percentage >= 100 ? "Superada em " + formatCurrency(currentRealized - targetAmount) : `Faltam ${formatCurrency(remaining)}`}

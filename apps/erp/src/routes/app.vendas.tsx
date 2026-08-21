@@ -41,7 +41,7 @@ export const Route = createFileRoute("/app/vendas")({
     };
   },
   head: () => ({
-    meta: [{ title: "Vendas & CRM Comercial — DELSKI CLOUD" }],
+    meta: [{ title: "Ecossistema de Vendas — DELSKI CLOUD" }],
   }),
   component: VendasPage,
 });
@@ -139,25 +139,17 @@ function VendasPage() {
 
   return (
     <div className="w-full max-w-7xl mx-auto space-y-6 pb-16">
-      {/* Page Header */}
+      {/* Page Header - Refinado: Sem ícone circular e sem subtítulo */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4"
       >
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-xl bg-primary/10 text-primary">
-              <TrendingUp className="h-5 w-5" />
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
-              Ecossistema de Vendas & CRM
-            </h1>
-          </div>
-          <p className="text-xs sm:text-sm text-muted-foreground">
-            Pipeline de prospecção SDR, metas comerciais, gráficos analíticos e faturamento unificado.
-          </p>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-foreground tracking-tight">
+            Ecossistema de Vendas
+          </h1>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -250,7 +242,13 @@ function VendasPage() {
         </TabsContent>
 
         {/* ── ABA 3: HISTÓRICO DE VENDAS ──────────────────────────── */}
-        <TabsContent value="historico" className="space-y-6 focus-visible:outline-none">
+        <TabsContent value="historico" className="space-y-4 focus-visible:outline-none">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-bold text-foreground tracking-tight">
+              Histórico de Vendas
+            </h2>
+          </div>
+
           <SalesTable
             sales={sales}
             isLoading={salesLoading}

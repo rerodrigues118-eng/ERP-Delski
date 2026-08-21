@@ -11,16 +11,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCreateSale } from "@/hooks/useSales";
 import { SaleStatus, SalesChannel } from "@/types/sales";
 import { toast } from "sonner";
-import { DollarSign, User, Briefcase, CreditCard, Tag } from "lucide-react";
+import { DollarSign, User, Briefcase, CreditCard } from "lucide-react";
+
+export const SALE_SERVICES = [
+  "Consultoria em IA & Automação",
+  "Desenvolvimento de Sites & Web Apps",
+  "Gestão de Tráfego Pago",
+  "Squad Dedicada Full-Stack",
+] as const;
 
 const newSaleSchema = z.object({
   client_name: z.string().min(2, "Nome do cliente é obrigatório"),
-  service_name: z.string().min(2, "Nome do serviço é obrigatório"),
+  service_name: z.string().min(2, "Selecione o serviço"),
   amount: z.coerce.number().positive("Valor deve ser maior que zero"),
   status: z.enum(["concluida", "em_negociacao", "cancelada"] as const),
   channel: z.enum(["inbound", "sdr_whatsapp", "indicacao", "parceiros", "outbound", "outro"] as const),
   payment_terms: z.string().min(1, "Condição de pagamento é obrigatória"),
-  seller_name: z.string().min(2, "Nome do vendedor é obrigatório"),
+  seller_name: z.string().min(2, "Nome do closer é obrigatório"),
   notes: z.string().optional(),
 });
 
@@ -62,9 +69,24 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
 
   useEffect(() => {
     if (open && initialValues) {
+      // If the incoming service is e.g. "Projeto de Sites" or "IA", map to the closest standard service
+      let mappedService: string = initialValues.service_name ?? "Consultoria em IA & Automação";
+      if (initialValues.service_name) {
+        const lower = initialValues.service_name.toLowerCase();
+        if (lower.includes("ia") || lower.includes("automa")) {
+          mappedService = "Consultoria em IA & Automação";
+        } else if (lower.includes("site") || lower.includes("web")) {
+          mappedService = "Desenvolvimento de Sites & Web Apps";
+        } else if (lower.includes("trafego") || lower.includes("tráfego")) {
+          mappedService = "Gestão de Tráfego Pago";
+        } else if (lower.includes("squad") || lower.includes("social") || lower.includes("full")) {
+          mappedService = "Squad Dedicada Full-Stack";
+        }
+      }
+
       reset({
         client_name: initialValues.client_name ?? "",
-        service_name: initialValues.service_name ?? "Consultoria em IA & Automação",
+        service_name: mappedService,
         amount: initialValues.amount ?? 0,
         status: initialValues.status ?? "concluida",
         channel: initialValues.channel ?? "inbound",
@@ -75,6 +97,7 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
     }
   }, [open, initialValues, reset]);
 
+  const selectedService = watch("service_name");
   const selectedStatus = watch("status");
   const selectedChannel = watch("channel");
 
@@ -126,20 +149,26 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
               )}
             </div>
 
-            {/* Serviço/Produto */}
+            {/* Serviço Dropdown */}
             <div className="space-y-1.5">
-              <Label htmlFor="service_name" className="text-xs font-semibold">
-                Serviço / Produto *
+              <Label className="text-xs font-semibold">
+                Serviço *
               </Label>
-              <div className="relative">
-                <Briefcase className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="service_name"
-                  placeholder="Ex: Automação IA"
-                  className="pl-9 text-xs"
-                  {...register("service_name")}
-                />
-              </div>
+              <Select
+                value={selectedService}
+                onValueChange={(val: string) => setValue("service_name", val)}
+              >
+                <SelectTrigger className="text-xs">
+                  <SelectValue placeholder="Selecione o serviço" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SALE_SERVICES.map((srv) => (
+                    <SelectItem key={srv} value={srv} className="text-xs">
+                      {srv}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.service_name && (
                 <p className="text-xs text-destructive font-medium">{errors.service_name.message}</p>
               )}
@@ -166,9 +195,9 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
               )}
             </div>
 
-            {/* Canal de Origem */}
+            {/* Canal */}
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold">Canal / Origem do Lead *</Label>
+              <Label className="text-xs font-semibold">Canal *</Label>
               <Select
                 value={selectedChannel}
                 onValueChange={(val: SalesChannel) => setValue("channel", val)}
@@ -205,10 +234,10 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
               </Select>
             </div>
 
-            {/* Vendedor / Responsável */}
+            {/* Closer Responsável */}
             <div className="space-y-1.5">
               <Label htmlFor="seller_name" className="text-xs font-semibold">
-                Vendedor / Closer Responsável *
+                Closer Responsável *
               </Label>
               <Input
                 id="seller_name"
@@ -243,7 +272,7 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
             {/* Observações */}
             <div className="space-y-1.5 sm:col-span-2">
               <Label htmlFor="notes" className="text-xs font-semibold">
-                Observações / Detalhes Adicionais
+                Observações
               </Label>
               <Textarea
                 id="notes"
