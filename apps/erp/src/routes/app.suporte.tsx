@@ -38,6 +38,7 @@ import {
   useSupportTickets,
   useSendTicketReply,
   useUpdateTicketStatus,
+  cleanTicketInitialMessage,
   type SupportTicket,
   type TicketStatus,
 } from "@/hooks/useSupportTickets";
@@ -392,7 +393,7 @@ function SupportPage() {
                     </span>
                   </div>
                   <p className="text-sm text-stone-800 leading-relaxed whitespace-pre-wrap">
-                    {currentActiveTicket.message}
+                    {cleanTicketInitialMessage(currentActiveTicket.message)}
                   </p>
                 </div>
 

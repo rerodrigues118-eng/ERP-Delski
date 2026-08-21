@@ -36,6 +36,12 @@ export interface SupportTicket {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+export function cleanTicketInitialMessage(rawMessage: string): string {
+  if (!rawMessage) return "";
+  const parts = rawMessage.split("\n\n[");
+  return parts[0].trim();
+}
+
 function parseRepliesForTicket(ticket: any, dbReplies: TicketReply[] = []): TicketReply[] {
   const list: TicketReply[] = [];
   const seenKeys = new Set<string>();
@@ -63,26 +69,15 @@ function parseRepliesForTicket(ticket: any, dbReplies: TicketReply[] = []): Tick
     }
   };
 
-  // 1. Respostas vindas da tabela ticket_replies
+  // 1. Respostas da tabela relacional ticket_replies
   dbReplies.forEach((r) => addReply(r, r.sender_role));
 
-  // 2. Respostas gravadas na coluna JSON replies do ticket
+  // 2. Coluna JSON replies no ticket
   if (Array.isArray(ticket.replies)) {
     ticket.replies.forEach((r: any) => addReply(r, r.sender_role));
   }
 
-  // 3. Fallback do localStorage local
-  try {
-    const localData = localStorage.getItem(`ticket_replies_${ticket.id}`);
-    if (localData) {
-      const parsed = JSON.parse(localData);
-      if (Array.isArray(parsed)) {
-        parsed.forEach((r: any) => addReply(r, r.sender_role));
-      }
-    }
-  } catch {}
-
-  // 4. Fallback: Parse das notas de resolução
+  // 3. Fallback das notas de resolução
   if (ticket.resolution_notes && typeof ticket.resolution_notes === "string") {
     const noteBlocks = ticket.resolution_notes.split("\n\n");
     noteBlocks.forEach((block: string) => {
@@ -108,6 +103,44 @@ function parseRepliesForTicket(ticket: any, dbReplies: TicketReply[] = []): Tick
       }
     });
   }
+
+  // 4. Fallback no corpo da mensagem principal (se foi anexado ao message)
+  if (ticket.message && typeof ticket.message === "string" && ticket.message.includes("\n\n[")) {
+    const msgBlocks = ticket.message.split("\n\n");
+    msgBlocks.forEach((block: string) => {
+      const match = block.match(/^\[(.*?)(?: - (.*?))?\]:\s*([\s\S]*)$/);
+      if (match) {
+        const senderName = match[1] || "Atendimento";
+        const dateStr = match[2] || ticket.updated_at || ticket.created_at;
+        const msg = match[3] || "";
+        const role =
+          senderName.toLowerCase().includes("gestor") ||
+          senderName.toLowerCase().includes("delski")
+            ? "gestor"
+            : "cliente";
+        addReply(
+          {
+            sender_name: senderName,
+            sender_role: role,
+            message: msg,
+            created_at: dateStr,
+          },
+          role
+        );
+      }
+    });
+  }
+
+  // 5. Fallback do localStorage local
+  try {
+    const localData = localStorage.getItem(`ticket_replies_${ticket.id}`);
+    if (localData) {
+      const parsed = JSON.parse(localData);
+      if (Array.isArray(parsed)) {
+        parsed.forEach((r: any) => addReply(r, r.sender_role));
+      }
+    }
+  } catch {}
 
   return list.sort(
     (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -253,36 +286,53 @@ export function useSendTicketReply() {
       const updatedRepliesList = [...existingReplies, newReply];
 
       const currentNotes = currentTicket?.resolution_notes || "";
-      const updatedNotes = currentNotes
-        ? `${currentNotes}\n\n[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message.trim()}`
-        : `[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message.trim()}`;
+      const replyFormatted = `[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message.trim()}`;
+      const updatedNotes = currentNotes ? `${currentNotes}\n\n${replyFormatted}` : replyFormatted;
 
-      // 3. Atualiza o ticket no banco com status, replies e notas
-      const updatedPayload: any = {
+      const currentMsg = currentTicket?.message || "";
+      const updatedMessage = currentMsg ? `${currentMsg}\n\n${replyFormatted}` : replyFormatted;
+
+      // 3. Atualização resiliente em support_tickets com Auto-Healing em loop
+      let payloadToTry: Record<string, any> = {
         status: newStatus,
         replies: updatedRepliesList,
         resolution_notes: updatedNotes,
         updated_at: new Date().toISOString(),
       };
 
-      let saveOk = false;
-      try {
-        const { error: updErr } = await (supabase.from("support_tickets") as any)
-          .update(updatedPayload)
+      let patchAttempts = 0;
+      while (patchAttempts < 4) {
+        patchAttempts++;
+        const { error: patchErr } = await (supabase.from("support_tickets") as any)
+          .update(payloadToTry)
           .eq("id", ticketId);
-        if (!updErr) saveOk = true;
-      } catch {}
 
-      if (!saveOk) {
-        try {
-          delete updatedPayload.replies;
-          await (supabase.from("support_tickets") as any)
-            .update(updatedPayload)
-            .eq("id", ticketId);
-        } catch {}
+        if (!patchErr) break;
+
+        console.warn(`[Support Ticket Patch] Tentativa ${patchAttempts} falhou:`, patchErr.message);
+
+        const matchSingle = patchErr.message?.match(/Could not find the '([^']+)' column/i);
+        const matchDouble = patchErr.message?.match(/column "([^"]+)" of relation/i);
+        const matchPostgrest = patchErr.message?.match(/column '([^']+)' does not exist/i);
+        const missingCol = matchSingle?.[1] || matchDouble?.[1] || matchPostgrest?.[1];
+
+        if (missingCol && payloadToTry[missingCol] !== undefined) {
+          delete payloadToTry[missingCol];
+        } else if (payloadToTry.replies !== undefined) {
+          delete payloadToTry.replies;
+        } else if (payloadToTry.resolution_notes !== undefined) {
+          delete payloadToTry.resolution_notes;
+          payloadToTry.message = updatedMessage;
+        } else {
+          payloadToTry = {
+            status: newStatus,
+            message: updatedMessage,
+            updated_at: new Date().toISOString(),
+          };
+        }
       }
 
-      // 4. Tenta persistir na tabela relacional ticket_replies com auto-healing
+      // 4. Tenta persistir na tabela relacional ticket_replies se disponível
       try {
         const replyPayload: any = {
           ticket_id: ticketId,
@@ -294,9 +344,7 @@ export function useSendTicketReply() {
         if (authUserId) replyPayload.user_id = authUserId;
 
         await (supabase.from("ticket_replies") as any).insert([replyPayload]);
-      } catch (rErr) {
-        console.warn("[Ticket Reply Insert] Aviso ao inserir em ticket_replies:", rErr);
-      }
+      } catch {}
 
       return { ticketId, message: message.trim(), newStatus, reply: newReply };
     },

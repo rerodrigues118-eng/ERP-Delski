@@ -81,6 +81,7 @@ import {
   useCreateTicket,
   useSendTicketReply,
   useUploadTicketEvidence,
+  cleanTicketInitialMessage,
 } from "@/hooks/useSupportTickets";
 import { useProjects, type Project } from "@/hooks/useProjects";
 import { useEmittedServiceInvoices } from "@/hooks/useServiceInvoices";
@@ -1483,7 +1484,9 @@ function ClienteDashboardPage() {
                           <span>{activeTicket.client_name || "Você"}</span>
                           <span className="text-[10px] font-normal text-slate-400">{formatDate(activeTicket.created_at)}</span>
                         </div>
-                        <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed font-medium">{activeTicket.message}</p>
+                        <p className="text-xs text-slate-700 dark:text-zinc-300 leading-relaxed font-medium">
+                          {cleanTicketInitialMessage(activeTicket.message)}
+                        </p>
                         {activeTicket.evidence_url && (
                           <Button
                             size="sm"
