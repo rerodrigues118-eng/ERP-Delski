@@ -12,6 +12,14 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  FunnelChart,
+  Funnel,
+  LabelList,
 } from "recharts";
 import {
   Activity,
@@ -325,6 +333,354 @@ function DistributionMetricCard({
           <span className="text-xs font-bold text-foreground mt-0.5">{p75}</span>
         </div>
       </div>
+    </motion.div>
+  );
+}
+
+/* ── Custom Donut Tooltip ────────────────────────────────── */
+const CustomDonutTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null;
+  const item = payload[0];
+  return (
+    <div className="bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl shadow-cyan-500/10 px-3.5 py-2 text-xs font-medium">
+      <div className="flex items-center gap-2">
+        <span
+          className="h-2 w-2 rounded-full"
+          style={{ backgroundColor: item.payload?.fill || "#00F2FE" }}
+        />
+        <span className="text-muted-foreground">{item.name}:</span>
+        <span className="text-foreground font-bold">{Number(item.value).toFixed(1)}%</span>
+      </div>
+    </div>
+  );
+};
+
+/* ── Gráfico Donut Tecnológico: Taxa de Retenção ─────────── */
+function RetentionDonutCard({
+  rate,
+  p25,
+  median,
+  p75,
+}: {
+  rate: number;
+  p25: string;
+  median: string;
+  p75: string;
+}) {
+  const chartData = useMemo(() => {
+    const validRate = Math.min(100, Math.max(0, rate || 0));
+    return [
+      { name: "Clientes Recorrentes", value: validRate || 0.001, fill: "url(#neonElectricCyan)" },
+      { name: "Demais Clientes", value: Math.max(0, 100 - validRate), fill: "url(#emptyTrackGrad)" },
+    ];
+  }, [rate]);
+
+  return (
+    <motion.div
+      variants={itemVariants}
+      className="bg-card rounded-2xl border border-border/80 p-5 shadow-subtle hover:border-cyan-500/30 hover:shadow-lg hover:shadow-cyan-500/5 transition-all duration-300 flex flex-col justify-between"
+    >
+      <div>
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
+              <Repeat className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+              Taxa de Retenção
+            </h3>
+            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+              Clientes com 2 ou mais contratações na base
+            </p>
+          </div>
+          <div className="h-8 w-8 rounded-lg bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 flex items-center justify-center flex-shrink-0">
+            <Repeat className="h-4 w-4" />
+          </div>
+        </div>
+
+        {/* Donut Chart Container com Percentual Central em Destaque */}
+        <div className="relative my-2 h-[155px] w-full flex items-center justify-center">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <defs>
+                <linearGradient id="neonElectricCyan" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stopColor="#00F2FE" />
+                  <stop offset="100%" stopColor="#4FACFE" />
+                </linearGradient>
+                <linearGradient id="emptyTrackGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="currentColor" stopOpacity={0.12} />
+                  <stop offset="100%" stopColor="currentColor" stopOpacity={0.05} />
+                </linearGradient>
+              </defs>
+              <Tooltip content={<CustomDonutTooltip />} />
+              <Pie
+                data={chartData}
+                cx="50%"
+                cy="50%"
+                innerRadius={50}
+                outerRadius={75}
+                cornerRadius={6}
+                paddingAngle={rate > 0 && rate < 100 ? 5 : 0}
+                dataKey="value"
+                isAnimationActive={true}
+                animationDuration={2500}
+                animationEasing="ease-in-out"
+                stroke="none"
+              >
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry.fill}
+                    className={index === 1 ? "text-muted-foreground" : ""}
+                  />
+                ))}
+              </Pie>
+            </PieChart>
+          </ResponsiveContainer>
+
+          {/* Valor Central em Destaque */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <span className="text-[9px] font-bold tracking-wider text-muted-foreground uppercase">
+              TAXA GERAL
+            </span>
+            <div className="text-xl sm:text-2xl font-extrabold text-foreground tracking-tight flex items-baseline">
+              <AnimatedNumber value={rate} suffix="%" decimals={1} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3-Column Distribution Scale */}
+      <div className="pt-3 border-t border-border/60 grid grid-cols-3 gap-2 text-center">
+        <div className="flex flex-col items-center">
+          <span className="text-[10px] font-semibold text-muted-foreground tracking-wider uppercase">
+            P25
+          </span>
+          <span className="text-xs font-bold text-foreground mt-0.5">{p25}</span>
+        </div>
+        <div className="flex flex-col items-center border-x border-border/60">
+          <span className="text-[10px] font-semibold text-muted-foreground tracking-wider uppercase">
+            MEDIAN
+          </span>
+          <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 mt-0.5">{median}</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <span className="text-[10px] font-semibold text-muted-foreground tracking-wider uppercase">
+            P75
+          </span>
+          <span className="text-xs font-bold text-foreground mt-0.5">{p75}</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ── Custom Funnel Tooltip ───────────────────────────────── */
+const CustomFunnelTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null;
+  const item = payload[0]?.payload;
+  if (!item) return null;
+  return (
+    <div className="bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl shadow-purple-500/10 px-3.5 py-2.5 text-xs font-medium space-y-1">
+      <p className="font-bold text-foreground flex items-center gap-1.5">
+        <span
+          className="h-2.5 w-2.5 rounded-full"
+          style={{ backgroundColor: item.fill || "#8B5CF6" }}
+        />
+        {item.name}
+      </p>
+      <div className="flex items-center justify-between gap-4 text-muted-foreground pt-1 border-t border-border/50">
+        <span>Volume de Projetos:</span>
+        <span className="text-foreground font-bold">{item.count}</span>
+      </div>
+      <div className="flex items-center justify-between gap-4 text-muted-foreground">
+        <span>Participação:</span>
+        <span className="text-purple-600 dark:text-purple-400 font-bold">{item.percent}%</span>
+      </div>
+    </div>
+  );
+};
+
+/* ── Gráfico de Funil Tecnológico: Top Serviços ─────────── */
+const FUNNEL_COLORS = [
+  { fill: "#3B82F6", stroke: "#60A5FA" },
+  { fill: "#6366F1", stroke: "#818CF8" },
+  { fill: "#8B5CF6", stroke: "#A78BFA" },
+  { fill: "#A855F7", stroke: "#C084FC" },
+  { fill: "#EC4899", stroke: "#F472B6" },
+];
+
+function ServicesFunnelCard({
+  data,
+}: {
+  data: Array<{ name: string; key: string; count: number; percent: number }>;
+}) {
+  const funnelData = useMemo(() => {
+    return data.map((item, index) => ({
+      ...item,
+      value: item.count,
+      fill: FUNNEL_COLORS[index % FUNNEL_COLORS.length].fill,
+      stroke: FUNNEL_COLORS[index % FUNNEL_COLORS.length].stroke,
+    }));
+  }, [data]);
+
+  return (
+    <motion.div
+      variants={itemVariants}
+      className="bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-purple-500/30 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-300 flex flex-col justify-between"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
+            <Award className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+            Top Serviços Mais Contratados
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Participação por categoria de serviço
+          </p>
+        </div>
+      </div>
+
+      {funnelData.length === 0 ? (
+        <div className="py-12 text-center border border-dashed border-border rounded-xl space-y-1">
+          <Inbox className="h-6 w-6 text-muted-foreground mx-auto" />
+          <p className="text-xs text-muted-foreground font-medium">Nenhum serviço registrado</p>
+          <p className="text-[11px] text-muted-foreground/70">
+            Os serviços aparecerão conforme novos projetos forem criados.
+          </p>
+        </div>
+      ) : (
+        <div className="w-full h-[240px] min-w-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <FunnelChart>
+              <Tooltip content={<CustomFunnelTooltip />} />
+              <Funnel
+                dataKey="value"
+                data={funnelData}
+                isAnimationActive={true}
+                animationDuration={2500}
+                animationEasing="ease-in-out"
+              >
+                <LabelList
+                  position="right"
+                  fill="currentColor"
+                  stroke="none"
+                  className="text-xs font-semibold fill-foreground"
+                  formatter={(_val: any, entry: any) => `${entry.name} (${entry.percent}%)`}
+                />
+              </Funnel>
+            </FunnelChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+    </motion.div>
+  );
+}
+
+/* ── Custom Bar Tooltip ──────────────────────────────────── */
+const CustomBarTooltip = ({ active, payload }: any) => {
+  if (!active || !payload?.length) return null;
+  const item = payload[0]?.payload;
+  if (!item) return null;
+  return (
+    <div className="bg-popover/95 backdrop-blur-md border border-border/80 rounded-xl shadow-xl shadow-blue-500/10 px-3.5 py-2.5 text-xs font-medium space-y-1">
+      <p className="font-bold text-foreground flex items-center gap-1.5">
+        <span className="h-2.5 w-2.5 rounded-full bg-cyan-500" />
+        {item.name}
+      </p>
+      <div className="flex items-center justify-between gap-4 text-muted-foreground pt-1 border-t border-border/50">
+        <span>Demandas Contratadas:</span>
+        <span className="text-foreground font-bold">{item.count}</span>
+      </div>
+      <div className="flex items-center justify-between gap-4 text-muted-foreground">
+        <span>Participação:</span>
+        <span className="text-cyan-600 dark:text-cyan-400 font-bold">{item.percent}%</span>
+      </div>
+    </div>
+  );
+};
+
+/* ── Gráfico de Barras Tecnológico: Principais Clientes & Parceiros ── */
+function ClientsBarCard({
+  data,
+}: {
+  data: Array<{ name: string; count: number; percent: number }>;
+}) {
+  return (
+    <motion.div
+      variants={itemVariants}
+      className="bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-blue-500/30 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300 flex flex-col justify-between"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            Principais Clientes &amp; Parceiros
+          </h3>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Volume de demandas por parceiro contratante
+          </p>
+        </div>
+      </div>
+
+      {data.length === 0 ? (
+        <div className="py-12 text-center border border-dashed border-border rounded-xl space-y-1">
+          <Inbox className="h-6 w-6 text-muted-foreground mx-auto" />
+          <p className="text-xs text-muted-foreground font-medium">Nenhum cliente com demandas ativas</p>
+          <p className="text-[11px] text-muted-foreground/70">
+            Os clientes aparecerão associados aos novos projetos.
+          </p>
+        </div>
+      ) : (
+        <div className="w-full h-[240px] min-w-0">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data}
+              layout="vertical"
+              margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
+            >
+              <defs>
+                <linearGradient id="clientTechBarGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#3B82F6" />
+                  <stop offset="100%" stopColor="#06B6D4" />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="currentColor"
+                className="text-border/40"
+                horizontal={false}
+              />
+              <XAxis
+                type="number"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "var(--muted-foreground)" }}
+                allowDecimals={false}
+              />
+              <YAxis
+                type="category"
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: "var(--foreground)", fontWeight: 600 }}
+                width={110}
+                tickFormatter={(val: string) => (val.length > 14 ? `${val.slice(0, 14)}…` : val)}
+              />
+              <Tooltip content={<CustomBarTooltip />} />
+              <Bar
+                dataKey="count"
+                name="Demandas"
+                fill="url(#clientTechBarGrad)"
+                radius={[0, 8, 8, 0]}
+                barSize={18}
+                background={{ fill: "rgba(148, 163, 184, 0.12)", radius: [0, 8, 8, 0] }}
+                isAnimationActive={true}
+                animationDuration={2500}
+                animationEasing="ease-in-out"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -1097,16 +1453,11 @@ function Dashboard() {
               icon={Clock}
             />
 
-            <DistributionMetricCard
-              title="Taxa de Retenção"
-              subtitle="Clientes com 2 ou mais contratações na base"
-              averageLabel="TAXA GERAL"
-              numericAverage={retentionStats.rate}
-              averageUnit="%"
+            <RetentionDonutCard
+              rate={retentionStats.rate}
               p25={retentionStats.p25}
               median={retentionStats.median}
               p75={retentionStats.p75}
-              icon={Repeat}
             />
           </div>
 
@@ -1195,118 +1546,14 @@ function Dashboard() {
         </div>
       )}
 
-      {/* ── 3ª Fileira: Barras de Progresso Horizontais Arredondadas */}
+      {/* ── 3ª Fileira: Gráficos Tecnológicos (Funil de Serviços + Barras de Clientes) ─ */}
       {!loadingProjects && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Top Serviços / Competências */}
-          <motion.div
-            variants={itemVariants}
-            className="bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-blue-500/30 hover:shadow-lg transition-all duration-300"
-          >
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
-                  <Award className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  Top Serviços Mais Contratados
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Participação por categoria de serviço
-                </p>
-              </div>
-            </div>
+          {/* Top Serviços / Competências (Gráfico de Funil Tecnológico) */}
+          <ServicesFunnelCard data={topServicesData} />
 
-            {topServicesData.length === 0 ? (
-              <div className="py-8 text-center border border-dashed rounded-xl space-y-1">
-                <Inbox className="h-6 w-6 text-muted-foreground mx-auto" />
-                <p className="text-xs text-muted-foreground font-medium">Nenhum serviço registrado</p>
-                <p className="text-[11px] text-muted-foreground/70">
-                  Os serviços aparecerão conforme novos projetos forem criados.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {topServicesData.map((svc, i) => (
-                  <div key={svc.name} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-foreground flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-muted-foreground w-3">
-                          0{i + 1}
-                        </span>
-                        {svc.name}
-                      </span>
-                      <span className="text-muted-foreground font-medium">
-                        <strong className="text-foreground">{svc.count}</strong> {svc.count === 1 ? "projeto" : "projetos"} (
-                        {svc.percent}%)
-                      </span>
-                    </div>
-                    <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${svc.percent}%` }}
-                        transition={{ duration: 1.8, delay: 0.18 * i, ease: [0.16, 1, 0.3, 1] }}
-                        className="h-full rounded-full bg-gradient-to-r from-blue-700 via-blue-600 to-sky-400"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
-
-          {/* Principais Clientes / Parceiros */}
-          <motion.div
-            variants={itemVariants}
-            className="bg-card rounded-2xl border border-border/80 p-6 shadow-subtle hover:border-blue-500/30 hover:shadow-lg transition-all duration-300"
-          >
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h3 className="text-sm font-bold text-foreground tracking-tight flex items-center gap-2">
-                  <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                  Principais Clientes &amp; Parceiros
-                </h3>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Volume de demandas por parceiro contratante
-                </p>
-              </div>
-            </div>
-
-            {topClientsData.length === 0 ? (
-              <div className="py-8 text-center border border-dashed rounded-xl space-y-1">
-                <Inbox className="h-6 w-6 text-muted-foreground mx-auto" />
-                <p className="text-xs text-muted-foreground font-medium">Nenhum cliente com demandas ativas</p>
-                <p className="text-[11px] text-muted-foreground/70">
-                  Os clientes aparecerão associados aos novos projetos.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {topClientsData.map((client, i) => (
-                  <div key={client.name} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-foreground flex items-center gap-2">
-                        <span className="text-[10px] font-bold text-muted-foreground w-3">
-                          0{i + 1}
-                        </span>
-                        {client.name}
-                      </span>
-                      <span className="text-muted-foreground font-medium">
-                        <strong className="text-foreground">{client.count}</strong> {client.count === 1 ? "demanda" : "demandas"} (
-                        {client.percent}%)
-                      </span>
-                    </div>
-                    <div className="h-2.5 w-full bg-muted rounded-full overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        animate={{ width: `${client.percent}%` }}
-                        transition={{ duration: 1.8, delay: 0.18 * i, ease: [0.16, 1, 0.3, 1] }}
-                        className="h-full rounded-full bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </motion.div>
+          {/* Principais Clientes / Parceiros (Gráfico de Barras Tecnológico) */}
+          <ClientsBarCard data={topClientsData} />
         </div>
       )}
 
