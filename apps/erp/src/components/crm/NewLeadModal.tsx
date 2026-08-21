@@ -12,7 +12,7 @@ import { CrmLeadStage, LeadTemperature } from "@/types/crm";
 import { SalesChannel } from "@/types/sales";
 import { ServiceType, SERVICE_TYPES, SERVICE_LABEL } from "@/mocks/types";
 import { toast } from "sonner";
-import { UserPlus, User, Phone, Mail, DollarSign, Flame, Sparkles } from "lucide-react";
+import { UserPlus, User, Phone, Mail, DollarSign, Flame, Zap, Snowflake, Sparkles } from "lucide-react";
 
 const newLeadSchema = z.object({
   name: z.string().min(2, "Nome do lead / empresa é obrigatório"),

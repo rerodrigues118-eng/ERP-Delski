@@ -416,7 +416,6 @@ export function ClientsPage() {
             </div>
           </div>
           <div className="text-2xl font-bold text-foreground">{totalClients}</div>
-          <p className="text-xs text-muted-foreground mt-0.5">Clientes cadastrados</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
@@ -427,7 +426,6 @@ export function ClientsPage() {
             </div>
           </div>
           <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{activeClients}</div>
-          <p className="text-xs text-muted-foreground mt-0.5">Com acesso liberado</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
@@ -438,7 +436,6 @@ export function ClientsPage() {
             </div>
           </div>
           <div className="text-2xl font-bold text-amber-600 dark:text-amber-400">{invitedClients}</div>
-          <p className="text-xs text-muted-foreground mt-0.5">Aguardando ativação</p>
         </div>
 
         <div className="rounded-xl border border-border bg-card p-4 shadow-xs">
@@ -449,7 +446,6 @@ export function ClientsPage() {
             </div>
           </div>
           <div className="text-2xl font-bold text-rose-600 dark:text-rose-400">{blockedClients}</div>
-          <p className="text-xs text-muted-foreground mt-0.5">Acesso suspenso</p>
         </div>
       </div>
 
