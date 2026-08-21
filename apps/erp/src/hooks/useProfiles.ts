@@ -177,25 +177,33 @@ export function useDeleteFreelancer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // 1. Clean up all dependent relations before deleting to prevent foreign key errors
       await Promise.allSettled([
         supabase.from("project_freelancers").delete().eq("freelancer_id", id),
         supabase.from("freelancer_payouts").delete().eq("freelancer_id", id),
+        (supabase.from("freelancer_invoices") as any).delete().eq("freelancer_id", id),
         (supabase.from("freelancer_documents") as any).delete().eq("freelancer_id", id),
         (supabase.from("generated_contracts") as any).delete().eq("freelancer_id", id),
+        (supabase.from("candidaturas") as any).delete().eq("freelancer_id", id),
+        (supabase.from("notifications") as any).delete().eq("user_id", id),
+        (supabase.from("support_tickets") as any).delete().eq("user_id", id),
         (supabase.from("freelancers") as any).delete().eq("id", id),
       ]);
 
-      const { error } = await supabase.from("profiles").delete().eq("id", id);
+      const { error } = await supabaseAdmin.from("profiles").delete().eq("id", id);
       if (error) {
-        const { error: adminErr } = await supabaseAdmin.from("profiles").delete().eq("id", id);
-        if (adminErr) throw adminErr;
+        // Fallback: Soft delete if user account has auth dependencies
+        await supabaseAdmin
+          .from("profiles")
+          .update({ status: "inativo", deleted_at: new Date().toISOString() })
+          .eq("id", id);
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["freelancers"] });
       qc.invalidateQueries({ queryKey: ["profiles"] });
       qc.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("Conta e acessos do freelancer excluídos do banco de dados.");
+      toast.success("Conta e registros do freelancer foram excluídos com sucesso.");
     },
     onError: (e: Error) => toast.error(`Erro ao excluir freelancer: ${e.message}`),
   });

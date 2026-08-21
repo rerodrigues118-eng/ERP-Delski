@@ -27,6 +27,16 @@ const ACRONYMS: Record<string, string> = {
   roi: "ROI",
   kpi: "KPI",
   uf: "UF",
+  crm: "CRM",
+  api: "API",
+  cms: "CMS",
+  ui: "UI",
+  ux: "UX",
+  bm: "BM",
+  sla: "SLA",
+  nfs: "NFs",
+  cep: "CEP",
+  pix: "PIX",
 };
 
 export function formatFieldTitle(variable: ContractModelVariable): string {

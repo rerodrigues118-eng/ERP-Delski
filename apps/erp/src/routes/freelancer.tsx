@@ -55,6 +55,8 @@ function FreelancerLayout() {
     if (!isLoading) {
       if (!isAuthenticated) {
         navigate({ to: "/auth", replace: true });
+      } else if (!isGestor && (profile?.status === "bloqueado" || freelancerData?.status === "bloqueado" || profile?.status === "inativo")) {
+        navigate({ to: "/acesso-negado" as any, replace: true });
       } else if (!isGestor && isPendingApproval) {
         navigate({ to: "/aguardando-aprovacao" as any, replace: true });
       } else if (!isGestor && isRejected) {
@@ -81,6 +83,7 @@ function FreelancerLayout() {
     isRejected,
     onboardingCompleted,
     profile,
+    freelancerData,
     navigate,
     user?.id,
   ]);
@@ -137,7 +140,7 @@ function FreelancerLayout() {
     { value: "cadastrais", label: "Dados Cadastrais", icon: <Building2 className="h-4 w-4" /> },
     { value: "documentacao", label: "Documentação", icon: <FileText className="h-4 w-4" /> },
     { value: "financeiro", label: "Dados Financeiros", icon: <CreditCard className="h-4 w-4" /> },
-    { value: "notas", label: "Comprovantes Fiscais (NFs)", icon: <Receipt className="h-4 w-4" /> },
+    { value: "notas", label: "Comprovantes Fiscais", icon: <Receipt className="h-4 w-4" /> },
   ];
 
   return (

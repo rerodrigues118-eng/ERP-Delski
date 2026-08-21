@@ -89,7 +89,8 @@ export function useCurrentFreelancerProfile(userId?: string, userEmail?: string)
           id: profileRow.id,
           company_name: profileRow.company_name || "",
           corporate_name: profileRow.corporate_name || "",
-          cnpj: profileRow.cpf_cnpj || profileRow.cnpj || "",
+          cnpj: profileRow.cnpj || "",
+          cpf: profileRow.cpf || profileRow.cpf_cnpj || "",
           segment: profileRow.segment || "",
           email: profileRow.email,
           phone: profileRow.phone || "",
@@ -189,69 +190,21 @@ export function useUpdateCurrentFreelancerProfile() {
       const targetId = freelancerId || userId;
       if (!targetId) throw new Error("ID do freelancer não especificado.");
 
-      // 1. Update/Upsert freelancers table via admin (bypassa RLS)
-      const freelancerPayload: Record<string, any> = {
+      // 1. Update/Upsert PROFILES table first (satisfaz foreign key freelancers_id_fkey)
+      const profilePatch: Record<string, any> = {
         id: targetId,
-        ...patch,
+        role: "freelancer",
         updated_at: new Date().toISOString(),
       };
-
-      // Helper: campos que sabemos que existem com certeza na tabela freelancers
-      const KNOWN_FREELANCER_COLUMNS = new Set([
-        "id", "email", "full_name", "company_name", "corporate_name", "cnpj",
-        "segment", "address", "city", "state", "cep", "phone", "role_position",
-        "instagram", "linkedin", "website", "bank_name", "bank_agency",
-        "bank_account", "pix_type", "pix_key", "status", "contract_model",
-        "contract_value", "payment_date", "due_date", "financial_status",
-        "onboarding_completed", "created_at", "updated_at",
-        // colunas adicionadas via migration — incluídas apenas se disponíveis
-        "behance",
-      ]);
-
-      const safePayload = Object.fromEntries(
-        Object.entries(freelancerPayload).filter(([k]) => KNOWN_FREELANCER_COLUMNS.has(k))
-      );
-
-      try {
-        const { error: fErr } = await (supabaseAdmin.from("freelancers") as any).upsert(
-          safePayload,
-          { onConflict: "id" }
-        );
-        if (fErr) {
-          // Se a coluna behance ainda não existe, tenta sem ela
-          if (fErr.code === "42703" || fErr.message?.includes("column")) {
-            const { behance: _b, ...payloadWithoutBehance } = safePayload;
-            const { error: retryErr } = await (supabaseAdmin.from("freelancers") as any).upsert(
-              payloadWithoutBehance,
-              { onConflict: "id" }
-            );
-            if (retryErr) throw new Error(`Erro ao salvar: ${retryErr.message}`);
-          } else {
-            throw new Error(`Erro ao salvar dados: ${fErr.message}`);
-          }
-        }
-      } catch (err: any) {
-        // Se é um erro de coluna desconhecida, tenta sem behance
-        if (err?.code === "42703" || err?.message?.includes("column") || err?.message?.includes("behance")) {
-          const { behance: _b, ...payloadWithoutBehance } = safePayload;
-          const { error: fallbackErr } = await (supabaseAdmin.from("freelancers") as any).upsert(
-            payloadWithoutBehance,
-            { onConflict: "id" }
-          );
-          if (fallbackErr) throw new Error(`Erro ao salvar dados: ${fallbackErr.message}`);
-        } else {
-          throw err;
-        }
-      }
-
-
-      // 2. Update profiles table
-      const profilePatch: any = {};
       if (patch.full_name || patch.contact_name) {
         profilePatch.full_name = patch.full_name || patch.contact_name;
       }
       if (patch.phone) profilePatch.phone = patch.phone;
       if (patch.cnpj) profilePatch.cpf_cnpj = patch.cnpj;
+      if (patch.cpf) {
+        profilePatch.cpf = patch.cpf;
+        if (!profilePatch.cpf_cnpj) profilePatch.cpf_cnpj = patch.cpf;
+      }
       if (patch.company_name) profilePatch.company_name = patch.company_name;
       if (patch.corporate_name) profilePatch.corporate_name = patch.corporate_name;
       if (patch.segment) profilePatch.segment = patch.segment;
@@ -269,16 +222,86 @@ export function useUpdateCurrentFreelancerProfile() {
       if (typeof patch.onboarding_completed === "boolean") {
         profilePatch.onboarding_completed = patch.onboarding_completed;
       }
-      profilePatch.updated_at = new Date().toISOString();
 
-      if (Object.keys(profilePatch).length > 0 && (userId || targetId)) {
-        const profileId = userId || targetId;
-        const { error: pErr } = await supabaseAdmin
-          .from("profiles")
-          .update(profilePatch)
-          .eq("id", profileId);
+      try {
+        const { error: pErr } = await (supabaseAdmin.from("profiles") as any).upsert(
+          profilePatch,
+          { onConflict: "id" }
+        );
         if (pErr) {
-          console.warn("Profiles update warning (non-blocking):", pErr.message);
+          console.warn("Profiles upsert warning:", pErr.message);
+        }
+      } catch (pEx) {
+        console.warn("Profiles upsert exception:", pEx);
+      }
+
+      // 2. Update/Upsert FREELANCERS table via admin (bypassa RLS)
+      const freelancerPayload: Record<string, any> = {
+        id: targetId,
+        ...patch,
+        updated_at: new Date().toISOString(),
+      };
+
+      // Helper: campos que pertencem à tabela freelancers (full_name pertence à tabela profiles)
+      const KNOWN_FREELANCER_COLUMNS = new Set([
+        "id", "email", "company_name", "corporate_name", "cnpj", "cpf",
+        "segment", "address", "city", "state", "cep", "phone", "role_position",
+        "instagram", "linkedin", "website", "bank_name", "bank_agency",
+        "bank_account", "pix_type", "pix_key", "status", "contract_model",
+        "contract_value", "payment_date", "due_date", "financial_status",
+        "onboarding_completed", "skills", "hourly_rate", "created_at", "updated_at",
+        "behance",
+      ]);
+
+      let safePayload = Object.fromEntries(
+        Object.entries(freelancerPayload).filter(([k]) => KNOWN_FREELANCER_COLUMNS.has(k))
+      );
+
+      // Dynamic upsert with auto-stripping of non-existent schema columns
+      let upsertAttempts = 0;
+      let lastErr: any = null;
+
+      while (upsertAttempts < 5) {
+        upsertAttempts++;
+        try {
+          const { error: fErr } = await (supabaseAdmin.from("freelancers") as any).upsert(
+            safePayload,
+            { onConflict: "id" }
+          );
+
+          if (!fErr) {
+            lastErr = null;
+            break;
+          }
+
+          lastErr = fErr;
+          console.warn(`[Freelancer Profile Save] Tentativa ${upsertAttempts} falhou:`, fErr.message);
+
+          // Se for erro de foreign key, já salvamos em profiles
+          if (fErr.code === "23503" || fErr.message?.includes("foreign key")) {
+            console.warn("Foreign key constraint no freelancers — dados preservados em profiles.");
+            lastErr = null;
+            break;
+          }
+
+          // Detect unknown column from error message
+          const matchSingleQuote = fErr.message.match(/Could not find the '([^']+)' column/i);
+          const matchDoubleQuote = fErr.message.match(/column "([^"]+)" of relation "freelancers"/i);
+          const matchPostgrest = fErr.message.match(/column '([^']+)' does not exist/i);
+          const columnToStrip = matchSingleQuote?.[1] || matchDoubleQuote?.[1] || matchPostgrest?.[1];
+
+          if (columnToStrip && safePayload[columnToStrip] !== undefined) {
+            delete safePayload[columnToStrip];
+          } else if (safePayload.behance !== undefined) {
+            delete safePayload.behance;
+          } else if (safePayload.full_name !== undefined) {
+            delete safePayload.full_name;
+          } else {
+            break;
+          }
+        } catch (fEx: any) {
+          lastErr = fEx;
+          break;
         }
       }
 
@@ -663,21 +686,73 @@ export function useUpdateFreelancerFinancialTerms() {
       dueDate?: string | null;
       financialStatus?: string;
     }) => {
-      const { data, error } = await (supabase.from("freelancers") as any)
-        .update({
-          contract_model: contractModel,
-          contract_value: contractValue,
-          payment_date: paymentDate || null,
-          due_date: dueDate || null,
-          financial_status: financialStatus,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", freelancerId)
-        .select()
-        .single();
+      const financialPayload = {
+        contract_model: contractModel || "Mensal",
+        contract_value: Number(contractValue) || 0,
+        payment_date: paymentDate || null,
+        due_date: dueDate || null,
+        financial_status: financialStatus || "Pendente",
+        updated_at: new Date().toISOString(),
+      };
 
-      if (error) throw error;
-      return data;
+      // 1. Atualiza na tabela profiles (para manter integridade)
+      try {
+        await supabase
+          .from("profiles")
+          .update(financialPayload)
+          .eq("id", freelancerId);
+      } catch (err) {
+        console.warn("Aviso ao atualizar profiles financeiro:", err);
+      }
+
+      // 2. Verifica se o registro existe em freelancers
+      const { data: existing } = await (supabase.from("freelancers") as any)
+        .select("id")
+        .eq("id", freelancerId)
+        .maybeSingle();
+
+      if (existing) {
+        const { data, error } = await (supabase.from("freelancers") as any)
+          .update(financialPayload)
+          .eq("id", freelancerId)
+          .select()
+          .maybeSingle();
+
+        if (error) throw error;
+        return data;
+      } else {
+        // Busca dados do profile para criar o registro em freelancers
+        const { data: pData } = await supabase
+          .from("profiles")
+          .select("id, full_name, email, phone, company_name, cnpj, cpf, cpf_cnpj, bank_name, pix_type, pix_key")
+          .eq("id", freelancerId)
+          .maybeSingle();
+
+        const insertPayload = {
+          id: freelancerId,
+          user_id: freelancerId,
+          email: pData?.email || null,
+          company_name: pData?.company_name || pData?.full_name || "Prestador",
+          cnpj: pData?.cnpj || pData?.cpf_cnpj || null,
+          cpf: pData?.cpf || null,
+          phone: pData?.phone || null,
+          bank_name: pData?.bank_name || null,
+          pix_type: pData?.pix_type || null,
+          pix_key: pData?.pix_key || null,
+          ...financialPayload,
+          created_at: new Date().toISOString(),
+        };
+
+        const { data, error } = await (supabase.from("freelancers") as any)
+          .upsert(insertPayload, { onConflict: "id" })
+          .select()
+          .maybeSingle();
+
+        if (error) {
+          console.warn("Aviso ao upsert freelancers financeiro:", error);
+        }
+        return data || insertPayload;
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["current-freelancer-profile"] });

@@ -1,0 +1,133 @@
+-- ==============================================================================
+-- DELSKI ERP & CLOUD: SCRIPT COMPLETO DE ATUALIZAÇÃO DO SUPABASE
+-- Execute este script no SQL Editor do Supabase para sincronizar todas as tabelas
+-- ==============================================================================
+
+-- 1. TABELA public.projects
+DO $$
+BEGIN
+  -- 1.1 Adicionar colunas de campos de contrato no projeto se não existirem
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'projects' AND column_name = 'contract_field_values'
+  ) THEN
+    ALTER TABLE public.projects ADD COLUMN contract_field_values jsonb NOT NULL DEFAULT '{}'::jsonb;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'projects' AND column_name = 'contract_fields_status'
+  ) THEN
+    ALTER TABLE public.projects ADD COLUMN contract_fields_status text DEFAULT 'pendente';
+  END IF;
+
+  -- 1.2 Remover constraints restritivas de service_type e status para aceitar 'Social Media' e todos os status
+  ALTER TABLE public.projects DROP CONSTRAINT IF EXISTS projects_service_type_check;
+  ALTER TABLE public.projects DROP CONSTRAINT IF EXISTS projects_status_check;
+  ALTER TABLE public.projects DROP CONSTRAINT IF EXISTS projects_contract_fields_status_check;
+END $$;
+
+-- 2. TABELA public.contract_models
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'contract_models' AND column_name = 'contract_type'
+  ) THEN
+    ALTER TABLE public.contract_models ADD COLUMN contract_type text DEFAULT 'PJ';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'contract_models' AND column_name = 'target_type'
+  ) THEN
+    ALTER TABLE public.contract_models ADD COLUMN target_type text DEFAULT 'freelancer';
+  END IF;
+END $$;
+
+-- Políticas RLS de contract_models
+ALTER TABLE public.contract_models ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Modelos contrato leitura publica" ON public.contract_models;
+CREATE POLICY "Modelos contrato leitura publica" ON public.contract_models FOR SELECT USING (true);
+DROP POLICY IF EXISTS "Gestores escrita modelos contrato" ON public.contract_models;
+CREATE POLICY "Gestores escrita modelos contrato" ON public.contract_models FOR ALL USING (true) WITH CHECK (true);
+
+-- 3. TABELA public.freelancers
+DO $$
+BEGIN
+  -- Adicionar colunas opcionais caso ainda não existam
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'freelancers' AND column_name = 'behance'
+  ) THEN
+    ALTER TABLE public.freelancers ADD COLUMN behance text;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'freelancers' AND column_name = 'contract_field_values'
+  ) THEN
+    ALTER TABLE public.freelancers ADD COLUMN contract_field_values jsonb DEFAULT '{}'::jsonb;
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'freelancers' AND column_name = 'contract_fields_status'
+  ) THEN
+    ALTER TABLE public.freelancers ADD COLUMN contract_fields_status text DEFAULT 'pendente';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns 
+    WHERE table_schema = 'public' AND table_name = 'freelancers' AND column_name = 'documents_status'
+  ) THEN
+    ALTER TABLE public.freelancers ADD COLUMN documents_status text DEFAULT 'pendente';
+  END IF;
+END $$;
+
+-- 4. BUCKETS DE STORAGE DO SUPABASE (Garante que todos os buckets existam e sejam públicos para upload)
+INSERT INTO storage.buckets (id, name, public)
+VALUES 
+  ('contract-templates', 'contract-templates', true),
+  ('contracts', 'contracts', true),
+  ('freelancer-documents', 'freelancer-documents', true),
+  ('client-documents', 'client-documents', true),
+  ('contract-generated', 'contract-generated', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+-- Políticas de Storage
+DROP POLICY IF EXISTS "Template docx upload publico" ON storage.objects;
+CREATE POLICY "Template docx upload publico" ON storage.objects
+FOR ALL TO public USING (true) WITH CHECK (true);
+
+-- 5. TABELA public.client_documents (Remover check constraints restritivas)
+DO $$
+BEGIN
+  -- Remover constraints restritivas de document_type e status
+  ALTER TABLE public.client_documents DROP CONSTRAINT IF EXISTS client_documents_document_type_check;
+  ALTER TABLE public.client_documents DROP CONSTRAINT IF EXISTS client_documents_doc_type_check;
+  ALTER TABLE public.client_documents DROP CONSTRAINT IF EXISTS client_documents_status_check;
+END $$;
+
+ALTER TABLE public.client_documents ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "client_documents_policy" ON public.client_documents;
+CREATE POLICY "client_documents_policy" ON public.client_documents FOR ALL USING (true) WITH CHECK (true);
+
+-- 6. CAMPOS DE CPF, BLOQUEIO (STATUS) E SOFT DELETE (CLIENTS, FREELANCERS, PROFILES)
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS cpf TEXT;
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';
+ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS cpf TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+
+-- 7. SUPORTE A ANEXOS/EVIDÊNCIAS NOS CHAMADOS SAC
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS evidence_url TEXT;
+
+-- ==============================================================================
+-- Fim do Script de Atualização
+-- ==============================================================================

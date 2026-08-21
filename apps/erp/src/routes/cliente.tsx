@@ -75,6 +75,8 @@ function ClienteLayout() {
     if (!isLoading) {
       if (!isAuthenticated) {
         navigate({ to: "/auth", replace: true });
+      } else if (!isGestor && (profile?.status === "bloqueado" || clientData?.status === "bloqueado" || profile?.status === "inativo")) {
+        navigate({ to: "/acesso-negado" as any, replace: true });
       } else if (!isGestor && isPendingApproval) {
         navigate({ to: "/aguardando-aprovacao" as any, replace: true });
       } else if (!isGestor && isRejected) {
@@ -98,6 +100,7 @@ function ClienteLayout() {
     isRejected,
     onboardingCompleted,
     profile,
+    clientData,
     navigate,
     user?.id,
   ]);

@@ -225,7 +225,6 @@ export function useCreateTicket() {
         category,
         subject,
         message,
-        evidence_url: evidenceUrl || null,
         priority,
         responsible_name: "Equipe Delski",
         status: "Aberto",
@@ -233,18 +232,55 @@ export function useCreateTicket() {
         updated_at: new Date().toISOString(),
       };
 
-      const { data: inserted, error } = await (supabase.from("support_tickets") as any)
+      if (evidenceUrl) {
+        ticketData.evidence_url = evidenceUrl;
+      }
+
+      let insertedId: string | null = null;
+
+      // 1. Tenta inserir com o payload completo
+      const { data: inserted, error: insertError } = await (supabase.from("support_tickets") as any)
         .insert([ticketData])
         .select("id")
         .single();
 
-      if (error) {
-        // Erro real — lança para que onError mostre o toast
-        throw new Error(
-          error.code === "42501"
-            ? "Permissão negada pelo banco de dados. Solicite ao gestor que execute o script SQL de configuração de permissões."
-            : `Erro ao abrir chamado: ${error.message}`
-        );
+      if (insertError) {
+        // Se o erro for de coluna evidence_url inexistente no schema cache
+        const isColumnError =
+          insertError.message?.includes("evidence_url") ||
+          insertError.message?.includes("schema cache") ||
+          insertError.code === "PGRST204";
+
+        if (isColumnError && ticketData.evidence_url) {
+          // Faz fallback anexando a URL no corpo da mensagem para não perder o anexo
+          const fallbackData = {
+            ...ticketData,
+            message: `${ticketData.message}\n\n📎 Anexo / Evidência: ${ticketData.evidence_url}`,
+          };
+          delete fallbackData.evidence_url;
+
+          const { data: fallbackInserted, error: fallbackErr } = await (supabase.from("support_tickets") as any)
+            .insert([fallbackData])
+            .select("id")
+            .single();
+
+          if (fallbackErr) {
+            throw new Error(
+              fallbackErr.code === "42501"
+                ? "Permissão negada pelo banco de dados. Solicite ao gestor que execute o script SQL de configuração de permissões."
+                : `Erro ao abrir chamado: ${fallbackErr.message}`
+            );
+          }
+          insertedId = fallbackInserted?.id || null;
+        } else {
+          throw new Error(
+            insertError.code === "42501"
+              ? "Permissão negada pelo banco de dados. Solicite ao gestor que execute o script SQL de configuração de permissões."
+              : `Erro ao abrir chamado: ${insertError.message}`
+          );
+        }
+      } else {
+        insertedId = inserted?.id || null;
       }
 
       // Invalida caches para ambos gestor e cliente
@@ -257,7 +293,7 @@ export function useCreateTicket() {
       }
 
       return {
-        id: inserted?.id || `ticket-${Date.now()}`,
+        id: insertedId || `ticket-${Date.now()}`,
         ...ticketData,
         replies: [],
       } as SupportTicket;

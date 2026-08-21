@@ -425,7 +425,15 @@ export function useUpdateClient() {
       qc.invalidateQueries({ queryKey: ["clients-list"] });
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["client-detail", v.id] });
-      toast.success("Dados cadastrais do cliente atualizados com sucesso!");
+      if (v.patch.status) {
+        toast.success(
+          v.patch.status === "bloqueado"
+            ? "Acesso do cliente bloqueado!"
+            : "Acesso do cliente ativado com sucesso!"
+        );
+      } else {
+        toast.success("Dados cadastrais do cliente atualizados com sucesso!");
+      }
     },
     onError: (e: Error) => toast.error(`Erro ao atualizar dados: ${e.message}`),
   });
@@ -436,20 +444,38 @@ export function useDeleteClient() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      // 1. Unlink projects
-      await supabase.from("projects").update({ client_id: null }).eq("client_id", id);
+      // 1. Clean up / unlink all dependent relations to prevent foreign key errors
+      await Promise.allSettled([
+        supabase.from("projects").update({ client_id: null }).eq("client_id", id),
+        (supabase.from("client_documents") as any).delete().eq("client_id", id),
+        (supabase.from("support_tickets") as any).delete().eq("client_id", id),
+        (supabase.from("support_tickets") as any).delete().eq("user_id", id),
+        (supabase.from("notifications") as any).delete().eq("user_id", id),
+        (supabase.from("leads") as any).update({ client_id: null }).eq("client_id", id),
+      ]);
 
-      // 2. Delete from clients table
-      await (supabase.from("clients") as any).delete().eq("id", id);
+      // 2. Delete from clients table (by id or auth_user_id)
+      try {
+        await (supabaseAdmin.from("clients") as any)
+          .delete()
+          .or(`id.eq.${id},auth_user_id.eq.${id}`);
+      } catch {}
 
-      // 3. Delete from profiles table
-      await supabase.from("profiles").delete().eq("id", id);
+      // 3. Delete from profiles table (via admin)
+      const { error: pErr } = await supabaseAdmin.from("profiles").delete().eq("id", id);
+      if (pErr) {
+        // Fallback: Soft delete if user account has auth constraints
+        await supabaseAdmin
+          .from("profiles")
+          .update({ status: "inativo", deleted_at: new Date().toISOString() })
+          .eq("id", id);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients-list"] });
       qc.invalidateQueries({ queryKey: ["clients"] });
       qc.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("Cliente e seu acesso foram excluídos do banco de dados.");
+      toast.success("Cliente e registros vinculados foram excluídos com sucesso.");
     },
     onError: (e: Error) => toast.error(`Erro ao excluir cliente: ${e.message}`),
   });

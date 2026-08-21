@@ -1098,7 +1098,7 @@ function Dashboard() {
             />
 
             <DistributionMetricCard
-              title="Taxa de Retenção & Recorrência"
+              title="Taxa de Retenção"
               subtitle="Clientes com 2 ou mais contratações na base"
               averageLabel="TAXA GERAL"
               numericAverage={retentionStats.rate}
@@ -1119,9 +1119,6 @@ function Dashboard() {
               <div>
                 <h3 className="text-[15px] font-bold text-foreground tracking-tight flex items-center gap-2">
                   <span>Densidade de Demandas &amp; Entregas</span>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
-                    Série Temporal Real
-                  </span>
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Curva contínua baseada na data de abertura dos projetos no sistema.
@@ -1216,9 +1213,6 @@ function Dashboard() {
                   Participação por categoria de serviço
                 </p>
               </div>
-              <Badge variant="outline" className="text-xs font-semibold">
-                {topServicesData.length} {topServicesData.length === 1 ? "Área" : "Áreas"}
-              </Badge>
             </div>
 
             {topServicesData.length === 0 ? (
@@ -1274,9 +1268,6 @@ function Dashboard() {
                   Volume de demandas por parceiro contratante
                 </p>
               </div>
-              <Badge variant="outline" className="text-xs font-semibold">
-                Top Contratantes
-              </Badge>
             </div>
 
             {topClientsData.length === 0 ? (

@@ -41,12 +41,194 @@ import {
 import type { ContractModelVariable, ContractModality } from "@/types/contract-models";
 
 const variableOriginSuggestions: Record<string, ContractModelVariable["origin"]> = {
+  // Qualificação - Empresa (Contratante)
   nome_representante_contratante: "company",
+  cargo_representante_contratante: "company",
+  email_contratante: "company",
+  telefone_contratante: "company",
+  observacoes_contratante: "company",
+
+  // Qualificação - Contratado (Freelancer)
+  nome_fantasia_contratado: "freelancer",
   razao_social_nome_contratado: "freelancer",
-  data_inicio: "project",
-  valor_contrato: "project",
-  descricao_servico: "project",
-  nome_assinatura: "manual",
+  cnpj_cpf_contratado: "freelancer",
+  segmento_atuacao_contratado: "freelancer",
+  email_contratado: "freelancer",
+  endereco_contratado: "freelancer",
+  cep_contratado: "freelancer",
+  cargo_responsavel_contratado: "freelancer",
+  telefone_contratado: "freelancer",
+  dados_bancarios_pix_contratado: "freelancer",
+  observacoes_contratado: "freelancer",
+
+  // Condições Comerciais / Projeto
+  vigencia_meses: "project",
+  data_inicio_prevista: "project",
+  periodicidade_relatorio: "project",
+  valor_inteiro: "project",
+  mensalidade_acordada: "project",
+  data_pagamento: "system",
+  metodo_pagamento: "system",
+  pasta_relatorios_compartilhada: "project",
+  prazo_minimo_contratacao: "project",
+
+  // Sistema / Assinaturas
+  cidade_assinatura: "system",
+  data_assinatura: "system",
+
+  // Testemunhas
+  nome_testemunha_1: "manual",
+  cpf_testemunha_1: "manual",
+  nome_testemunha_2: "manual",
+  cpf_testemunha_2: "manual",
+
+  // Especialidades / Escopo Técnico
+  canal_comunicacao: "project",
+  plataforma_automacao_utilizada: "project",
+  destino_leads: "project",
+  fluxos_jornadas_desenvolvidos: "project",
+  integracoes_especificas_necessarias: "project",
+  perguntas_qualificatorias_briefing: "project",
+  notificacao_time_vendas: "project",
+  data_entrega_primeira_entrega: "project",
+  prazo_suporte_tecnico_pos_entrega: "project",
+  acesso_plataforma_automacao: "project",
+  crm_destino_leads: "project",
+  acesso_whatsapp_business_api: "project",
+  outros_acessos_necessarios: "project",
+
+  tipo_projeto: "project",
+  objetivo_principal: "project",
+  paginas_funcionalidades_desenvolvidas: "project",
+  plataforma_desenvolvimento: "project",
+  integracoes_necessarias: "project",
+  responsavel_textos_imagens: "project",
+  numero_rodadas_revisao: "project",
+  responsavel_dominio: "project",
+  responsavel_hospedagem: "project",
+  sites_referencia_estilo_visual: "project",
+  identidade_visual_definida: "project",
+  ambiente_staging_necessario: "project",
+  prazo_layout_dias_uteis: "project",
+  prazo_desenvolvimento_completo: "project",
+  prazo_suporte_pos_golive: "project",
+  acesso_dominio_registradora: "project",
+  acesso_hospedagem: "project",
+  repositorio_codigo: "project",
+
+  redes_sociais_gerenciadas: "project",
+  qtd_posts_feed_mes: "project",
+  qtd_carrosseis_mes: "project",
+  qtd_stories_mes: "project",
+  outros_formatos_conteudo: "project",
+  criacao_legendas_incluida: "project",
+  numero_rodadas_revisao_lote: "project",
+  ferramenta_design: "project",
+  referencias_estilo_visual: "project",
+  persona_publico: "project",
+  prazo_entrega_primeiro_lote: "project",
+  manual_marca_disponivel: "project",
+  fonte_imagens: "project",
+  ferramenta_aprovacao: "project",
+  temas_elementos_proibidos: "project",
+
+  plataformas_veiculacao: "project",
+  produto_servico_anunciado: "project",
+  publico_alvo: "project",
+  meta_cac_cpl: "project",
+  responsavel_criativos: "project",
+  id_business_manager: "project",
+  id_conta_google_ads: "project",
+  acesso_tiktok_ads: "project",
+  url_site_landing_page: "project",
+
+  tipo_site: "project",
+  cms_utilizado: "project",
+  responsavel_conteudo: "project",
+  componentes_padroes_criar: "project",
+  manual_marca_guideline_disponivel: "project",
+  cores_fontes_tokens_design: "project",
+  referencias_visuais: "project",
+  estilo_visual_desejado: "project",
+  ferramenta_design_acordada: "project",
+  prazo_primeiros_layouts: "project",
+  prazo_wireframes: "project",
+  prazo_layouts_finais: "project",
+  prazo_handoff_assets: "project",
+  acesso_figma_ferramenta_design: "project",
+  acesso_ferramentas_gestao: "project",
+
+  pesquisa_usuarios_necessaria: "project",
+  perfil_participantes_pesquisa: "project",
+  escopo_ui_assistente_navegacao: "project",
+  escopo_ui_dashboard_inteligencia: "project",
+  prazo_design_system_completo: "project",
+  prazo_prototipo_navegavel: "project",
+};
+
+const variableSectionSuggestions: Record<string, string> = {
+  nome_representante_contratante: "Qualificação (Cláusula 1ª)",
+  cargo_representante_contratante: "Qualificação (Cláusula 1ª)",
+  email_contratante: "Qualificação (Cláusula 1ª)",
+  telefone_contratante: "Qualificação (Cláusula 1ª)",
+  nome_fantasia_contratado: "Qualificação (Cláusula 1ª)",
+  razao_social_nome_contratado: "Qualificação (Cláusula 1ª)",
+  cnpj_cpf_contratado: "Qualificação (Cláusula 1ª)",
+  segmento_atuacao_contratado: "Qualificação (Cláusula 1ª)",
+  email_contratado: "Qualificação (Cláusula 1ª)",
+  endereco_contratado: "Qualificação (Cláusula 1ª)",
+  cep_contratado: "Qualificação (Cláusula 1ª)",
+  cargo_responsavel_contratado: "Qualificação (Cláusula 1ª)",
+  telefone_contratado: "Qualificação (Cláusula 1ª)",
+
+  vigencia_meses: "Condições Comerciais",
+  data_inicio_prevista: "Condições Comerciais",
+  periodicidade_relatorio: "Condições Comerciais",
+  valor_inteiro: "Condições Comerciais",
+  mensalidade_acordada: "Condições Comerciais",
+  data_pagamento: "Condições Comerciais",
+  metodo_pagamento: "Condições Comerciais",
+  dados_bancarios_pix_contratado: "Condições Comerciais",
+  pasta_relatorios_compartilhada: "Condições Comerciais",
+  observacoes_contratado: "Condições Comerciais",
+  observacoes_contratante: "Condições Comerciais",
+  prazo_minimo_contratacao: "Condições Comerciais",
+
+  cidade_assinatura: "Assinaturas & Testemunhas",
+  data_assinatura: "Assinaturas & Testemunhas",
+  nome_testemunha_1: "Assinaturas & Testemunhas",
+  cpf_testemunha_1: "Assinaturas & Testemunhas",
+  nome_testemunha_2: "Assinaturas & Testemunhas",
+  cpf_testemunha_2: "Assinaturas & Testemunhas",
+
+  data_entrega_primeira_entrega: "Prazos & Entregas",
+  prazo_suporte_tecnico_pos_entrega: "Prazos & Entregas",
+  prazo_layout_dias_uteis: "Prazos & Entregas",
+  prazo_desenvolvimento_completo: "Prazos & Entregas",
+  prazo_suporte_pos_golive: "Prazos & Entregas",
+  prazo_entrega_primeiro_lote: "Prazos & Entregas",
+  prazo_primeiros_layouts: "Prazos & Entregas",
+  prazo_wireframes: "Prazos & Entregas",
+  prazo_layouts_finais: "Prazos & Entregas",
+  prazo_handoff_assets: "Prazos & Entregas",
+  prazo_design_system_completo: "Prazos & Entregas",
+  prazo_prototipo_navegavel: "Prazos & Entregas",
+
+  acesso_plataforma_automacao: "Acessos & Ferramentas",
+  crm_destino_leads: "Acessos & Ferramentas",
+  acesso_whatsapp_business_api: "Acessos & Ferramentas",
+  outros_acessos_necessarios: "Acessos & Ferramentas",
+  acesso_dominio_registradora: "Acessos & Ferramentas",
+  acesso_hospedagem: "Acessos & Ferramentas",
+  repositorio_codigo: "Acessos & Ferramentas",
+  ferramenta_design: "Acessos & Ferramentas",
+  ferramenta_aprovacao: "Acessos & Ferramentas",
+  id_business_manager: "Acessos & Ferramentas",
+  id_conta_google_ads: "Acessos & Ferramentas",
+  acesso_tiktok_ads: "Acessos & Ferramentas",
+  acesso_figma_ferramenta_design: "Acessos & Ferramentas",
+  acesso_ferramentas_gestao: "Acessos & Ferramentas",
+  ferramenta_design_acordada: "Acessos & Ferramentas",
 };
 
 const ORIGIN_LABELS: Record<ContractModelVariable["origin"], string> = {
@@ -73,7 +255,7 @@ const defaultVariableMap: ContractModelVariable[] = [
   {
     name: "nome_representante_contratante",
     origin: "company",
-    section: "Partes",
+    section: "Qualificação (Cláusula 1ª)",
     order: 1,
     label: "Nome do Representante Contratante",
     defaultValue: "",
@@ -81,9 +263,25 @@ const defaultVariableMap: ContractModelVariable[] = [
   {
     name: "razao_social_nome_contratado",
     origin: "freelancer",
-    section: "Partes",
+    section: "Qualificação (Cláusula 1ª)",
     order: 2,
     label: "Razão Social ou Nome do Contratado",
+    defaultValue: "",
+  },
+  {
+    name: "cnpj_cpf_contratado",
+    origin: "freelancer",
+    section: "Qualificação (Cláusula 1ª)",
+    order: 3,
+    label: "CNPJ / CPF do Contratado",
+    defaultValue: "",
+  },
+  {
+    name: "mensalidade_acordada",
+    origin: "project",
+    section: "Condições Comerciais",
+    order: 4,
+    label: "Mensalidade Acordada",
     defaultValue: "",
   },
 ];
@@ -95,15 +293,54 @@ export const Route = createFileRoute("/app/contract-models/")({
   component: ContractModelsPage,
 });
 
+function formatVariableLabel(name: string): string {
+  const acronyms: Record<string, string> = {
+    cpf: "CPF",
+    cnpj: "CNPJ",
+    pix: "PIX",
+    crm: "CRM",
+    api: "API",
+    id: "ID",
+    url: "URL",
+    cac: "CAC",
+    cpl: "CPL",
+    cms: "CMS",
+    ui: "UI",
+    ux: "UX",
+    pj: "PJ",
+    clt: "CLT",
+    nfs: "NFs",
+    qtd: "Qtd.",
+  };
+
+  return name
+    .replace(/[_-]+/g, " ")
+    .trim()
+    .split(/\s+/)
+    .map((word) => {
+      const lower = word.toLowerCase();
+      if (acronyms[lower]) return acronyms[lower];
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+}
+
 function buildVariableMap(variableNames: string[]) {
-  return variableNames.map((name, index) => ({
-    name,
-    origin: variableOriginSuggestions[name] ?? "manual",
-    section: "Geral",
-    order: index + 1,
-    label: name.replace(/[_-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-    defaultValue: "",
-  }));
+  return variableNames.map((name, index) => {
+    const cleanName = name.trim();
+    const origin = variableOriginSuggestions[cleanName] ?? "manual";
+    const section = variableSectionSuggestions[cleanName] ?? "Escopo & Detalhes Técnicos";
+    const label = formatVariableLabel(cleanName);
+
+    return {
+      name: cleanName,
+      origin,
+      section,
+      order: index + 1,
+      label,
+      defaultValue: "",
+    };
+  });
 }
 
 interface PendingFile {

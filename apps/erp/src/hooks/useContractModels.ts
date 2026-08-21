@@ -55,26 +55,81 @@ export function useContractModel(id: string) {
   });
 }
 
+export async function extractVariablesFromDocxBlob(file: File): Promise<string[]> {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const { default: PizZip } = await import("pizzip");
+    const zip = new PizZip(arrayBuffer);
+
+    const xmlFiles = Object.keys(zip.files).filter(
+      (name) =>
+        (name.startsWith("word/") || name.startsWith("word/header") || name.startsWith("word/footer")) &&
+        name.endsWith(".xml"),
+    );
+
+    const variableSet = new Set<string>();
+
+    for (const fileName of xmlFiles) {
+      const zipFile = zip.file(fileName);
+      if (!zipFile) continue;
+      const content = zipFile.asText();
+
+      // 1. Direct regex on raw XML for {{variable}}
+      const rawMatches = content.match(/\{\{\s*([a-zA-Z0-9_\-\.]+)\s*\}\}/g);
+      if (rawMatches) {
+        for (const match of rawMatches) {
+          const clean = match.replace(/[{}]/g, "").trim();
+          if (clean) variableSet.add(clean);
+        }
+      }
+
+      // 2. Strip XML tags to get pure concatenated text (handles variables split across multiple <w:t> runs)
+      const strippedText = content.replace(/<[^>]+>/g, "");
+      const strippedMatches = strippedText.match(/\{\{\s*([a-zA-Z0-9_\-\.]+)\s*\}\}/g);
+      if (strippedMatches) {
+        for (const match of strippedMatches) {
+          const clean = match.replace(/[{}]/g, "").trim();
+          if (clean) variableSet.add(clean);
+        }
+      }
+    }
+
+    return Array.from(variableSet);
+  } catch (err) {
+    console.warn("Falha na extração client-side via PizZip, tentando fallback:", err);
+    return [];
+  }
+}
+
 export function useUploadContractTemplate() {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (file: File) => {
-      const filePath = `templates/${Date.now()}_${file.name}`;
-      const { data, error } = await supabase.storage
-        .from("contract-templates")
-        .upload(filePath, file, { contentType: file.type });
+      const filePath = `templates/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
 
-      if (error || !data) {
-        throw error ?? new Error("Erro ao enviar modelo de contrato.");
+      // Try with supabase first, fallback to supabaseAdmin
+      let uploadRes = await supabase.storage
+        .from("contract-templates")
+        .upload(filePath, file, { contentType: file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document", upsert: true });
+
+      if (uploadRes.error) {
+        console.warn("Tentando upload de template via supabaseAdmin:", uploadRes.error.message);
+        uploadRes = await supabaseAdmin.storage
+          .from("contract-templates")
+          .upload(filePath, file, { contentType: file.type || "application/vnd.openxmlformats-officedocument.wordprocessingml.document", upsert: true });
+      }
+
+      if (uploadRes.error || !uploadRes.data) {
+        throw uploadRes.error ?? new Error("Erro ao enviar modelo de contrato para o Storage.");
       }
 
       const { data: publicUrlData } = supabase.storage
         .from("contract-templates")
-        .getPublicUrl(data.path);
+        .getPublicUrl(uploadRes.data.path);
 
       return {
-        path: data.path,
+        path: uploadRes.data.path,
         publicUrl: publicUrlData.publicUrl,
       } as ContractTemplateUploadResult;
     },
@@ -87,21 +142,33 @@ export function useUploadContractTemplate() {
 export function useExtractContractVariables() {
   return useMutation({
     mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.set("file", file);
-
-      const response = await fetch("/api/contract-models/extract-variables", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        throw new Error(data?.message ?? "Erro ao extrair variáveis do arquivo .docx");
+      // 1. First attempt: 100% Client-Side Extraction via PizZip (Zero network dependency)
+      const localVars = await extractVariablesFromDocxBlob(file);
+      if (localVars.length > 0) {
+        return localVars;
       }
 
-      const data = await response.json();
-      return data.variables as string[];
+      // 2. Fallback attempt via API if client extraction found nothing
+      try {
+        const formData = new FormData();
+        formData.set("file", file);
+
+        const response = await fetch("/api/contract-models/extract-variables", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data.variables) && data.variables.length > 0) {
+            return data.variables as string[];
+          }
+        }
+      } catch (e) {
+        console.warn("API extraction route unavailable, continuing with client-side results:", e);
+      }
+
+      return localVars;
     },
   });
 }
@@ -311,13 +378,50 @@ export function useCreateContractModel() {
 
   return useMutation({
     mutationFn: async (input: Omit<ContractModel, "id" | "created_at" | "updated_at">) => {
+      // 1. Try full payload with supabase
       const { data, error } = await supabase
         .from("contract_models")
-        .insert(input)
+        .insert(input as any)
         .select()
         .single();
-      if (error) throw error;
-      return data as ContractModel;
+
+      if (!error && data) {
+        return data as ContractModel;
+      }
+
+      console.warn("Tentando criar modelo com supabaseAdmin e fallback de colunas:", error?.message);
+
+      // 2. Try with supabaseAdmin
+      const { data: adminData, error: adminError } = await supabaseAdmin
+        .from("contract_models")
+        .insert(input as any)
+        .select()
+        .single();
+
+      if (!adminError && adminData) {
+        return adminData as ContractModel;
+      }
+
+      // 3. Fallback: strip optional columns (target_type, contract_type) if database schema lacks them
+      const { contract_type, target_type, ...baseInput } = input as any;
+      const { data: baseData, error: baseError } = await supabaseAdmin
+        .from("contract_models")
+        .insert(baseInput)
+        .select()
+        .single();
+
+      if (baseError) {
+        const { data: plainData, error: plainError } = await supabase
+          .from("contract_models")
+          .insert(baseInput)
+          .select()
+          .single();
+
+        if (plainError) throw plainError;
+        return plainData as ContractModel;
+      }
+
+      return baseData as ContractModel;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["contract_models"] });

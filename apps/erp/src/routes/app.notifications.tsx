@@ -82,7 +82,6 @@ function NotificationsPage() {
   const deleteNotification = useDeleteNotification();
   const clearAllNotifications = useClearAllNotifications();
 
-  const [filterCategory, setFilterCategory] = useState<CategoryFilter>("all");
   const [showSendModal, setShowSendModal] = useState(false);
   const [recipientMode, setRecipientMode] = useState<"all" | "specific">("all");
   const [selectedRecipients, setSelectedRecipients] = useState<string[]>([]);
@@ -371,38 +370,6 @@ function NotificationsPage() {
     };
   };
 
-  // Filtered notifications list
-  const filteredNotifications = useMemo(() => {
-    if (filterCategory === "all") return inbox;
-    return inbox.filter((n) => {
-      const { category } = parseAlertData(n);
-      return category === filterCategory;
-    });
-  }, [inbox, filterCategory]);
-
-  // Dynamic counts for category tabs
-  const counts = useMemo(() => {
-    const total = inbox.length;
-    let prazos = 0;
-    let inatividade = 0;
-    let financeiro = 0;
-    let sac = 0;
-    let margem = 0;
-    let manual = 0;
-
-    inbox.forEach((n) => {
-      const { category } = parseAlertData(n);
-      if (category === "prazos") prazos++;
-      else if (category === "inatividade") inatividade++;
-      else if (category === "financeiro") financeiro++;
-      else if (category === "sac") sac++;
-      else if (category === "margem") margem++;
-      else if (category === "manual") manual++;
-    });
-
-    return { total, prazos, inatividade, financeiro, sac, margem, manual };
-  }, [inbox]);
-
   const handleSendManual = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !message.trim()) {
@@ -450,7 +417,7 @@ function NotificationsPage() {
               size="sm"
               onClick={() => clearAllNotifications.mutate(user?.id)}
               disabled={clearAllNotifications.isPending}
-              className="text-xs font-semibold border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 gap-1.5 rounded-xl h-9"
+              className="text-xs font-semibold border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 gap-1.5 rounded-xl h-9 cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5 text-rose-500" />
               Limpar Feed
@@ -461,7 +428,7 @@ function NotificationsPage() {
             <Button
               size="sm"
               onClick={() => setShowSendModal(!showSendModal)}
-              className="text-xs font-semibold bg-slate-900 hover:bg-black text-white gap-1.5 rounded-xl h-9 shadow-sm"
+              className="text-xs font-semibold bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-700 text-white gap-1.5 rounded-xl h-9 shadow-sm cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               Novo Comunicado
@@ -470,106 +437,7 @@ function NotificationsPage() {
         </div>
       </div>
 
-      {/* ── 2. KPI HUD Summary Cards ──────────────────────────────────── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        <div
-          onClick={() => setFilterCategory("all")}
-          className={`cursor-pointer border rounded-2xl p-4 transition-all ${
-            filterCategory === "all"
-              ? "bg-slate-900 text-white border-slate-900 shadow-sm"
-              : "bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 text-slate-900 dark:text-white hover:border-slate-300"
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-medium opacity-80">
-            <span>Total</span>
-            <Bell className="w-3.5 h-3.5" />
-          </div>
-          <p className="text-2xl font-bold mt-1">{counts.total}</p>
-          <p className="text-[11px] opacity-70 mt-0.5">Todos os registros</p>
-        </div>
-
-        <div
-          onClick={() => setFilterCategory("prazos")}
-          className={`cursor-pointer border rounded-2xl p-4 transition-all ${
-            filterCategory === "prazos"
-              ? "bg-rose-600 text-white border-rose-600 shadow-sm"
-              : "bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 text-slate-900 dark:text-white hover:border-rose-300"
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-medium opacity-80">
-            <span>Prazos</span>
-            <AlertCircle className="w-3.5 h-3.5 text-rose-500" />
-          </div>
-          <p className="text-2xl font-bold mt-1 text-rose-600 dark:text-rose-400">{counts.prazos}</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">Entregas vencidas</p>
-        </div>
-
-        <div
-          onClick={() => setFilterCategory("inatividade")}
-          className={`cursor-pointer border rounded-2xl p-4 transition-all ${
-            filterCategory === "inatividade"
-              ? "bg-amber-600 text-white border-amber-600 shadow-sm"
-              : "bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 text-slate-900 dark:text-white hover:border-amber-300"
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-medium opacity-80">
-            <span>Inatividade</span>
-            <Clock className="w-3.5 h-3.5 text-amber-500" />
-          </div>
-          <p className="text-2xl font-bold mt-1 text-amber-600 dark:text-amber-400">{counts.inatividade}</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">7+ dias sem update</p>
-        </div>
-
-        <div
-          onClick={() => setFilterCategory("margem")}
-          className={`cursor-pointer border rounded-2xl p-4 transition-all ${
-            filterCategory === "margem"
-              ? "bg-orange-600 text-white border-orange-600 shadow-sm"
-              : "bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 text-slate-900 dark:text-white hover:border-orange-300"
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-medium opacity-80">
-            <span>Margem</span>
-            <TrendingDown className="w-3.5 h-3.5 text-orange-500" />
-          </div>
-          <p className="text-2xl font-bold mt-1 text-orange-600 dark:text-orange-400">{counts.margem}</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">Margem &lt; 30%</p>
-        </div>
-
-        <div
-          onClick={() => setFilterCategory("sac")}
-          className={`cursor-pointer border rounded-2xl p-4 transition-all ${
-            filterCategory === "sac"
-              ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-              : "bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 text-slate-900 dark:text-white hover:border-blue-300"
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-medium opacity-80">
-            <span>SAC</span>
-            <LifeBuoy className="w-3.5 h-3.5 text-blue-500" />
-          </div>
-          <p className="text-2xl font-bold mt-1 text-blue-600 dark:text-blue-400">{counts.sac}</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">Chamados abertos</p>
-        </div>
-
-        <div
-          onClick={() => setFilterCategory("financeiro")}
-          className={`cursor-pointer border rounded-2xl p-4 transition-all ${
-            filterCategory === "financeiro"
-              ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-              : "bg-white dark:bg-zinc-900 border-slate-200/80 dark:border-zinc-800 text-slate-900 dark:text-white hover:border-emerald-300"
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs font-medium opacity-80">
-            <span>Financeiro</span>
-            <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
-          </div>
-          <p className="text-2xl font-bold mt-1 text-emerald-600 dark:text-emerald-400">{counts.financeiro}</p>
-          <p className="text-[11px] text-slate-400 mt-0.5">Faturas & Repasses</p>
-        </div>
-      </div>
-
-      {/* ── 3. Modal / Card Recolhível: Envio Manual de Comunicado ────── */}
+      {/* ── 2. Modal / Card Recolhível: Envio Manual de Comunicado ────── */}
       <AnimatePresence>
         {showSendModal && isGestor && (
           <motion.div
@@ -578,14 +446,14 @@ function NotificationsPage() {
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <Card className="border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-zinc-900 rounded-3xl p-6 shadow-sm">
+            <div className="border border-slate-200/90 dark:border-zinc-800 bg-white dark:bg-[#11131A] rounded-2xl p-6 shadow-sm">
               <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-zinc-800">
                 <div>
                   <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
                     <Send className="w-4 h-4 text-slate-700 dark:text-zinc-300" />
                     Emitir Comunicado aos Prestadores / Freelancers
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
                     Dispare comunicados instantâneos para toda a rede ou prestadores específicos.
                   </p>
                 </div>
@@ -593,7 +461,7 @@ function NotificationsPage() {
                   variant="ghost"
                   size="sm"
                   onClick={() => setShowSendModal(false)}
-                  className="text-xs text-slate-400 hover:text-slate-600"
+                  className="text-xs text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   Fechar
                 </Button>
@@ -609,10 +477,10 @@ function NotificationsPage() {
                       <button
                         type="button"
                         onClick={() => { setRecipientMode("all"); setSelectedRecipients([]); }}
-                        className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl border transition-all ${
+                        className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                           recipientMode === "all"
-                            ? "bg-slate-900 text-white border-slate-900"
-                            : "bg-slate-50 text-slate-600 border-slate-200"
+                            ? "bg-slate-900 text-white border-slate-900 dark:bg-blue-600 dark:border-blue-600"
+                            : "bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border-slate-200 dark:border-zinc-700"
                         }`}
                       >
                         Todos os Freelancers ({freelancers.length})
@@ -620,10 +488,10 @@ function NotificationsPage() {
                       <button
                         type="button"
                         onClick={() => setRecipientMode("specific")}
-                        className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl border transition-all ${
+                        className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl border transition-all cursor-pointer ${
                           recipientMode === "specific"
-                            ? "bg-slate-900 text-white border-slate-900"
-                            : "bg-slate-50 text-slate-600 border-slate-200"
+                            ? "bg-slate-900 text-white border-slate-900 dark:bg-blue-600 dark:border-blue-600"
+                            : "bg-slate-50 dark:bg-zinc-800 text-slate-600 dark:text-zinc-300 border-slate-200 dark:border-zinc-700"
                         }`}
                       >
                         Selecionar Específicos
@@ -639,7 +507,7 @@ function NotificationsPage() {
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
                       placeholder="Ex: Atualização de Diretrizes de Entrega"
-                      className="h-9.5 text-xs rounded-xl bg-slate-50/50"
+                      className="h-9.5 text-xs rounded-xl bg-slate-50/50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 text-foreground dark:text-white"
                       required
                     />
                   </div>
@@ -650,11 +518,11 @@ function NotificationsPage() {
                     <Label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">
                       Escolha os Prestadores
                     </Label>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto p-2 border border-slate-200 rounded-xl bg-slate-50/50">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-36 overflow-y-auto p-2 border border-slate-200 dark:border-zinc-700 rounded-xl bg-slate-50/50 dark:bg-zinc-800/50">
                       {freelancers.map((f) => (
                         <label
                           key={f.id}
-                          className="flex items-center gap-2 text-xs text-slate-700 dark:text-zinc-300 cursor-pointer p-1.5 rounded-lg hover:bg-white transition-colors"
+                          className="flex items-center gap-2 text-xs text-slate-700 dark:text-zinc-300 cursor-pointer p-1.5 rounded-lg hover:bg-white dark:hover:bg-zinc-700 transition-colors"
                         >
                           <input
                             type="checkbox"
@@ -683,7 +551,7 @@ function NotificationsPage() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Escreva as instruções ou orientações para a equipe..."
-                    className="text-xs rounded-xl min-h-[80px] bg-slate-50/50"
+                    className="text-xs rounded-xl min-h-[80px] bg-slate-50/50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 text-foreground dark:text-white"
                     required
                   />
                 </div>
@@ -692,113 +560,33 @@ function NotificationsPage() {
                   <Button
                     type="submit"
                     disabled={sendManualNotification.isPending}
-                    className="text-xs font-semibold bg-slate-900 hover:bg-black text-white rounded-xl h-9 px-5 shadow-sm"
+                    className="text-xs font-semibold bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-700 text-white rounded-xl h-9 px-5 shadow-sm cursor-pointer"
                   >
                     {sendManualNotification.isPending ? "Disparando..." : "Disparar Comunicado"}
                   </Button>
                 </div>
               </form>
-            </Card>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── 4. Category Filter Tabs & Quick Search ────────────────────── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        <button
-          onClick={() => setFilterCategory("all")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-            filterCategory === "all"
-              ? "bg-slate-900 text-white shadow-xs"
-              : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border border-slate-200/80 dark:border-zinc-800 hover:bg-slate-50"
-          }`}
-        >
-          Todos ({counts.total})
-        </button>
-
-        <button
-          onClick={() => setFilterCategory("prazos")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-            filterCategory === "prazos"
-              ? "bg-rose-600 text-white shadow-xs"
-              : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border border-slate-200/80 dark:border-zinc-800 hover:bg-slate-50"
-          }`}
-        >
-          🚨 Prazos & Críticos ({counts.prazos})
-        </button>
-
-        <button
-          onClick={() => setFilterCategory("inatividade")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-            filterCategory === "inatividade"
-              ? "bg-amber-600 text-white shadow-xs"
-              : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border border-slate-200/80 dark:border-zinc-800 hover:bg-slate-50"
-          }`}
-        >
-          ⏱️ Inatividade ({counts.inatividade})
-        </button>
-
-        <button
-          onClick={() => setFilterCategory("margem")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-            filterCategory === "margem"
-              ? "bg-orange-600 text-white shadow-xs"
-              : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border border-slate-200/80 dark:border-zinc-800 hover:bg-slate-50"
-          }`}
-        >
-          📊 Margem Crítica ({counts.margem})
-        </button>
-
-        <button
-          onClick={() => setFilterCategory("sac")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-            filterCategory === "sac"
-              ? "bg-blue-600 text-white shadow-xs"
-              : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border border-slate-200/80 dark:border-zinc-800 hover:bg-slate-50"
-          }`}
-        >
-          📩 SAC & Suporte ({counts.sac})
-        </button>
-
-        <button
-          onClick={() => setFilterCategory("financeiro")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-            filterCategory === "financeiro"
-              ? "bg-emerald-600 text-white shadow-xs"
-              : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border border-slate-200/80 dark:border-zinc-800 hover:bg-slate-50"
-          }`}
-        >
-          💰 Financeiro ({counts.financeiro})
-        </button>
-
-        <button
-          onClick={() => setFilterCategory("manual")}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-            filterCategory === "manual"
-              ? "bg-slate-800 text-white shadow-xs"
-              : "bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border border-slate-200/80 dark:border-zinc-800 hover:bg-slate-50"
-          }`}
-        >
-          📤 Comunicados ({counts.manual})
-        </button>
-      </div>
-
-      {/* ── 5. Feed de Alertas Inteligentes ───────────────────────────── */}
+      {/* ── 3. Feed Direto e Limpo de Notificações ───────────────────────────── */}
       <div className="space-y-3">
-        {filteredNotifications.length === 0 ? (
-          <div className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/80 dark:border-zinc-800 p-12 text-center space-y-3">
-            <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-zinc-800 flex items-center justify-center text-slate-400 mx-auto">
+        {inbox.length === 0 ? (
+          <div className="bg-white dark:bg-[#11131A] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-12 text-center space-y-3 shadow-xs">
+            <div className="w-12 h-12 rounded-full bg-slate-50 dark:bg-zinc-800/80 flex items-center justify-center text-slate-400 mx-auto">
               <CheckCircle2 className="w-6 h-6 text-emerald-500" />
             </div>
             <h3 className="text-base font-bold text-slate-900 dark:text-white">
-              Nenhum alerta pendente nesta categoria
+              Nenhum alerta ou notificação pendente
             </h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm mx-auto">
               Todos os projetos, cronogramas, margens financeiras e chamados de suporte estão em conformidade.
             </p>
           </div>
         ) : (
-          filteredNotifications.map((n) => {
+          inbox.map((n) => {
             const {
               badgeLabel,
               badgeColor,
@@ -822,7 +610,7 @@ function NotificationsPage() {
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
-                className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/80 dark:border-zinc-800 p-4 sm:p-5 shadow-xs hover:border-slate-300 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                className="bg-white dark:bg-[#11131A] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-4 sm:p-5 shadow-xs hover:border-slate-300 dark:hover:border-zinc-700 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="flex items-start gap-3.5 min-w-0">
                   <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-zinc-800/80 border border-slate-200/60 dark:border-zinc-700 flex items-center justify-center shrink-0 mt-0.5">
@@ -834,7 +622,7 @@ function NotificationsPage() {
                       <span className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full border ${badgeColor}`}>
                         {badgeLabel}
                       </span>
-                      <span className="text-xs text-slate-400 font-medium">{formattedTime}</span>
+                      <span className="text-xs text-slate-400 dark:text-zinc-500 font-medium">{formattedTime}</span>
                     </div>
 
                     <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-snug">
@@ -861,7 +649,7 @@ function NotificationsPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => deleteNotification.mutate(n.id)}
-                    className="h-8 w-8 p-0 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                    className="h-8 w-8 p-0 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 cursor-pointer"
                     title="Dispensar alerta"
                   >
                     <Trash2 className="w-3.5 h-3.5" />

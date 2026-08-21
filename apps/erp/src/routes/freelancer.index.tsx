@@ -136,6 +136,14 @@ const formatCNPJ = (value: string) => {
     .replace(/(\d{4})(\d)/, "$1-$2");
 };
 
+const formatCPF = (value: string) => {
+  const digits = value.replace(/\D/g, "").slice(0, 11);
+  return digits
+    .replace(/^(\d{3})(\d)/, "$1.$2")
+    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/\.(\d{3})(\d)/, ".$1-$2");
+};
+
 const formatCEP = (value: string) => {
   const digits = value.replace(/\D/g, "").slice(0, 8);
   return digits.replace(/^(\d{5})(\d)/, "$1-$2");
@@ -268,6 +276,7 @@ function FreelancerDashboardPage() {
   const [companyName, setCompanyName] = useState("");
   const [corporateName, setCorporateName] = useState("");
   const [cnpj, setCnpj] = useState("");
+  const [cpf, setCpf] = useState("");
   const [segment, setSegment] = useState("");
   const [corporateEmail, setCorporateEmail] = useState("");
   const [address, setAddress] = useState("");
@@ -569,6 +578,7 @@ function FreelancerDashboardPage() {
       setCompanyName(freelancer.company_name || "");
       setCorporateName(freelancer.corporate_name || "");
       setCnpj(freelancer.cnpj ? formatCNPJ(freelancer.cnpj) : "");
+      setCpf((freelancer as any).cpf ? formatCPF((freelancer as any).cpf) : (profile?.cpf_cnpj && profile.cpf_cnpj.length <= 14 ? formatCPF(profile.cpf_cnpj) : ""));
       setSegment(freelancer.segment || "");
       setCorporateEmail(freelancer.email || user?.email || "");
       setAddress(freelancer.address || "");
@@ -604,6 +614,7 @@ function FreelancerDashboardPage() {
         company_name: companyName.trim(),
         corporate_name: corporateName.trim(),
         cnpj: cnpj.trim(),
+        cpf: cpf.trim(),
         segment: segment.trim(),
         email: corporateEmail.trim().toLowerCase(),
         address: address.trim(),
@@ -768,9 +779,6 @@ function FreelancerDashboardPage() {
                 <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
                   {activeProjectsCount}
                 </span>
-                <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500 ml-1">
-                  demanda(s)
-                </span>
               </div>
             </motion.div>
 
@@ -791,9 +799,6 @@ function FreelancerDashboardPage() {
               <div className="flex items-baseline gap-1 py-1">
                 <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
                   {pendingProjectsCount}
-                </span>
-                <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500 ml-1">
-                  em produção
                 </span>
               </div>
             </motion.div>
@@ -1075,19 +1080,19 @@ function FreelancerDashboardPage() {
 
         {/* ── ABA 0.5: PROJETOS DELEGADOS ─────────────────────────────────── */}
         <TabsContent value="projetos" className="space-y-6 focus-visible:outline-none">
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
+          <div className="bg-card dark:bg-[#11131A] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-6 sm:p-8 shadow-xs space-y-6">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border dark:border-zinc-800 pb-5">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                  <FolderKanban className="h-5 w-5 text-blue-600" /> Projetos Delegados
+                <h2 className="text-xl font-bold text-foreground dark:text-zinc-100 tracking-tight flex items-center gap-2">
+                  <FolderKanban className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Projetos Delegados
                 </h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                <p className="text-xs sm:text-sm text-muted-foreground dark:text-zinc-400 mt-0.5">
                   Acompanhe os projetos, prazos e escopos atribuídos a você pela equipe Delski Cloud.
                 </p>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-slate-100 text-slate-700">
+                <span className="text-xs font-semibold px-3 py-1.5 rounded-full bg-muted dark:bg-zinc-800 text-foreground dark:text-zinc-300 border border-border dark:border-zinc-700">
                   {filteredAssignedProjects.length} de {assignedProjects.length} projeto(s)
                 </span>
               </div>
@@ -1096,17 +1101,17 @@ function FreelancerDashboardPage() {
             {/* Filter and Search Bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               <div className="relative flex-1">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground dark:text-zinc-500 pointer-events-none" />
                 <Input
                   value={projectSearchTerm}
                   onChange={(e) => setProjectSearchTerm(e.target.value)}
                   placeholder="Buscar por projeto, cliente ou serviço..."
-                  className="pl-9 h-10 text-xs sm:text-sm rounded-xl border-gray-200"
+                  className="pl-9 h-10 text-xs sm:text-sm rounded-xl border-input dark:border-zinc-700 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                 />
                 {projectSearchTerm && (
                   <button
                     onClick={() => setProjectSearchTerm("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
                   >
                     Limpar
                   </button>
@@ -1115,13 +1120,13 @@ function FreelancerDashboardPage() {
 
               <div className="w-full sm:w-56">
                 <Select value={projectStatusFilter} onValueChange={setProjectStatusFilter}>
-                  <SelectTrigger className="h-10 text-xs sm:text-sm rounded-xl border-gray-200 bg-white">
+                  <SelectTrigger className="h-10 text-xs sm:text-sm rounded-xl border-input dark:border-zinc-700 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white">
                     <div className="flex items-center gap-2">
-                      <Filter className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                      <Filter className="w-3.5 h-3.5 text-muted-foreground dark:text-zinc-500 shrink-0" />
                       <SelectValue placeholder="Status do Projeto" />
                     </div>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-card dark:bg-[#11131A] border-border dark:border-zinc-800 text-foreground dark:text-white">
                     <SelectItem value="todos">Todos os Status</SelectItem>
                     <SelectItem value="Em Andamento">Em Andamento</SelectItem>
                     <SelectItem value="Aguardando Inicio">Aguardando Início</SelectItem>
@@ -1134,22 +1139,22 @@ function FreelancerDashboardPage() {
 
             {/* Projects List / Grid */}
             {loadingProjects ? (
-              <div className="py-16 text-center text-gray-400 space-y-3">
-                <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600" />
+              <div className="py-16 text-center text-muted-foreground dark:text-zinc-500 space-y-3">
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-blue-600 dark:text-blue-400" />
                 <p className="text-xs font-medium">Carregando seus projetos...</p>
               </div>
             ) : filteredAssignedProjects.length === 0 ? (
-              <div className="py-16 text-center space-y-3 border border-dashed border-gray-200 rounded-2xl p-8 bg-gray-50/50">
-                <div className="w-12 h-12 rounded-2xl bg-white border border-gray-200 flex items-center justify-center mx-auto text-gray-400 shadow-xs">
+              <div className="py-16 text-center space-y-3 border border-dashed border-border dark:border-zinc-800 rounded-2xl p-8 bg-muted/20 dark:bg-zinc-900/40">
+                <div className="w-12 h-12 rounded-2xl bg-card dark:bg-zinc-800 border border-border dark:border-zinc-700 flex items-center justify-center mx-auto text-muted-foreground dark:text-zinc-400 shadow-xs">
                   <FolderKanban className="w-6 h-6" />
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-base font-bold text-gray-800">
+                  <h3 className="text-base font-bold text-foreground dark:text-zinc-200">
                     {projectSearchTerm || projectStatusFilter !== "todos"
                       ? "Nenhum projeto encontrado com os filtros selecionados"
                       : "Nenhum projeto atribuído no momento"}
                   </h3>
-                  <p className="text-xs text-gray-500 max-w-md mx-auto">
+                  <p className="text-xs text-muted-foreground dark:text-zinc-400 max-w-md mx-auto">
                     {projectSearchTerm || projectStatusFilter !== "todos"
                       ? "Tente alterar os termos de busca ou remover o filtro de status."
                       : "Assim que a equipe gestora delegar um novo projeto a você, ele aparecerá nesta listagem."}
@@ -1180,30 +1185,30 @@ function FreelancerDashboardPage() {
                   return (
                     <div
                       key={project.id}
-                      className="bg-white rounded-none sm:rounded-sm border border-gray-200 p-5 shadow-xs hover:shadow-sm hover:border-blue-500/40 transition-all flex flex-col justify-between space-y-4"
+                      className="bg-card dark:bg-[#151822] rounded-xl border border-slate-200/80 dark:border-zinc-800/80 p-5 shadow-xs hover:shadow-sm hover:border-blue-500/40 transition-all flex flex-col justify-between space-y-4"
                     >
                       <div className="space-y-3">
                         {/* Card Header: Title + Status (White-label, sem nome do cliente) */}
                         <div className="flex items-start justify-between gap-3">
                           <div className="space-y-1 min-w-0 flex-1">
-                            <h3 className="text-base font-bold text-gray-900 leading-snug">
+                            <h3 className="text-base font-bold text-foreground dark:text-zinc-100 leading-snug">
                               {project.title}
                             </h3>
                             {project.service_type && (
-                              <span className="inline-block text-[11px] font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-none border border-blue-100 uppercase tracking-wider">
+                              <span className="inline-block text-[11px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-md border border-blue-200/60 dark:border-blue-800/60 uppercase tracking-wider">
                                 {project.service_type}
                               </span>
                             )}
                           </div>
                           <span
-                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-none text-[11px] font-semibold border shrink-0 ${
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border shrink-0 ${
                               isDone
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
                                 : isInProgress
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                ? "bg-blue-500/10 text-blue-700 dark:text-blue-300 border-blue-500/30"
                                 : isReview
-                                ? "bg-purple-50 text-purple-700 border-purple-200"
-                                : "bg-amber-50 text-amber-700 border-amber-200"
+                                ? "bg-purple-500/10 text-purple-700 dark:text-purple-300 border-purple-500/30"
+                                : "bg-amber-500/10 text-amber-700 dark:text-amber-300 border-amber-500/30"
                             }`}
                           >
                             {isInProgress && (
@@ -1216,26 +1221,26 @@ function FreelancerDashboardPage() {
 
                         {/* Briefing preview if available */}
                         {project.briefing_content && (
-                          <p className="text-xs text-gray-500 line-clamp-2 bg-gray-50/70 p-2.5 rounded-none border border-gray-100 leading-relaxed">
+                          <p className="text-xs text-muted-foreground dark:text-zinc-400 line-clamp-2 bg-muted/30 dark:bg-zinc-900/60 p-2.5 rounded-lg border border-border dark:border-zinc-800 leading-relaxed">
                             {project.briefing_content}
                           </p>
                         )}
                       </div>
 
                       {/* Card Footer: Prazo, Honorários, Botões */}
-                      <div className="border-t border-gray-100 pt-3.5 space-y-3">
+                      <div className="border-t border-border dark:border-zinc-800 pt-3.5 space-y-3">
                         <div className="flex items-center justify-between text-xs">
-                          <div className="flex items-center gap-1.5 text-gray-600">
-                            <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          <div className="flex items-center gap-1.5 text-muted-foreground dark:text-zinc-400">
+                            <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
                             <span>
                               Prazo:{" "}
-                              <strong className="text-gray-900 font-semibold">
+                              <strong className="text-foreground dark:text-zinc-200 font-semibold">
                                 {formatDate(project.deadline)}
                               </strong>
                             </span>
                           </div>
 
-                          <div className="flex items-center gap-1 font-bold text-emerald-600">
+                          <div className="flex items-center gap-1 font-bold text-emerald-600 dark:text-emerald-400">
                             <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
                             <span>{money(project.freelancer_cost || 0)}</span>
                           </div>
@@ -1245,7 +1250,7 @@ function FreelancerDashboardPage() {
                           <Button
                             size="sm"
                             onClick={() => setSelectedProjectForDetails(project)}
-                            className="flex-1 bg-slate-900 hover:bg-black text-white text-xs h-9 rounded-none font-semibold gap-1.5 shadow-xs cursor-pointer"
+                            className="flex-1 bg-slate-900 hover:bg-black dark:bg-blue-600 dark:hover:bg-blue-700 text-white text-xs h-9 rounded-xl font-semibold gap-1.5 shadow-xs cursor-pointer"
                           >
                             <Eye className="w-3.5 h-3.5" /> Ver Detalhes do Projeto
                           </Button>
@@ -1255,7 +1260,7 @@ function FreelancerDashboardPage() {
                               href={project.google_drive_link}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="p-2 h-9 rounded-none border border-gray-200 hover:bg-blue-50 text-gray-600 hover:text-blue-600 flex items-center justify-center transition-all shrink-0 cursor-pointer"
+                              className="p-2 h-9 rounded-xl border border-border dark:border-zinc-700 hover:bg-blue-50 dark:hover:bg-zinc-800 text-muted-foreground hover:text-blue-600 flex items-center justify-center transition-all shrink-0 cursor-pointer"
                               title="Abrir pasta no Google Drive"
                             >
                               <ExternalLink className="w-4 h-4" />
@@ -1273,13 +1278,13 @@ function FreelancerDashboardPage() {
 
         {/* ── ABA 1: DADOS CADASTRAIS ──────────────────────────────────────── */}
         <TabsContent value="cadastrais" className="space-y-6 focus-visible:outline-none">
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <div className="bg-card dark:bg-[#11131A] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex items-center justify-between border-b border-border dark:border-zinc-800 pb-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-blue-600" /> Informações Cadastrais da PJ
+                <h2 className="text-xl font-bold text-foreground dark:text-zinc-100 tracking-tight flex items-center gap-2">
+                  <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Informações Cadastrais
                 </h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                <p className="text-xs sm:text-sm text-muted-foreground dark:text-zinc-400 mt-0.5">
                   Mantenha os dados cadastrais da sua empresa atualizados para fins de contrato e faturamento.
                 </p>
               </div>
@@ -1288,7 +1293,7 @@ function FreelancerDashboardPage() {
             <form onSubmit={handleSaveCadastral} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-name" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-name" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Nome Fantasia
                   </Label>
                   <Input
@@ -1296,12 +1301,12 @@ function FreelancerDashboardPage() {
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
                     placeholder="Nome comercial ou artístico"
-                    className="h-10"
+                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   />
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="f-corp" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-corp" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Razão Social
                   </Label>
                   <Input
@@ -1309,12 +1314,12 @@ function FreelancerDashboardPage() {
                     value={corporateName}
                     onChange={(e) => setCorporateName(e.target.value)}
                     placeholder="Razão Social completa"
-                    className="h-10"
+                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-cnpj" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-cnpj" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     CNPJ
                   </Label>
                   <Input
@@ -1323,12 +1328,26 @@ function FreelancerDashboardPage() {
                     onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
                     placeholder="00.000.000/0000-00"
                     maxLength={18}
-                    className="h-10 font-mono text-sm"
+                    className="h-10 font-mono text-sm bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-segment" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-cpf" className="text-xs font-semibold text-foreground dark:text-zinc-200">
+                    CPF do Responsável
+                  </Label>
+                  <Input
+                    id="f-cpf"
+                    value={cpf}
+                    onChange={(e) => setCpf(formatCPF(e.target.value))}
+                    placeholder="000.000.000-00"
+                    maxLength={14}
+                    className="h-10 font-mono text-sm bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <Label htmlFor="f-segment" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Segmento / Especialidade
                   </Label>
                   <Input
@@ -1336,30 +1355,30 @@ function FreelancerDashboardPage() {
                     value={segment}
                     onChange={(e) => setSegment(e.target.value)}
                     placeholder="Ex: Tráfego Pago, Desenvolvimento, Design"
-                    className="h-10"
+                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-email" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-email" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     E-mail Corporativo <span className="text-red-500">*</span>
                   </Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-zinc-400 pointer-events-none" />
                     <Input
                       id="f-email"
                       type="email"
                       value={corporateEmail}
                       onChange={(e) => setCorporateEmail(e.target.value)}
                       placeholder="prestador@empresa.com"
-                      className="h-10 pl-9"
+                      className="h-10 pl-9 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5 sm:col-span-2">
-                  <Label htmlFor="f-addr" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-addr" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Endereço Completo
                   </Label>
                   <Input
@@ -1367,12 +1386,12 @@ function FreelancerDashboardPage() {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Rua, Número, Bairro, Complemento"
-                    className="h-10"
+                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-cep" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-cep" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     CEP
                   </Label>
                   <Input
@@ -1381,12 +1400,12 @@ function FreelancerDashboardPage() {
                     onChange={(e) => setCep(formatCEP(e.target.value))}
                     placeholder="00000-000"
                     maxLength={9}
-                    className="h-10 font-mono text-sm"
+                    className="h-10 font-mono text-sm bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-city" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-city" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Cidade / UF
                   </Label>
                   <div className="flex gap-2">
@@ -1395,7 +1414,7 @@ function FreelancerDashboardPage() {
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       placeholder="Cidade"
-                      className="h-10 flex-1"
+                      className="h-10 flex-1 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                     />
                     <Input
                       id="f-state"
@@ -1403,13 +1422,13 @@ function FreelancerDashboardPage() {
                       onChange={(e) => setState(e.target.value.toUpperCase())}
                       placeholder="UF"
                       maxLength={2}
-                      className="h-10 w-16 text-center font-mono text-sm uppercase"
+                      className="h-10 w-16 text-center font-mono text-sm uppercase bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-contact" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-contact" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Nome do Responsável
                   </Label>
                   <Input
@@ -1417,12 +1436,12 @@ function FreelancerDashboardPage() {
                     value={contactName}
                     onChange={(e) => setContactName(e.target.value)}
                     placeholder="Nome completo"
-                    className="h-10"
+                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-role" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-role" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Cargo / Função
                   </Label>
                   <Input
@@ -1430,97 +1449,97 @@ function FreelancerDashboardPage() {
                     value={rolePosition}
                     onChange={(e) => setRolePosition(e.target.value)}
                     placeholder="Ex: Desenvolvedor Senior / Gestor de Tráfego"
-                    className="h-10"
+                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-phone" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-phone" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     WhatsApp
                   </Label>
                   <div className="relative">
-                    <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-zinc-400 pointer-events-none" />
                     <Input
                       id="f-phone"
                       value={phone}
                       onChange={(e) => setPhone(formatPhone(e.target.value))}
                       placeholder="(11) 99999-9999"
                       maxLength={15}
-                      className="h-10 pl-9 font-mono text-sm"
+                      className="h-10 pl-9 font-mono text-sm bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-site" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-site" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Site / Portfólio
                   </Label>
                   <div className="relative">
-                    <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-zinc-400 pointer-events-none" />
                     <Input
                       id="f-site"
                       value={website}
                       onChange={(e) => setWebsite(e.target.value)}
                       placeholder="https://meusite.com"
-                      className="h-10 pl-9"
+                      className="h-10 pl-9 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-insta" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-insta" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Instagram
                   </Label>
                   <div className="relative">
-                    <Instagram className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <Instagram className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-zinc-400 pointer-events-none" />
                     <Input
                       id="f-insta"
                       value={instagram}
                       onChange={(e) => setInstagram(e.target.value)}
                       placeholder="@perfil"
-                      className="h-10 pl-9"
+                      className="h-10 pl-9 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-link" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-link" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     LinkedIn
                   </Label>
                   <div className="relative">
-                    <Linkedin className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <Linkedin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-zinc-400 pointer-events-none" />
                     <Input
                       id="f-link"
                       value={linkedin}
                       onChange={(e) => setLinkedin(e.target.value)}
                       placeholder="linkedin.com/in/..."
-                      className="h-10 pl-9"
+                      className="h-10 pl-9 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="f-behance" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="f-behance" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Behance
                   </Label>
                   <div className="relative">
-                    <Globe className="absolute left-3 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <Globe className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-zinc-400 pointer-events-none" />
                     <Input
                       id="f-behance"
                       value={behance}
                       onChange={(e) => setBehance(e.target.value)}
                       placeholder="behance.net/..."
-                      className="h-10 pl-9"
+                      className="h-10 pl-9 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4 border-t border-gray-100">
+              <div className="flex justify-end pt-4 border-t border-border dark:border-zinc-800">
                 <Button
                   type="submit"
                   disabled={updateProfile.isPending}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 shadow-sm flex items-center gap-2"
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 shadow-sm flex items-center gap-2 cursor-pointer"
                 >
                   {updateProfile.isPending ? (
                     <>
@@ -1540,17 +1559,17 @@ function FreelancerDashboardPage() {
         {/* ── ABA 2: DOCUMENTAÇÃO ─────────────────────────────────────────── */}
         <TabsContent value="documentacao" className="space-y-6 focus-visible:outline-none">
           {/* Seção 1: Contrato Oficial Emitido pela Delski (Visualização do Prestador) */}
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="bg-card dark:bg-[#11131A] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-6 sm:p-8 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-border dark:border-zinc-800 pb-3">
               <div>
-                <h2 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5 text-blue-600" /> Contrato de Prestação de Serviços (Delski)
+                <h2 className="text-lg font-bold text-foreground dark:text-zinc-100 tracking-tight flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Contrato de Prestação de Serviços (Delski)
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-muted-foreground dark:text-zinc-400 mt-0.5">
                   Documento formal emitido e homologado pela diretoria da Delski regulamentando as entregas.
                 </p>
               </div>
-              <Badge variant="outline" className="text-xs bg-slate-50 text-gray-700 border-gray-200">
+              <Badge variant="outline" className="text-xs bg-slate-50 dark:bg-zinc-800/80 text-foreground dark:text-zinc-300 border-border dark:border-zinc-700">
                 Homologado pela Diretoria
               </Badge>
             </div>
@@ -1566,16 +1585,16 @@ function FreelancerDashboardPage() {
 
               if (downloadUrl) {
                 return (
-                  <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="p-4 rounded-xl bg-blue-50/50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
+                      <div className="h-10 w-10 rounded-lg bg-blue-100 dark:bg-blue-900/60 flex items-center justify-center text-blue-600 dark:text-blue-400 flex-shrink-0">
                         <FileText className="h-5 w-5" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-gray-900">
+                        <p className="text-sm font-bold text-foreground dark:text-zinc-100">
                           Contrato Oficial de Prestação de Serviços
                         </p>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-muted-foreground dark:text-zinc-400">
                           Documento disponível para consulta e download
                         </p>
                       </div>
@@ -1594,12 +1613,12 @@ function FreelancerDashboardPage() {
               }
 
               return (
-                <div className="p-6 rounded-xl border border-dashed border-gray-200 text-center space-y-2">
-                  <FileText className="h-8 w-8 text-gray-300 mx-auto" />
-                  <p className="text-sm font-medium text-gray-700">
+                <div className="p-6 rounded-xl border border-dashed border-border dark:border-zinc-800 text-center space-y-2">
+                  <FileText className="h-8 w-8 text-muted-foreground/40 dark:text-zinc-600 mx-auto" />
+                  <p className="text-sm font-medium text-foreground dark:text-zinc-200">
                     Contrato em elaboração pelo gestor
                   </p>
-                  <p className="text-xs text-gray-400 max-w-md mx-auto">
+                  <p className="text-xs text-muted-foreground dark:text-zinc-400 max-w-md mx-auto">
                     Assim que seu contrato for anexado pela equipe jurídica/administrativa da Delski, ele ficará disponível para download aqui.
                   </p>
                 </div>
@@ -1608,12 +1627,12 @@ function FreelancerDashboardPage() {
           </div>
 
           {/* Seção 2: Documentos Societários e Certidões (Prestador Envia e Consulta) */}
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="border-b border-gray-100 pb-3">
-              <h2 className="text-lg font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                <FileCheck className="h-5 w-5 text-emerald-600" /> Documentos do Prestador
+          <div className="bg-card dark:bg-[#11131A] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="border-b border-border dark:border-zinc-800 pb-3">
+              <h2 className="text-lg font-bold text-foreground dark:text-zinc-100 tracking-tight flex items-center gap-2">
+                <FileCheck className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> Documentos do Prestador
               </h2>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-muted-foreground dark:text-zinc-400 mt-0.5">
                 Envie os comprovantes e certidões necessárias para a manutenção da conformidade do seu cadastro.
               </p>
             </div>
@@ -1685,69 +1704,70 @@ function FreelancerDashboardPage() {
                 });
                 const isUploading = uploadingType === item.id;
                 const isApproved = existing?.status === "aprovado";
-                const isAdequacyRequested = existing?.status === "rejeitado" || existing?.status === "adequacao_solicitada";
-                const isInAnalysis = Boolean(existing && !isApproved && !isAdequacyRequested);
+                const isRejected = existing?.status === "rejeitado" || existing?.status === "recusado" || existing?.status === "adequacao_solicitada";
+                const isInAnalysis = Boolean(existing && !isApproved && !isRejected);
 
                 return (
                   <div
                     key={item.id}
                     className={`p-5 rounded-2xl border transition-all space-y-3 ${
                       isApproved
-                        ? "bg-emerald-50/30 border-emerald-200"
-                        : isAdequacyRequested
-                        ? "bg-orange-50/40 border-orange-300 shadow-xs"
+                        ? "bg-emerald-500/5 dark:bg-emerald-950/20 border-emerald-500/30"
+                        : isRejected
+                        ? "bg-rose-500/5 dark:bg-rose-950/20 border-rose-500/30 shadow-xs"
                         : existing
-                        ? "bg-amber-50/20 border-amber-200"
-                        : "bg-white border-gray-200 hover:border-blue-300"
+                        ? "bg-amber-500/5 dark:bg-amber-950/20 border-amber-500/30"
+                        : "bg-card dark:bg-[#11131A] border-border dark:border-zinc-800 hover:border-blue-500/40"
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="font-bold text-sm text-gray-900">
+                          <h3 className="font-bold text-sm text-foreground dark:text-zinc-100">
                             {item.title}
                           </h3>
                           {existing ? (
                             <Badge
-                              className={`text-[10px] py-0.5 px-2.5 font-semibold ${
+                              variant="outline"
+                              className={`text-[10px] py-0.5 px-2.5 font-bold rounded-full border ${
                                 isApproved
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  : isAdequacyRequested
-                                  ? "bg-orange-50 text-orange-700 border-orange-200"
-                                  : "bg-amber-50 text-amber-700 border-amber-200"
+                                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30"
+                                  : isRejected
+                                  ? "bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30"
+                                  : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30"
                               }`}
                             >
                               {isApproved
                                 ? "Aprovado"
-                                : isAdequacyRequested
-                                ? "Adequação Solicitada"
+                                : isRejected
+                                ? "Recusado"
                                 : "Em Análise"}
                             </Badge>
                           ) : (
-                            <Badge className="text-[10px] py-0.5 px-2 font-medium bg-slate-100 text-slate-600 border-slate-200">
+                            <Badge variant="outline" className="text-[10px] py-0.5 px-2.5 font-medium bg-muted text-muted-foreground border-border rounded-full">
                               Pendente
                             </Badge>
                           )}
                         </div>
-                        <p className="text-xs text-gray-500">{item.desc}</p>
+                        <p className="text-xs text-muted-foreground dark:text-zinc-400">{item.desc}</p>
                       </div>
                     </div>
 
                     {/* Alerta em destaque de Adequação Solicitada pela Gestão */}
-                    {isAdequacyRequested && (
-                      <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-xs text-orange-900 space-y-1">
-                        <div className="flex items-center gap-1.5 font-bold text-orange-800">
-                          <AlertCircle className="h-4 w-4 text-orange-600 shrink-0" />
+                    {isRejected && (
+                      <div className="p-3 rounded-xl bg-rose-500/10 dark:bg-rose-950/30 border border-rose-500/20 text-xs text-rose-900 dark:text-rose-200 space-y-1">
+                        <div className="flex items-center gap-1.5 font-bold text-rose-800 dark:text-rose-300">
+                          <AlertCircle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
                           <span>Adequação Solicitada pela Gestão:</span>
                         </div>
-                        <p className="text-[11px] leading-relaxed text-orange-800">
+                        <p className="text-[11px] leading-relaxed text-rose-800 dark:text-rose-300">
                           {(existing as any).rejection_reason || (existing as any).notes || (existing as any).review_notes || "Favor reenviar o documento corrigido conforme as orientações da equipe."}
                         </p>
                       </div>
                     )}
 
                     {/* Ações e Trava de Edição */}
-                    <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between pt-3 border-t border-border dark:border-zinc-800">
                       {existing ? (
                         <div className="flex items-center justify-between w-full gap-2">
                           <a
@@ -1756,27 +1776,27 @@ function FreelancerDashboardPage() {
                             }
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center gap-1.5"
+                            className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1.5"
                           >
                             <ExternalLink className="h-3.5 w-3.5" /> Visualizar Arquivo
                           </a>
 
                           {/* Se aprovado ou em análise: Read-Only (Trava de Edição) */}
                           {isApproved && (
-                            <span className="text-[11px] font-semibold text-emerald-700 flex items-center gap-1 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                            <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300 flex items-center gap-1 bg-emerald-500/10 dark:bg-emerald-950/30 px-2.5 py-1 rounded-lg border border-emerald-500/20">
                               <CheckCircle2 className="h-3.5 w-3.5" /> Validado pela Gestão
                             </span>
                           )}
 
                           {isInAnalysis && (
-                            <span className="text-[11px] font-semibold text-amber-700 flex items-center gap-1 bg-amber-50 px-2.5 py-1 rounded-lg">
+                            <span className="text-[11px] font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1 bg-amber-500/10 dark:bg-amber-950/30 px-2.5 py-1 rounded-lg border border-amber-500/20">
                               <Clock className="h-3.5 w-3.5" /> Em análise pela Gestão
                             </span>
                           )}
 
                           {/* Se Adequação Solicitada: Botão de Upload liberado para reenvio */}
-                          {isAdequacyRequested && (
-                            <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-orange-600 hover:bg-orange-700 text-white transition-colors shadow-xs">
+                          {isRejected && (
+                            <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-600 hover:bg-rose-700 text-white transition-colors shadow-xs">
                               <input
                                 type="file"
                                 className="hidden"
@@ -1800,7 +1820,7 @@ function FreelancerDashboardPage() {
                           )}
                         </div>
                       ) : (
-                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
+                        <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/40 border border-blue-200/60 dark:border-blue-800/60 transition-colors">
                           <input
                             type="file"
                             className="hidden"
@@ -1833,13 +1853,13 @@ function FreelancerDashboardPage() {
         {/* ── ABA 3: DADOS FINANCEIROS ─────────────────────────────────────── */}
         <TabsContent value="financeiro" className="space-y-6 focus-visible:outline-none">
           {/* Seção A: Dados Bancários & Chave PIX (Preenchidos pelo Prestador) */}
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <div className="bg-card dark:bg-[#11131A] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex items-center justify-between border-b border-border dark:border-zinc-800 pb-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                  <CreditCard className="h-5 w-5 text-emerald-600" /> Dados Bancários
+                <h2 className="text-xl font-bold text-foreground dark:text-zinc-100 tracking-tight flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> Dados Bancários
                 </h2>
-                <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+                <p className="text-xs sm:text-sm text-muted-foreground dark:text-zinc-400 mt-0.5">
                   Informe a conta bancária da sua PJ onde os pagamentos e reembolsos serão creditados.
                 </p>
               </div>
@@ -1848,7 +1868,7 @@ function FreelancerDashboardPage() {
             <form onSubmit={handleSaveBank} className="space-y-5">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 <div className="space-y-1.5">
-                  <Label htmlFor="bank" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="bank" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Banco <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -1856,21 +1876,22 @@ function FreelancerDashboardPage() {
                     value={bankName}
                     onChange={(e) => setBankName(e.target.value)}
                     placeholder="Ex: Nubank, Itaú, Banco Inter"
-                    className="h-10"
+                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                     required
                   />
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="pixtype" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="pixtype" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Tipo de Chave PIX <span className="text-red-500">*</span>
                   </Label>
                   <Select value={pixType} onValueChange={setPixType}>
-                    <SelectTrigger id="pixtype" className="h-10">
+                    <SelectTrigger id="pixtype" className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-card dark:bg-[#11131A] border-border dark:border-zinc-800 text-foreground dark:text-white">
                       <SelectItem value="CNPJ">CNPJ</SelectItem>
+                      <SelectItem value="CPF">CPF</SelectItem>
                       <SelectItem value="E-mail">E-mail</SelectItem>
                       <SelectItem value="Telefone">Telefone</SelectItem>
                       <SelectItem value="Chave Aleatória">Chave Aleatória</SelectItem>
@@ -1879,7 +1900,7 @@ function FreelancerDashboardPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor="pixkey" className="text-xs font-semibold text-gray-700">
+                  <Label htmlFor="pixkey" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                     Chave PIX <span className="text-red-500">*</span>
                   </Label>
                   <Input
@@ -1887,7 +1908,7 @@ function FreelancerDashboardPage() {
                     value={pixKey}
                     onChange={(e) => setPixKey(e.target.value)}
                     placeholder="Chave Pix para recebimento"
-                    className="h-10 font-mono text-sm"
+                    className="h-10 font-mono text-sm bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                     required
                   />
                 </div>
@@ -1897,7 +1918,7 @@ function FreelancerDashboardPage() {
                 <Button
                   type="submit"
                   disabled={updateProfile.isPending}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-10 px-5 shadow-sm flex items-center gap-2"
+                  className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs h-10 px-5 shadow-sm flex items-center gap-2 cursor-pointer"
                 >
                   {updateProfile.isPending ? (
                     <>
@@ -1914,19 +1935,19 @@ function FreelancerDashboardPage() {
           </div>
 
           {/* Seção B: Condições de Contratação & Comprovantes (Definidos pelo Gestor) */}
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+          <div className="bg-card dark:bg-[#11131A] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex items-center justify-between border-b border-border dark:border-zinc-800 pb-3">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-blue-600" /> Condições Comerciais & Pagamentos (Delski)
+                <h2 className="text-xl font-bold text-foreground dark:text-zinc-100 tracking-tight flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Condições Comerciais & Pagamentos (Delski)
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-muted-foreground dark:text-zinc-400 mt-0.5">
                   Parâmetros de remuneração acordados e comprovantes bancários de liquidação.
                 </p>
               </div>
               <Badge
                 className={`text-xs px-3 py-1 font-semibold ${
-                  STATUS_BADGE_STYLES[freelancer?.financial_status || "Pendente"]
+                  STATUS_BADGE_STYLES[freelancer?.financial_status || "Pendente"] || "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border border-amber-200/60 dark:border-amber-800/60"
                 }`}
               >
                 Status: {freelancer?.financial_status || "Pendente"}
@@ -1934,40 +1955,40 @@ function FreelancerDashboardPage() {
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="p-4 rounded-xl bg-slate-50 border border-gray-100">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div className="p-4 rounded-xl bg-muted/30 dark:bg-zinc-900/60 border border-border dark:border-zinc-800">
+                <span className="text-xs font-semibold text-muted-foreground dark:text-zinc-400 uppercase tracking-wider">
                   Modelo Contratual
                 </span>
-                <p className="text-lg font-bold text-gray-900 mt-1">
+                <p className="text-lg font-bold text-foreground dark:text-zinc-100 mt-1">
                   {freelancer?.contract_model || "Mensal"}
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 border border-gray-100">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div className="p-4 rounded-xl bg-muted/30 dark:bg-zinc-900/60 border border-border dark:border-zinc-800">
+                <span className="text-xs font-semibold text-muted-foreground dark:text-zinc-400 uppercase tracking-wider">
                   Valor Contratado
                 </span>
-                <p className="text-lg font-bold text-blue-600 mt-1">
+                <p className="text-lg font-bold text-blue-600 dark:text-blue-400 mt-1">
                   {money(Number(freelancer?.contract_value) || 0)}
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 border border-gray-100">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div className="p-4 rounded-xl bg-muted/30 dark:bg-zinc-900/60 border border-border dark:border-zinc-800">
+                <span className="text-xs font-semibold text-muted-foreground dark:text-zinc-400 uppercase tracking-wider">
                   Data de Pagamento
                 </span>
-                <p className="text-sm font-bold text-gray-900 mt-2">
+                <p className="text-sm font-bold text-foreground dark:text-zinc-100 mt-2">
                   {freelancer?.payment_date
                     ? formatDate(freelancer.payment_date)
                     : "Dia 10 do mês subsequente"}
                 </p>
               </div>
 
-              <div className="p-4 rounded-xl bg-slate-50 border border-gray-100">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div className="p-4 rounded-xl bg-muted/30 dark:bg-zinc-900/60 border border-border dark:border-zinc-800">
+                <span className="text-xs font-semibold text-muted-foreground dark:text-zinc-400 uppercase tracking-wider">
                   Data de Vencimento
                 </span>
-                <p className="text-sm font-bold text-gray-900 mt-2">
+                <p className="text-sm font-bold text-foreground dark:text-zinc-100 mt-2">
                   {freelancer?.due_date
                     ? formatDate(freelancer.due_date)
                     : "Dia 15 do mês"}
@@ -1976,9 +1997,9 @@ function FreelancerDashboardPage() {
             </div>
 
             {/* Comprovantes de Pagamento anexados pela Delski */}
-            <div className="pt-4 border-t border-gray-100 space-y-3">
-              <h3 className="font-bold text-sm text-gray-900 flex items-center gap-2">
-                <FileSpreadsheet className="h-4 w-4 text-emerald-600" /> Comprovantes de Pagamento Anexados
+            <div className="pt-4 border-t border-border dark:border-zinc-800 space-y-3">
+              <h3 className="font-bold text-sm text-foreground dark:text-zinc-100 flex items-center gap-2">
+                <FileSpreadsheet className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Comprovantes de Pagamento Anexados
               </h3>
 
               {(() => {
@@ -1988,8 +2009,8 @@ function FreelancerDashboardPage() {
 
                 if (receipts.length === 0) {
                   return (
-                    <div className="p-6 text-center border border-dashed border-gray-200 rounded-xl space-y-1">
-                      <p className="text-xs text-gray-500 font-medium">
+                    <div className="p-6 text-center border border-dashed border-border dark:border-zinc-800 rounded-xl space-y-1 bg-muted/10 dark:bg-zinc-900/20">
+                      <p className="text-xs text-muted-foreground dark:text-zinc-400 font-medium">
                         Nenhum comprovante de pagamento anexado pela equipe financeira.
                       </p>
                     </div>
@@ -1997,19 +2018,19 @@ function FreelancerDashboardPage() {
                 }
 
                 return (
-                  <div className="divide-y divide-gray-100 border rounded-xl">
+                  <div className="divide-y divide-border dark:divide-zinc-800 border border-border dark:border-zinc-800 rounded-xl">
                     {receipts.map((rec) => (
                       <div
                         key={rec.id}
-                        className="p-3 flex items-center justify-between text-xs"
+                        className="p-3 flex items-center justify-between text-xs hover:bg-accent/40 transition-colors"
                       >
                         <div className="flex items-center gap-2.5">
-                          <FileCheck className="h-4 w-4 text-emerald-600" />
+                          <FileCheck className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                           <div>
-                            <p className="font-semibold text-gray-900">
+                            <p className="font-semibold text-foreground dark:text-zinc-100">
                               {rec.review_notes || "Comprovante de Pagamento Bancário"}
                             </p>
-                            <p className="text-[11px] text-gray-400">
+                            <p className="text-[11px] text-muted-foreground dark:text-zinc-400">
                               Anexado em {formatDate(rec.uploaded_at || rec.created_at)}
                             </p>
                           </div>
@@ -2019,7 +2040,7 @@ function FreelancerDashboardPage() {
                           href={rec.file_url || rec.public_url || "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 hover:text-blue-800"
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline"
                         >
                           <Download className="h-3.5 w-3.5" /> Baixar Comprovante
                         </a>
@@ -2034,39 +2055,39 @@ function FreelancerDashboardPage() {
 
         {/* ── ABA 4: COMPROVANTES FISCAIS (NOTAS FISCAIS) ──────────────────── */}
         <TabsContent value="notas" className="space-y-6 focus-visible:outline-none">
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-4">
+          <div className="bg-card dark:bg-[#11131A] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-6 sm:p-8 shadow-xs space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border dark:border-zinc-800 pb-4">
               <div>
-                <h2 className="text-xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                  <Receipt className="h-5 w-5 text-blue-600" /> Histórico & Envio de Notas Fiscais
+                <h2 className="text-xl font-bold text-foreground dark:text-zinc-100 tracking-tight flex items-center gap-2">
+                  <Receipt className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Histórico & Envio de Notas Fiscais
                 </h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-muted-foreground dark:text-zinc-400 mt-0.5">
                   Cadastre as Notas Fiscais de prestação de serviços com seus respectivos arquivos PDF e XML para liquidação.
                 </p>
               </div>
 
               <Button
                 onClick={() => setOpenInvoiceModal(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm h-10 px-4 flex items-center gap-2 shadow-xs"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs sm:text-sm h-10 px-4 flex items-center gap-2 shadow-xs cursor-pointer"
               >
                 <Plus className="h-4 w-4" /> Nova Nota Fiscal
               </Button>
             </div>
 
             {invoices.length === 0 ? (
-              <div className="p-12 text-center border border-dashed border-gray-200 rounded-2xl space-y-3">
-                <Receipt className="h-10 w-10 text-gray-300 mx-auto" />
-                <h3 className="font-semibold text-gray-800 text-sm">
+              <div className="p-12 text-center border border-dashed border-border dark:border-zinc-800 rounded-2xl space-y-3 bg-muted/10 dark:bg-zinc-900/20">
+                <Receipt className="h-10 w-10 text-muted-foreground/40 dark:text-zinc-600 mx-auto" />
+                <h3 className="font-semibold text-foreground dark:text-zinc-200 text-sm">
                   Nenhuma nota fiscal cadastrada
                 </h3>
-                <p className="text-xs text-gray-400 max-w-md mx-auto">
+                <p className="text-xs text-muted-foreground dark:text-zinc-400 max-w-md mx-auto">
                   Envie sua Nota Fiscal mensal clicando no botão acima para que a equipe financeira valide e libere o pagamento.
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-xl border border-gray-200">
+              <div className="overflow-x-auto rounded-xl border border-border dark:border-zinc-800">
                 <table className="w-full text-left text-xs sm:text-sm">
-                  <thead className="bg-slate-50 border-b border-gray-200 text-gray-600 font-semibold uppercase text-[11px] tracking-wider">
+                  <thead className="bg-muted/50 dark:bg-zinc-900/80 border-b border-border dark:border-zinc-800 text-muted-foreground dark:text-zinc-300 font-semibold uppercase text-[11px] tracking-wider">
                     <tr>
                       <th className="py-3 px-4">Número NF</th>
                       <th className="py-3 px-4">Competência</th>
@@ -2077,19 +2098,19 @@ function FreelancerDashboardPage() {
                       <th className="py-3 px-4">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-border dark:divide-zinc-800">
                     {invoices.map((inv) => (
-                      <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
-                        <td className="py-3.5 px-4 font-mono font-bold text-gray-900">
+                      <tr key={inv.id} className="hover:bg-accent/40 transition-colors">
+                        <td className="py-3.5 px-4 font-mono font-bold text-foreground dark:text-zinc-100">
                           {inv.invoice_number}
                         </td>
-                        <td className="py-3.5 px-4 text-gray-700 whitespace-nowrap">
+                        <td className="py-3.5 px-4 text-foreground dark:text-zinc-200 whitespace-nowrap">
                           {inv.competence}
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-gray-500 whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-mono text-muted-foreground dark:text-zinc-400 whitespace-nowrap">
                           {formatDate(inv.issue_date || inv.created_at)}
                         </td>
-                        <td className="py-3.5 px-4 font-bold text-blue-600 whitespace-nowrap">
+                        <td className="py-3.5 px-4 font-bold text-blue-600 dark:text-blue-400 whitespace-nowrap">
                           {money(Number(inv.amount))}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap space-x-2">
@@ -2098,7 +2119,7 @@ function FreelancerDashboardPage() {
                               href={inv.file_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-blue-600 hover:underline inline-flex items-center gap-1 font-semibold"
+                              className="text-xs text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 font-semibold"
                             >
                               <Download className="h-3 w-3" /> PDF
                             </a>
@@ -2108,24 +2129,24 @@ function FreelancerDashboardPage() {
                               href={inv.xml_file_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs text-indigo-600 hover:underline inline-flex items-center gap-1 font-semibold"
+                              className="text-xs text-indigo-600 dark:text-indigo-400 hover:underline inline-flex items-center gap-1 font-semibold"
                             >
                               <FileCode className="h-3 w-3" /> XML
                             </a>
                           )}
                         </td>
-                        <td className="py-3.5 px-4 text-xs text-gray-600 max-w-xs">
+                        <td className="py-3.5 px-4 text-xs text-muted-foreground dark:text-zinc-400 max-w-xs">
                           {inv.review_notes ? (
                             <span className="italic">{inv.review_notes}</span>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <span className="text-muted-foreground dark:text-zinc-500">—</span>
                           )}
                         </td>
                         <td className="py-3.5 px-4 whitespace-nowrap">
                           <Badge
                             className={`text-xs px-2.5 py-0.5 font-medium ${
                               STATUS_BADGE_STYLES[inv.status] ||
-                              "bg-gray-100 text-gray-700"
+                              "bg-muted text-muted-foreground"
                             }`}
                           >
                             {inv.status}
@@ -2143,12 +2164,12 @@ function FreelancerDashboardPage() {
 
       {/* ── MODAL: Cadastrar Nota Fiscal ────────────────────────────────────── */}
       <Dialog open={openInvoiceModal} onOpenChange={setOpenInvoiceModal}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-lg bg-card dark:bg-[#11131A] border-border dark:border-zinc-800 text-foreground dark:text-white">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-base font-bold text-gray-900">
-              <Receipt className="h-5 w-5 text-blue-600" /> Cadastrar Nova Nota Fiscal
+            <DialogTitle className="flex items-center gap-2 text-base font-bold text-foreground dark:text-zinc-100">
+              <Receipt className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Cadastrar Nova Nota Fiscal
             </DialogTitle>
-            <DialogDescription className="text-xs text-gray-500">
+            <DialogDescription className="text-xs text-muted-foreground dark:text-zinc-400">
               Preencha os dados da NF emitida e anexe o arquivo PDF (e opcionalmente XML).
             </DialogDescription>
           </DialogHeader>
@@ -2156,7 +2177,7 @@ function FreelancerDashboardPage() {
           <form onSubmit={handleCreateInvoiceSubmit} className="space-y-4 py-2">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label htmlFor="inv-num" className="text-xs font-semibold text-gray-700">
+                <Label htmlFor="inv-num" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                   Número da Nota Fiscal <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -2164,12 +2185,13 @@ function FreelancerDashboardPage() {
                   value={invNumber}
                   onChange={(e) => setInvNumber(e.target.value)}
                   placeholder="Ex: 2026/001"
+                  className="bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="inv-comp" className="text-xs font-semibold text-gray-700">
+                <Label htmlFor="inv-comp" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                   Competência (Mês/Ano) <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -2177,12 +2199,13 @@ function FreelancerDashboardPage() {
                   value={invCompetence}
                   onChange={(e) => setInvCompetence(e.target.value)}
                   placeholder="Ex: 08/2026"
+                  className="bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="inv-date" className="text-xs font-semibold text-gray-700">
+                <Label htmlFor="inv-date" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                   Data de Emissão <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -2190,12 +2213,13 @@ function FreelancerDashboardPage() {
                   type="date"
                   value={invIssueDate}
                   onChange={(e) => setInvIssueDate(e.target.value)}
+                  className="bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700"
                   required
                 />
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="inv-amt" className="text-xs font-semibold text-gray-700">
+                <Label htmlFor="inv-amt" className="text-xs font-semibold text-foreground dark:text-zinc-200">
                   Valor da NF (R$) <span className="text-red-500">*</span>
                 </Label>
                 <Input
@@ -2205,31 +2229,34 @@ function FreelancerDashboardPage() {
                   value={invAmount}
                   onChange={(e) => setInvAmount(e.target.value)}
                   placeholder="0.00"
+                  className="bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
                   required
                 />
               </div>
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-gray-700">
+              <Label className="text-xs font-semibold text-foreground dark:text-zinc-200">
                 Arquivo PDF da Nota Fiscal <span className="text-red-500">*</span>
               </Label>
               <Input
                 type="file"
                 accept=".pdf"
                 onChange={(e) => setInvPdfFile(e.target.files?.[0] || null)}
+                className="bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700"
                 required
               />
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold text-gray-700">
+              <Label className="text-xs font-semibold text-foreground dark:text-zinc-200">
                 Arquivo XML da Nota Fiscal (Opcional)
               </Label>
               <Input
                 type="file"
                 accept=".xml"
                 onChange={(e) => setInvXmlFile(e.target.files?.[0] || null)}
+                className="bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700"
               />
             </div>
 
@@ -2238,13 +2265,14 @@ function FreelancerDashboardPage() {
                 type="button"
                 variant="outline"
                 onClick={() => setOpenInvoiceModal(false)}
+                className="border-border dark:border-zinc-700 text-foreground dark:text-zinc-300 hover:bg-muted dark:hover:bg-zinc-800 cursor-pointer"
               >
                 Cancelar
               </Button>
               <Button
                 type="submit"
                 disabled={submittingInvoice}
-                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-2"
+                className="bg-blue-600 hover:bg-blue-700 text-white font-semibold flex items-center gap-2 cursor-pointer"
               >
                 {submittingInvoice ? (
                   <>

@@ -118,9 +118,12 @@ export function resolveContractFieldValue(
             companySettings.nome_representante ||
             gestorProfile?.full_name ||
             companySettings.representante ||
-            "",
+            "Diretoria Delski",
           isAuto: true,
         };
+      }
+      if (normName.includes("observac")) {
+        return { value: "", isAuto: false };
       }
       return {
         value: companySettings.nome_empresa || variable.defaultValue || "",
@@ -154,14 +157,55 @@ export function resolveContractFieldValue(
       if (!freelancer) {
         return { value: "", isAuto: false };
       }
+      // Check saved contract field values on freelancer first
       if (freelancer.contract_field_values && freelancer.contract_field_values[variable.name]) {
-        return { value: freelancer.contract_field_values[variable.name], isAuto: true };
+        return { value: String(freelancer.contract_field_values[variable.name]), isAuto: true };
+      }
+
+      if (normName.includes("cnpj") || normName.includes("cpf") || normName.includes("documento")) {
+        return { value: freelancer.cpf_cnpj || (freelancer as any).cnpj || "", isAuto: true };
+      }
+      if (normName.includes("razao") || normName.includes("social") || normName.includes("nome_contratado")) {
+        return { value: (freelancer as any).corporate_name || freelancer.full_name || "", isAuto: true };
+      }
+      if (normName.includes("fantasia")) {
+        return { value: (freelancer as any).company_name || freelancer.full_name || "", isAuto: true };
+      }
+      if (normName.includes("segmento") || normName.includes("atuacao") || normName.includes("especialidade")) {
+        return { value: (freelancer as any).segment || (freelancer as any).specialty || freelancer.role || "Prestador de Serviços", isAuto: true };
       }
       if (normName.includes("email")) {
         return { value: freelancer.email ?? "", isAuto: true };
       }
-      if (normName.includes("role") || normName.includes("cargo") || normName.includes("funcao")) {
-        return { value: freelancer.role ?? "", isAuto: true };
+      if (normName.includes("cep")) {
+        return { value: (freelancer as any).cep || "", isAuto: true };
+      }
+      if (normName.includes("endereco") || normName.includes("logradouro")) {
+        const addr = (freelancer as any).address;
+        const city = (freelancer as any).city;
+        const state = (freelancer as any).state;
+        const fullAddr = [addr, city, state].filter(Boolean).join(", ");
+        return { value: fullAddr || addr || "", isAuto: true };
+      }
+      if (normName.includes("telefone") || normName.includes("fone") || normName.includes("whatsapp")) {
+        return { value: freelancer.phone ?? (freelancer as any).telefone ?? "", isAuto: true };
+      }
+      if (normName.includes("cargo") || normName.includes("responsavel") || normName.includes("funcao") || normName.includes("role")) {
+        return { value: (freelancer as any).role_position || freelancer.role || "Especialista Parceiro", isAuto: true };
+      }
+      if (normName.includes("pix") || normName.includes("bancario") || normName.includes("banco")) {
+        const bank = (freelancer as any).bank_name || "";
+        const pixKey = (freelancer as any).pix_key || "";
+        const pixType = (freelancer as any).pix_type || "Chave";
+        if (bank || pixKey) {
+          const formatted = [bank ? `Banco: ${bank}` : null, pixKey ? `PIX (${pixType}): ${pixKey}` : null]
+            .filter(Boolean)
+            .join(" | ");
+          return { value: formatted, isAuto: true };
+        }
+      }
+      if (normName.includes("observac")) {
+        return { value: "", isAuto: false };
       }
       return {
         value: freelancer.full_name ?? "",
@@ -170,7 +214,6 @@ export function resolveContractFieldValue(
     }
 
     case "client": {
-      // Resolve from the selected client record
       if (!client) {
         return { value: "", isAuto: false };
       }
@@ -188,6 +231,9 @@ export function resolveContractFieldValue(
       if (normName.includes("telefone") || normName.includes("fone") || normName.includes("whatsapp")) {
         return { value: client.phone ?? "", isAuto: true };
       }
+      if (normName.includes("cnpj") || normName.includes("cpf")) {
+        return { value: client.cnpj ?? "", isAuto: true };
+      }
       return {
         value: client.full_name ?? "",
         isAuto: true,
@@ -199,8 +245,47 @@ export function resolveContractFieldValue(
         return { value: "", isAuto: false };
       }
       if (project.contract_field_values && project.contract_field_values[variable.name]) {
-        return { value: project.contract_field_values[variable.name], isAuto: true };
+        return { value: String(project.contract_field_values[variable.name]), isAuto: true };
       }
+
+      // Condições comerciais / valores
+      if (normName === "valor_inteiro" || normName.includes("valor_projeto") || normName.includes("valor_total") || normName.includes("orcamento")) {
+        const formatted =
+          typeof project.budget === "number"
+            ? `R$ ${project.budget.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : "";
+        return { value: formatted, isAuto: true };
+      }
+      if (normName === "mensalidade_acordada" || normName.includes("custo_freelancer") || normName.includes("valor_freelancer") || normName.includes("remuneracao")) {
+        const cost = project.freelancer_cost ?? project.budget;
+        const formatted =
+          typeof cost === "number"
+            ? `R$ ${cost.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : "";
+        return { value: formatted, isAuto: true };
+      }
+      if (normName.includes("vigencia")) {
+        return { value: "12 (doze) meses", isAuto: true };
+      }
+      if (normName.includes("data_inicio") || normName.includes("inicio_prevista")) {
+        try {
+          const date = project.created_at ? new Date(project.created_at) : new Date();
+          return { value: date.toLocaleDateString("pt-BR"), isAuto: true };
+        } catch {
+          return { value: new Date().toLocaleDateString("pt-BR"), isAuto: true };
+        }
+      }
+      if (normName.includes("periodicidade")) {
+        return { value: "Mensal", isAuto: true };
+      }
+      if (normName.includes("prazo_minimo")) {
+        return { value: "3 (três) meses", isAuto: true };
+      }
+      if (normName.includes("pasta") || normName.includes("relatorios_compartilhada")) {
+        return { value: "https://drive.google.com/drive/folders/delski", isAuto: false };
+      }
+
+      // Clientes no contexto do projeto
       if (normName.includes("cliente") && normName.includes("email")) {
         return { value: project.client?.email ?? "", isAuto: true };
       }
@@ -208,34 +293,11 @@ export function resolveContractFieldValue(
         return { value: project.client?.full_name ?? "", isAuto: true };
       }
       if (
-        normName.includes("tipo") ||
-        normName.includes("servico") ||
+        normName.includes("tipo_projeto") ||
+        normName.includes("tipo_servico") ||
         normName.includes("modalidade")
       ) {
         return { value: project.service_type ?? "", isAuto: true };
-      }
-      if (
-        normName.includes("orcamento") ||
-        normName.includes("budget") ||
-        normName.includes("valor_projeto") ||
-        normName.includes("valor_total")
-      ) {
-        const formatted =
-          typeof project.budget === "number"
-            ? `R$ ${project.budget.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-            : "";
-        return { value: formatted, isAuto: true };
-      }
-      if (
-        normName.includes("custo_freelancer") ||
-        normName.includes("valor_freelancer") ||
-        normName.includes("remuneracao")
-      ) {
-        const formatted =
-          typeof project.freelancer_cost === "number"
-            ? `R$ ${project.freelancer_cost.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
-            : "";
-        return { value: formatted, isAuto: true };
       }
       if (
         normName.includes("prazo") ||
@@ -293,6 +355,15 @@ export function resolveContractFieldValue(
           value: companySettings.data_pagamento_padrao || "Dia 10 de cada mês",
           isAuto: true,
         };
+      }
+      if (normName.includes("data_assinatura") || normName === "data") {
+        const today = new Date();
+        const formatted = today.toLocaleDateString("pt-BR", {
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+        });
+        return { value: formatted, isAuto: true };
       }
       if (normName.includes("foro")) {
         return {
