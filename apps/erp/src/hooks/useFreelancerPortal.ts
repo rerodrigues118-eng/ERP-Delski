@@ -318,31 +318,81 @@ export function useUpdateCurrentFreelancerProfile() {
         localStorage.setItem(`freelancer_profile_${targetId}`, JSON.stringify(patch));
       } catch {}
 
-      // 2. Persistência na tabela PROFILES (com contract_field_values como container universal)
-      const profilePatch: Record<string, any> = {
+      // 2. Obter dados da sessão do usuário autenticado
+      let userEmail = patch.email || "";
+      let userName = patch.full_name || patch.contact_name || "";
+
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        if (authData?.user) {
+          if (!userEmail) userEmail = authData.user.email || "";
+          if (!userName) userName = authData.user.user_metadata?.full_name || "Prestador";
+        }
+      } catch {}
+
+      // 3. Persistência na tabela PROFILES com auto-healing (satisfaz foreign key freelancers_id_fkey)
+      const initialProfilePayload: Record<string, any> = {
         id: targetId,
+        email: userEmail || undefined,
+        full_name: userName || "Prestador",
         role: "freelancer",
-        full_name: patch.full_name || patch.contact_name || undefined,
         phone: patch.phone || undefined,
-        cpf_cnpj: patch.cnpj || patch.cpf || undefined,
         cargo: patch.role_position || undefined,
+        cpf_cnpj: patch.cnpj || patch.cpf || undefined,
+        company_name: patch.company_name || undefined,
+        corporate_name: patch.corporate_name || undefined,
+        segment: patch.segment || undefined,
+        address: patch.address || undefined,
+        city: patch.city || undefined,
+        state: patch.state || undefined,
+        cep: patch.cep || undefined,
         contract_field_values: patch,
         updated_at: new Date().toISOString(),
       };
 
-      Object.keys(profilePatch).forEach(
-        (k) => profilePatch[k] === undefined && delete profilePatch[k]
+      // Remove propriedades undefined
+      let workingProfile = Object.fromEntries(
+        Object.entries(initialProfilePayload).filter(([_, v]) => v !== undefined)
       );
 
-      try {
-        await supabase
-          .from("profiles")
-          .upsert(profilePatch, { onConflict: "id" });
-      } catch (pEx) {
-        console.warn("Aviso ao salvar profiles:", pEx);
+      let pAttempts = 0;
+      while (pAttempts < 6) {
+        pAttempts++;
+        try {
+          const { error: pErr } = await (supabase.from("profiles") as any).upsert(
+            workingProfile,
+            { onConflict: "id" }
+          );
+
+          if (!pErr) break;
+
+          console.warn(`[Profiles Save] Tentativa ${pAttempts} falhou:`, pErr.message);
+
+          const matchSingle = pErr.message?.match(/Could not find the '([^']+)' column/i);
+          const matchDouble = pErr.message?.match(/column "([^"]+)" of relation "profiles"/i);
+          const matchPostgrest = pErr.message?.match(/column '([^']+)' does not exist/i);
+          const missingCol = matchSingle?.[1] || matchDouble?.[1] || matchPostgrest?.[1];
+
+          if (missingCol && workingProfile[missingCol] !== undefined) {
+            delete workingProfile[missingCol];
+          } else {
+            // Se for outro erro 400, reduz para o payload básico obrigatório
+            delete workingProfile.contract_field_values;
+            delete workingProfile.company_name;
+            delete workingProfile.corporate_name;
+            delete workingProfile.segment;
+            delete workingProfile.address;
+            delete workingProfile.city;
+            delete workingProfile.state;
+            delete workingProfile.cep;
+          }
+        } catch (pEx) {
+          console.warn("Exceção ao salvar profiles:", pEx);
+          break;
+        }
       }
 
-      // 3. Persistência na tabela FREELANCERS
+      // 4. Persistência na tabela FREELANCERS com auto-healing
       const KNOWN_FREELANCER_COLUMNS = new Set([
         "id", "email", "company_name", "corporate_name", "cnpj", "cpf",
         "segment", "address", "city", "state", "cep", "phone", "role_position",
@@ -353,55 +403,55 @@ export function useUpdateCurrentFreelancerProfile() {
         "behance", "contract_field_values",
       ]);
 
-      const safePayload: Record<string, any> = {
+      const initialFreelancerPayload: Record<string, any> = {
         id: targetId,
+        email: userEmail || undefined,
+        full_name: userName || undefined,
         updated_at: new Date().toISOString(),
       };
 
       Object.entries(patch).forEach(([k, v]) => {
         if (KNOWN_FREELANCER_COLUMNS.has(k) && v !== undefined) {
-          safePayload[k] = v;
+          initialFreelancerPayload[k] = v;
         }
       });
 
-      let upsertAttempts = 0;
-      let lastErr: any = null;
+      let workingFreelancer = Object.fromEntries(
+        Object.entries(initialFreelancerPayload).filter(([_, v]) => v !== undefined)
+      );
 
-      while (upsertAttempts < 6) {
-        upsertAttempts++;
+      let fAttempts = 0;
+      while (fAttempts < 8) {
+        fAttempts++;
         try {
           const { error: fErr } = await (supabase.from("freelancers") as any).upsert(
-            safePayload,
+            workingFreelancer,
             { onConflict: "id" }
           );
 
-          if (!fErr) {
-            lastErr = null;
-            break;
-          }
+          if (!fErr) break;
 
-          lastErr = fErr;
-          console.warn(`[Freelancer Profile Save] Tentativa ${upsertAttempts} falhou:`, fErr.message);
+          console.warn(`[Freelancer Profile Save] Tentativa ${fAttempts} falhou:`, fErr.message);
 
           if (fErr.code === "23503" || fErr.message?.includes("foreign key")) {
             console.warn("Foreign key constraint no freelancers — dados preservados em profiles.");
-            lastErr = null;
             break;
           }
 
-          // Detect unknown column from error message
-          const matchSingleQuote = fErr.message?.match(/Could not find the '([^']+)' column/i);
-          const matchDoubleQuote = fErr.message?.match(/column "([^"]+)" of relation "freelancers"/i);
+          const matchSingle = fErr.message?.match(/Could not find the '([^']+)' column/i);
+          const matchDouble = fErr.message?.match(/column "([^"]+)" of relation "freelancers"/i);
           const matchPostgrest = fErr.message?.match(/column '([^']+)' does not exist/i);
-          const columnToStrip = matchSingleQuote?.[1] || matchDoubleQuote?.[1] || matchPostgrest?.[1];
+          const missingCol = matchSingle?.[1] || matchDouble?.[1] || matchPostgrest?.[1];
 
-          if (columnToStrip && safePayload[columnToStrip] !== undefined) {
-            delete safePayload[columnToStrip];
+          if (missingCol && workingFreelancer[missingCol] !== undefined) {
+            delete workingFreelancer[missingCol];
+          } else if (workingFreelancer.full_name !== undefined) {
+            delete workingFreelancer.full_name;
           } else {
             break;
           }
-        } catch (fEx: any) {
-          lastErr = fEx;
+        } catch (fEx) {
+          console.warn("Exceção ao salvar freelancers:", fEx);
           break;
         }
       }

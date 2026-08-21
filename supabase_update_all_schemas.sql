@@ -113,7 +113,7 @@ ALTER TABLE public.client_documents ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "client_documents_policy" ON public.client_documents;
 CREATE POLICY "client_documents_policy" ON public.client_documents FOR ALL USING (true) WITH CHECK (true);
 
--- 6. CAMPOS DE CPF, BLOQUEIO (STATUS), SOFT DELETE E PARÂMETROS FINANCEIROS
+-- 6. CAMPOS DE CPF, BLOQUEIO (STATUS), SOFT DELETE E PARÂMETROS CADASTRAIS/FINANCEIROS
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
@@ -122,6 +122,10 @@ ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS contract_value NUMERIC D
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS payment_date TEXT;
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS due_date TEXT;
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS financial_status TEXT DEFAULT 'Pendente';
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS contract_field_values JSONB DEFAULT '{}'::jsonb;
+
+-- Remover bloqueio estrito de FK que pode falhar em upsert descentralizado
+ALTER TABLE public.freelancers DROP CONSTRAINT IF EXISTS freelancers_id_fkey;
 
 ALTER TABLE public.freelancers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "freelancers_all_policy" ON public.freelancers;
@@ -133,6 +137,7 @@ CREATE POLICY "freelancers_all_policy" ON public.freelancers FOR ALL USING (true
 ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';
 ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 
+-- Tabela Profiles: Adicionar todas as colunas para paridade completa com freelancers
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
@@ -141,6 +146,24 @@ ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS contract_value NUMERIC DEFA
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS payment_date TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS due_date TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS financial_status TEXT DEFAULT 'Pendente';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS contract_field_values JSONB DEFAULT '{}'::jsonb;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS company_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS corporate_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS cnpj TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS segment TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS city TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS state TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS cep TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS instagram TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS linkedin TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS website TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS behance TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bank_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bank_agency TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bank_account TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS pix_type TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS pix_key TEXT;
 
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "profiles_all_policy" ON public.profiles;
