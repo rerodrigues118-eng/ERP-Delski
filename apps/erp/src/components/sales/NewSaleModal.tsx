@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -23,7 +24,7 @@ const newSaleSchema = z.object({
   notes: z.string().optional(),
 });
 
-type NewSaleFormValues = z.infer<typeof newSaleSchema>;
+export type NewSaleFormValues = z.infer<typeof newSaleSchema>;
 
 // IMPORTANT (AGENTS.md Rule 1): Resolver declared in module scope to prevent CPU lockup loop
 const newSaleResolver = zodResolver(newSaleSchema);
@@ -31,9 +32,11 @@ const newSaleResolver = zodResolver(newSaleSchema);
 interface NewSaleModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  initialValues?: Partial<NewSaleFormValues>;
+  onSuccessCallback?: () => void;
 }
 
-export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
+export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallback }: NewSaleModalProps) {
   const createSaleMutation = useCreateSale();
 
   const {
@@ -57,6 +60,21 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
     },
   });
 
+  useEffect(() => {
+    if (open && initialValues) {
+      reset({
+        client_name: initialValues.client_name ?? "",
+        service_name: initialValues.service_name ?? "Consultoria em IA & Automação",
+        amount: initialValues.amount ?? 0,
+        status: initialValues.status ?? "concluida",
+        channel: initialValues.channel ?? "inbound",
+        payment_terms: initialValues.payment_terms ?? "À vista (PIX)",
+        seller_name: initialValues.seller_name ?? "Gestor Comercial",
+        notes: initialValues.notes ?? "",
+      });
+    }
+  }, [open, initialValues, reset]);
+
   const selectedStatus = watch("status");
   const selectedChannel = watch("channel");
 
@@ -64,6 +82,9 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
     try {
       await createSaleMutation.mutateAsync(data);
       toast.success("Venda registrada com sucesso no ERP!");
+      if (onSuccessCallback) {
+        onSuccessCallback();
+      }
       reset();
       onOpenChange(false);
     } catch (error) {
@@ -77,7 +98,7 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-lg font-bold">
             <DollarSign className="h-5 w-5 text-primary" />
-            Registrar Nova Venda Manual
+            Registrar Nova Venda
           </DialogTitle>
           <DialogDescription>
             Insira os dados da transação comercial para sincronização com o faturamento e metas.
@@ -96,7 +117,7 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
                 <Input
                   id="client_name"
                   placeholder="Ex: Nexus Tech Soluções"
-                  className="pl-9"
+                  className="pl-9 text-xs"
                   {...register("client_name")}
                 />
               </div>
@@ -115,7 +136,7 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
                 <Input
                   id="service_name"
                   placeholder="Ex: Automação IA"
-                  className="pl-9"
+                  className="pl-9 text-xs"
                   {...register("service_name")}
                 />
               </div>
@@ -136,7 +157,7 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
                   type="number"
                   step="0.01"
                   placeholder="0.00"
-                  className="pl-9"
+                  className="pl-9 text-xs"
                   {...register("amount")}
                 />
               </div>
@@ -152,7 +173,7 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
                 value={selectedChannel}
                 onValueChange={(val: SalesChannel) => setValue("channel", val)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-xs">
                   <SelectValue placeholder="Selecione o canal" />
                 </SelectTrigger>
                 <SelectContent>
@@ -173,7 +194,7 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
                 value={selectedStatus}
                 onValueChange={(val: SaleStatus) => setValue("status", val)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="text-xs">
                   <SelectValue placeholder="Selecione o status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -192,6 +213,7 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
               <Input
                 id="seller_name"
                 placeholder="Ex: Carlos Eduardo"
+                className="text-xs"
                 {...register("seller_name")}
               />
               {errors.seller_name && (
@@ -208,8 +230,8 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
                 <CreditCard className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="payment_terms"
-                  placeholder="Ex: 50% Entrada + 50% Entrega"
-                  className="pl-9"
+                  placeholder="Ex: À vista (PIX) ou 50/50"
+                  className="pl-9 text-xs"
                   {...register("payment_terms")}
                 />
               </div>
@@ -226,7 +248,7 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
               <Textarea
                 id="notes"
                 placeholder="Detalhes sobre a negociação, expectativas ou escopo..."
-                className="resize-none h-20"
+                className="resize-none h-20 text-xs"
                 {...register("notes")}
               />
             </div>
@@ -236,6 +258,7 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
             <Button
               type="button"
               variant="outline"
+              size="sm"
               onClick={() => onOpenChange(false)}
               disabled={isSubmitting}
             >
@@ -243,6 +266,7 @@ export function NewSaleModal({ open, onOpenChange }: NewSaleModalProps) {
             </Button>
             <Button
               type="submit"
+              size="sm"
               disabled={isSubmitting || createSaleMutation.isPending}
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold"
             >
