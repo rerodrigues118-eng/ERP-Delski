@@ -105,6 +105,8 @@ import {
   type EmittedServiceInvoiceItem,
 } from "@/hooks/useServiceInvoices";
 import { useClientsList } from "@/hooks/useClients";
+import { useSales } from "@/hooks/useSales";
+import { useFinancialTransactions } from "@/hooks/useFinancialTransactions";
 import {
   SERVICE_LABEL,
   STATUS_LABEL,
@@ -782,6 +784,7 @@ function ClienteFinanceView({ user }: { user: any }) {
 // ── 3. Visão Exclusiva do GESTOR (Corporate Revenue & Margins) ────────────────
 function GestorFinanceView() {
   const { data: projects = [], isLoading } = useGestorFinanceProjects();
+  const { data: sales = [] } = useSales();
   const storeExpenses = useStore((s) => s.expenses);
   const freelancersStore = useStore((s) => s.freelancers);
   const addExpense = useStore((s) => s.addExpense);
@@ -1045,8 +1048,15 @@ function GestorFinanceView() {
   );
 
   const totals = useMemo(() => {
-    // 1. Receita Total (Soma de todos os orçamentos de projetos)
-    const revenue = projects.reduce((a, p) => a + Number(p.budget || 0), 0);
+    // 1. Receita de Vendas Aprovadas/Concluídas (Single Source of Truth)
+    const salesCompleted = sales
+      .filter((s) => s.status === "concluida")
+      .reduce((a, s) => a + Number(s.amount || 0), 0);
+
+    const projectsBudget = projects.reduce((a, p) => a + Number(p.budget || 0), 0);
+
+    // Receita Total Unificada com o Módulo de Vendas
+    const revenue = salesCompleted > 0 ? salesCompleted : projectsBudget;
 
     // 2. Custos com Freelancers (Repasses acordados)
     const freelancerCosts = projects.reduce((a, p) => a + Number(p.freelancer_cost || 0), 0);
@@ -1074,7 +1084,7 @@ function GestorFinanceView() {
       realProfit,
       profitMargin,
     };
-  }, [projects, combinedExpenses]);
+  }, [projects, combinedExpenses, sales]);
 
   // Fetch payouts (gestor) and enrich with project / freelancer info
   const { data: dbPayouts = [], isLoading: payoutsLoading } = useQuery<FreelancerPayout[]>({
@@ -1281,8 +1291,18 @@ function GestorFinanceView() {
       return d >= start && d <= end;
     });
 
-    // ── DRE (COMPETÊNCIA) ───────────────────────────────────────────────────
-    const grossRevenue = filteredProjects.reduce((acc, p) => acc + Number(p.budget || 0), 0);
+    // ── DRE (COMPETÊNCIA - Vendas Concluídas no período) ───────────────────
+    const filteredSales = sales.filter((s) => {
+      const d = new Date(s.created_at);
+      return d >= start && d <= end;
+    });
+
+    const salesRevenueInRange = filteredSales
+      .filter((s) => s.status === "concluida")
+      .reduce((a, s) => a + Number(s.amount || 0), 0);
+
+    const projectsRevenueInRange = filteredProjects.reduce((acc, p) => acc + Number(p.budget || 0), 0);
+    const grossRevenue = salesRevenueInRange > 0 ? salesRevenueInRange : projectsRevenueInRange;
 
     // COGS (Custos Diretos dos Projetos)
     const projectExpensesList = filteredExpenses.filter((e) => Boolean(e.projectId));
@@ -1309,8 +1329,14 @@ function GestorFinanceView() {
     const netProfit = grossProfit - totalOpex;
     const netMargin = grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0;
 
-    // ── DFC (CAIXA) ─────────────────────────────────────────────────────────
-    const cashIn = filteredProjects.filter((p) => p.status === "Concluido" || p.status === "Em Andamento").reduce((acc, p) => acc + Number(p.budget || 0), 0);
+    // ── DFC (CAIXA - Entradas Liquidadas no período) ────────────────────────
+    const cashInSales = filteredSales
+      .filter((s) => s.status === "concluida" || (s.payment_terms || "").toLowerCase().includes("vista") || (s.payment_terms || "").toLowerCase().includes("pix"))
+      .reduce((acc, s) => acc + Number(s.amount || 0), 0);
+
+    const cashInProjects = filteredProjects.filter((p) => p.status === "Concluido" || p.status === "Em Andamento").reduce((acc, p) => acc + Number(p.budget || 0), 0);
+    const cashIn = cashInSales > 0 ? cashInSales : cashInProjects;
+
     const cashOutDirect = filteredPayouts.filter((po) => String(po.status).toLowerCase() === "pago").reduce((acc, po) => acc + Number(po.amount || 0), 0) +
       projectExpensesList.filter((e) => e.status === "Pago").reduce((a, b) => a + Number(b.amount || 0), 0);
     const cashOutOpex = corporateExpensesList.filter((e) => e.status === "Pago").reduce((a, b) => a + Number(b.amount || 0), 0);

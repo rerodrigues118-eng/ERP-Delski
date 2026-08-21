@@ -294,19 +294,46 @@ export function useCreateSale() {
         .select()
         .single();
 
-      if (error) {
-        console.warn("Could not insert sale in Supabase, using local fallback state:", error);
-        return {
-          id: `sale-${Date.now()}`,
-          ...newSale,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        } as Sale;
+      const createdSale = (data || {
+        id: `sale-${Date.now()}`,
+        ...newSale,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }) as Sale;
+
+      // Parallel sync with financial_transactions
+      try {
+        const isPaid =
+          newSale.status === "concluida" ||
+          (newSale.payment_terms || "").toLowerCase().includes("vista") ||
+          (newSale.payment_terms || "").toLowerCase().includes("pix");
+
+        await supabase.from("financial_transactions" as any).insert([
+          {
+            type: "income",
+            amount: Number(newSale.amount) || 0,
+            status: isPaid ? "paid" : "pending",
+            category: "Vendas",
+            description: `Venda - ${newSale.client_name} (${newSale.service_name})`,
+            payment_method: newSale.payment_terms || "À vista",
+            sales_id: createdSale.id,
+            transaction_date: new Date().toISOString().slice(0, 10),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ]);
+      } catch (syncErr) {
+        console.warn("Could not sync to financial_transactions:", syncErr);
       }
-      return data as unknown as Sale;
+
+      return createdSale;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-goals"] });
+      queryClient.invalidateQueries({ queryKey: ["financial_transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["finance"] });
+      queryClient.invalidateQueries({ queryKey: ["finance", "gestor"] });
     },
   });
 }
@@ -341,6 +368,7 @@ export function useCreateSalesGoal() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales-goals"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
     },
   });
 }
@@ -358,10 +386,27 @@ export function useUpdateSaleStatus() {
       if (error) {
         console.warn("Could not update sale status in Supabase:", error);
       }
+
+      // Sync transaction status
+      try {
+        const txStatus =
+          status === "concluida" ? "paid" : status === "cancelada" ? "cancelled" : "pending";
+        await supabase
+          .from("financial_transactions" as any)
+          .update({ status: txStatus, updated_at: new Date().toISOString() })
+          .eq("sales_id", id);
+      } catch (syncErr) {
+        console.warn("Could not update financial_transactions status:", syncErr);
+      }
+
       return { id, status };
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-goals"] });
+      queryClient.invalidateQueries({ queryKey: ["financial_transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["finance"] });
+      queryClient.invalidateQueries({ queryKey: ["finance", "gestor"] });
     },
   });
 }
@@ -375,10 +420,24 @@ export function useDeleteSale() {
       if (error) {
         console.warn("Could not delete sale in Supabase:", error);
       }
+
+      try {
+        await supabase
+          .from("financial_transactions" as any)
+          .delete()
+          .eq("sales_id", id);
+      } catch (syncErr) {
+        console.warn("Could not delete associated financial_transaction:", syncErr);
+      }
+
       return id;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["sales-goals"] });
+      queryClient.invalidateQueries({ queryKey: ["financial_transactions"] });
+      queryClient.invalidateQueries({ queryKey: ["finance"] });
+      queryClient.invalidateQueries({ queryKey: ["finance", "gestor"] });
     },
   });
 }

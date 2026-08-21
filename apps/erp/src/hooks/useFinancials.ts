@@ -1,4 +1,5 @@
 import { useProjects } from "./useProjects";
+import { useSales } from "./useSales";
 
 export interface FinancialSummary {
   totalRevenue: number;
@@ -7,12 +8,29 @@ export interface FinancialSummary {
   marginPercentage: number;
   projectCount: number;
   completedCount: number;
+  salesRevenue: number;
+  cashRevenue: number;
 }
 
 export function useFinancials() {
-  const { data: projects = [], isLoading, error } = useProjects();
+  const { data: projects = [], isLoading: projectsLoading, error } = useProjects();
+  const { data: sales = [], isLoading: salesLoading } = useSales();
 
-  const totalRevenue = projects.reduce((acc, p) => acc + (Number(p.budget) || 0), 0);
+  // Closed/Approved Sales Revenue
+  const salesRevenue = sales
+    .filter((s) => s.status === "concluida")
+    .reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+
+  // Liquidated Cash Revenue (À vista / Pix / Concluído)
+  const cashRevenue = sales
+    .filter((s) => s.status === "concluida" || (s.payment_terms || "").toLowerCase().includes("vista") || (s.payment_terms || "").toLowerCase().includes("pix"))
+    .reduce((acc, s) => acc + (Number(s.amount) || 0), 0);
+
+  const projectsBudget = projects.reduce((acc, p) => acc + (Number(p.budget) || 0), 0);
+  
+  // Single Source of Truth: Total Revenue from Sales (or projects if no sales recorded)
+  const totalRevenue = salesRevenue > 0 ? salesRevenue : projectsBudget;
+
   const totalFreelancerCost = projects.reduce(
     (acc, p) => acc + (Number(p.freelancer_cost) || 0),
     0,
@@ -28,12 +46,15 @@ export function useFinancials() {
     marginPercentage,
     projectCount: projects.length,
     completedCount,
+    salesRevenue,
+    cashRevenue,
   };
 
   return {
     summary,
     projects,
-    isLoading,
+    sales,
+    isLoading: projectsLoading || salesLoading,
     error,
   };
 }
