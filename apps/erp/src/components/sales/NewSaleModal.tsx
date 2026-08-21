@@ -11,13 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useCreateSale } from "@/hooks/useSales";
 import { SaleStatus, SalesChannel } from "@/types/sales";
 import { toast } from "sonner";
-import { DollarSign, User, Briefcase, CreditCard } from "lucide-react";
+import { DollarSign, User, CreditCard } from "lucide-react";
 
 export const SALE_SERVICES = [
-  "Consultoria em IA & Automação",
-  "Desenvolvimento de Sites & Web Apps",
-  "Gestão de Tráfego Pago",
-  "Squad Dedicada Full-Stack",
+  "Automação IA",
+  "Tráfego Pago",
+  "Social Media",
+  "Sites",
 ] as const;
 
 const newSaleSchema = z.object({
@@ -57,7 +57,7 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
     resolver: newSaleResolver,
     defaultValues: {
       client_name: "",
-      service_name: "Consultoria em IA & Automação",
+      service_name: "Automação IA",
       amount: 0,
       status: "concluida",
       channel: "inbound",
@@ -69,18 +69,18 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
 
   useEffect(() => {
     if (open && initialValues) {
-      // If the incoming service is e.g. "Projeto de Sites" or "IA", map to the closest standard service
-      let mappedService: string = initialValues.service_name ?? "Consultoria em IA & Automação";
+      // Map incoming service string to one of the 4 official services
+      let mappedService = "Automação IA";
       if (initialValues.service_name) {
         const lower = initialValues.service_name.toLowerCase();
         if (lower.includes("ia") || lower.includes("automa")) {
-          mappedService = "Consultoria em IA & Automação";
-        } else if (lower.includes("site") || lower.includes("web")) {
-          mappedService = "Desenvolvimento de Sites & Web Apps";
-        } else if (lower.includes("trafego") || lower.includes("tráfego")) {
-          mappedService = "Gestão de Tráfego Pago";
-        } else if (lower.includes("squad") || lower.includes("social") || lower.includes("full")) {
-          mappedService = "Squad Dedicada Full-Stack";
+          mappedService = "Automação IA";
+        } else if (lower.includes("tráfego") || lower.includes("trafego")) {
+          mappedService = "Tráfego Pago";
+        } else if (lower.includes("social") || lower.includes("mídia") || lower.includes("midia")) {
+          mappedService = "Social Media";
+        } else if (lower.includes("site") || lower.includes("web") || lower.includes("landing")) {
+          mappedService = "Sites";
         }
       }
 
@@ -149,7 +149,7 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
               )}
             </div>
 
-            {/* Serviço Dropdown */}
+            {/* Serviço Dropdown com as 4 opções oficiais */}
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold">
                 Serviço *

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown, Target, DollarSign, Percent, ArrowUpRight } from "lucide-react";
+import { Target, DollarSign, Percent, ArrowUpRight } from "lucide-react";
 import { SalesMetrics } from "@/types/sales";
 
 interface SalesKpiCardsProps {
@@ -18,21 +18,12 @@ const formatCurrency = (val: number) => {
 export function SalesKpiCards({ metrics, periodType }: SalesKpiCardsProps) {
   const currentSalesAmount =
     periodType === "weekly" ? metrics.totalWeekSales : metrics.totalMonthSales;
-  const growth =
-    periodType === "weekly"
-      ? metrics.weekGrowthPercentage
-      : metrics.monthGrowthPercentage;
-  const isPositiveGrowth = growth >= 0;
 
   const cards = [
     {
       id: "sales-total",
       label: periodType === "weekly" ? "Vendas da Semana" : "Vendas do Mês",
       value: formatCurrency(currentSalesAmount),
-      badge: {
-        text: `${isPositiveGrowth ? "+" : ""}${growth.toFixed(1)}%`,
-        isPositive: isPositiveGrowth,
-      },
       icon: DollarSign,
       iconBg: "bg-blue-500/10 text-blue-600 dark:text-blue-400 dark:bg-blue-500/20",
       accentBorder: "hover:border-blue-500/40",
@@ -46,16 +37,11 @@ export function SalesKpiCards({ metrics, periodType }: SalesKpiCardsProps) {
       iconBg: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 dark:bg-emerald-500/20",
       accentBorder: "hover:border-emerald-500/40",
       glowColor: "group-hover:shadow-[0_0_20px_rgba(16,185,129,0.12)]",
-      progress: metrics.goalProgressPercentage,
     },
     {
       id: "ticket-medio",
       label: "Ticket Médio",
       value: formatCurrency(metrics.averageTicket),
-      badge: {
-        text: `${metrics.closedDeals} fechamentos`,
-        isPositive: true,
-      },
       icon: ArrowUpRight,
       iconBg: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 dark:bg-indigo-500/20",
       accentBorder: "hover:border-indigo-500/40",
@@ -65,10 +51,6 @@ export function SalesKpiCards({ metrics, periodType }: SalesKpiCardsProps) {
       id: "taxa-conversao",
       label: "Taxa de Conversão",
       value: `${metrics.conversionRate.toFixed(1)}%`,
-      badge: {
-        text: `${metrics.closedDeals} de ${metrics.totalDeals} propostas`,
-        isPositive: metrics.conversionRate >= 30,
-      },
       icon: Percent,
       iconBg: "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 dark:bg-cyan-500/20",
       accentBorder: "hover:border-cyan-500/40",
@@ -100,40 +82,10 @@ export function SalesKpiCards({ metrics, periodType }: SalesKpiCardsProps) {
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="py-0.5">
               <div className="text-2xl sm:text-2xl font-extrabold text-foreground tracking-tight tabular-nums font-sans">
                 {card.value}
               </div>
-
-              {card.progress !== undefined ? (
-                <div className="pt-1">
-                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-blue-900 via-blue-600 to-sky-400 rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${Math.min(card.progress, 100)}%` }}
-                      transition={{ duration: 1.2, ease: "easeOut" }}
-                    />
-                  </div>
-                </div>
-              ) : card.badge ? (
-                <div className="flex items-center gap-1.5 text-[11px]">
-                  <span
-                    className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md font-semibold text-[11px] ${
-                      card.badge.isPositive
-                        ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20"
-                        : "bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20"
-                    }`}
-                  >
-                    {card.badge.isPositive ? (
-                      <TrendingUp className="h-3 w-3 inline" />
-                    ) : (
-                      <TrendingDown className="h-3 w-3 inline" />
-                    )}
-                    {card.badge.text}
-                  </span>
-                </div>
-              ) : null}
             </div>
           </motion.div>
         );
