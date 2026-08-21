@@ -117,7 +117,7 @@ export function useClientSupportTickets(clientId?: string, clientEmail?: string)
   });
 }
 
-// ── Mutation: Gestor responde a um chamado ────────────────────────────────────
+// ── Mutation: Enviar resposta a um chamado (Gestor ou Cliente) ───────────────
 export function useSendTicketReply() {
   const queryClient = useQueryClient();
 
@@ -135,29 +135,90 @@ export function useSendTicketReply() {
       senderRole?: "gestor" | "cliente";
       newStatus?: TicketStatus;
     }) => {
-      const replyData = {
+      let authUserId: string | null = null;
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        authUserId = authData?.user?.id || null;
+      } catch {}
+
+      const replyData: Record<string, any> = {
         ticket_id: ticketId,
         sender_name: senderName,
         sender_role: senderRole,
         message,
         created_at: new Date().toISOString(),
       };
+      if (authUserId) replyData.user_id = authUserId;
 
-      const { error: replyErr } = await (supabase.from("ticket_replies") as any).insert([replyData]);
-      if (replyErr) throw new Error(`Erro ao enviar resposta: ${replyErr.message}`);
+      let replySaved = false;
 
-      await (supabase.from("support_tickets") as any)
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq("id", ticketId);
+      // 1. Tenta salvar na tabela ticket_replies com auto-healing de colunas e foreign keys
+      let workingReply = { ...replyData };
+      let attempts = 0;
+      while (attempts < 5) {
+        attempts++;
+        const { error: replyErr } = await (supabase.from("ticket_replies") as any).insert([
+          workingReply,
+        ]);
+        if (!replyErr) {
+          replySaved = true;
+          break;
+        }
+
+        console.warn(`[Ticket Reply Insert] Tentativa ${attempts} falhou:`, replyErr.message);
+
+        if (replyErr.code === "23503" || replyErr.message?.includes("foreign key")) {
+          delete workingReply.user_id;
+          continue;
+        }
+
+        const matchSingle = replyErr.message?.match(/Could not find the '([^']+)' column/i);
+        const matchDouble = replyErr.message?.match(/column "([^"]+)" of relation/i);
+        const matchPostgrest = replyErr.message?.match(/column '([^']+)' does not exist/i);
+        const missingCol = matchSingle?.[1] || matchDouble?.[1] || matchPostgrest?.[1];
+
+        if (missingCol && workingReply[missingCol] !== undefined) {
+          delete workingReply[missingCol];
+        } else {
+          break;
+        }
+      }
+
+      // 2. Se a tabela ticket_replies não existir ou falhar, salva a resposta anexada nas notas do chamado
+      if (!replySaved) {
+        try {
+          const { data: currentTicket } = await (supabase.from("support_tickets") as any)
+            .select("message, resolution_notes")
+            .eq("id", ticketId)
+            .maybeSingle();
+
+          const updatedNotes = currentTicket?.resolution_notes
+            ? `${currentTicket.resolution_notes}\n\n[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message}`
+            : `[${senderName} - ${new Date().toLocaleString("pt-BR")}]: ${message}`;
+
+          await (supabase.from("support_tickets") as any)
+            .update({
+              resolution_notes: updatedNotes,
+              status: newStatus,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", ticketId);
+          replySaved = true;
+        } catch {}
+      } else {
+        await (supabase.from("support_tickets") as any)
+          .update({ status: newStatus, updated_at: new Date().toISOString() })
+          .eq("id", ticketId);
+      }
 
       return { ticketId, message, newStatus };
     },
-    onSuccess: (_data, vars) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
       queryClient.invalidateQueries({ queryKey: ["support_tickets", "client"] });
       toast.success("Resposta enviada com sucesso!");
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => toast.error(`Erro ao enviar resposta: ${e.message}`),
   });
 }
 

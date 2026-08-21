@@ -305,11 +305,19 @@ export function useClientDetail(id: string) {
           if (client.resolved_id) queryIds.push(client.resolved_id);
           const uniqueQueryIds = Array.from(new Set(queryIds)).filter(Boolean);
 
-          if (uniqueQueryIds.length > 0) {
+          if (uniqueQueryIds.length === 1) {
             const { data: projData } = await supabase
               .from("projects")
               .select("id, title, service_type, status, budget, deadline, created_at")
-              .or(uniqueQueryIds.map((qid) => `client_id.eq.${qid}`).join(","))
+              .eq("client_id", uniqueQueryIds[0])
+              .order("created_at", { ascending: false });
+
+            client.projects = (projData ?? []) as any[];
+          } else if (uniqueQueryIds.length > 1) {
+            const { data: projData } = await supabase
+              .from("projects")
+              .select("id, title, service_type, status, budget, deadline, created_at")
+              .in("client_id", uniqueQueryIds)
               .order("created_at", { ascending: false });
 
             client.projects = (projData ?? []) as any[];
@@ -714,7 +722,11 @@ export function useCurrentClientProfile(userId?: string, userEmail?: string) {
       let projects: any[] = [];
 
       try {
-        const { data: projData } = await supabase
+        const queryIds = Array.from(
+          new Set([resolvedId, userId, clientRow?.id, clientRow?.auth_user_id].filter(Boolean))
+        );
+
+        let query = supabase
           .from("projects")
           .select(
             `
@@ -729,8 +741,15 @@ export function useCurrentClientProfile(userId?: string, userEmail?: string) {
             client_contract_url,
             created_at
           `
-          )
-          .or(`client_id.eq.${resolvedId},client_id.eq.${userId}`);
+          );
+
+        if (queryIds.length === 1) {
+          query = query.eq("client_id", queryIds[0]);
+        } else if (queryIds.length > 1) {
+          query = query.in("client_id", queryIds);
+        }
+
+        const { data: projData } = await query;
 
         if (projData) {
           projects = projData;

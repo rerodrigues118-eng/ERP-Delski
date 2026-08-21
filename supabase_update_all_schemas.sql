@@ -191,6 +191,21 @@ DROP POLICY IF EXISTS "support_tickets_all_policy" ON public.support_tickets;
 DROP POLICY IF EXISTS "Clientes e Gestores gerenciam chamados" ON public.support_tickets;
 CREATE POLICY "support_tickets_all_policy" ON public.support_tickets FOR ALL USING (true) WITH CHECK (true);
 
+-- 8. TABELA TICKET_REPLIES (Para respostas e histórico de chamados SAC)
+CREATE TABLE IF NOT EXISTS public.ticket_replies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL,
+  user_id UUID,
+  sender_name TEXT NOT NULL,
+  sender_role TEXT NOT NULL DEFAULT 'cliente',
+  message TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE public.ticket_replies ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "ticket_replies_all_policy" ON public.ticket_replies;
+CREATE POLICY "ticket_replies_all_policy" ON public.ticket_replies FOR ALL USING (true) WITH CHECK (true);
+
 -- ==============================================================================
 -- Fim do Script de Atualização
 -- ==============================================================================
