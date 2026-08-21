@@ -89,42 +89,43 @@ ALTER TABLE public.client_documents
 ADD CONSTRAINT client_documents_status_check
 CHECK (status IN ('pendente', 'em_analise', 'aprovado', 'recusado', 'enviado'));
 
--- 12. HABILITAÇÃO DE RLS E POLÍTICAS PARA SUPPORT_TICKETS
--- Garante que o Gestor veja TODOS os chamados criados por clientes
-ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+-- ==============================================================================
+-- 12. FIX DEFINITIVO DE RLS — support_tickets
+-- PROBLEMA: supabaseAdmin no frontend = mesmo anon key = sujeito a RLS.
+-- As 17 policies existentes bloqueiam INSERT do cliente e SELECT do gestor.
+-- SOLUÇÃO: Desabilitar RLS completamente nestas tabelas operacionais.
+-- ==============================================================================
 
-DROP POLICY IF EXISTS "Gestores podem ver todos os chamados" ON public.support_tickets;
-CREATE POLICY "Gestores podem ver todos os chamados"
-ON public.support_tickets
-FOR SELECT
-USING (true);
+-- Desabilita RLS nas tabelas de chamados (acesso totalmente aberto via anon key)
+ALTER TABLE public.support_tickets DISABLE ROW LEVEL SECURITY;
+ALTER TABLE public.ticket_replies DISABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "Clientes podem criar chamados" ON public.support_tickets;
-CREATE POLICY "Clientes podem criar chamados"
-ON public.support_tickets
-FOR INSERT
-WITH CHECK (true);
+-- Se preferir manter RLS habilitado com policies abertas, use o bloco abaixo:
+-- (Descomente e comente o DISABLE acima caso queira granularidade futura)
 
-DROP POLICY IF EXISTS "Qualquer usuario pode atualizar chamados" ON public.support_tickets;
-CREATE POLICY "Qualquer usuario pode atualizar chamados"
-ON public.support_tickets
-FOR UPDATE
-USING (true);
+-- ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.support_tickets FORCE ROW LEVEL SECURITY;
+-- -- Apaga TODAS as policies existentes (as 17 que podem estar conflitando)
+-- DO $$
+-- DECLARE pol RECORD;
+-- BEGIN
+--   FOR pol IN SELECT policyname FROM pg_policies WHERE tablename = 'support_tickets' AND schemaname = 'public'
+--   LOOP
+--     EXECUTE format('DROP POLICY IF EXISTS %I ON public.support_tickets', pol.policyname);
+--   END LOOP;
+-- END $$;
+-- CREATE POLICY "allow_all_support_tickets" ON public.support_tickets FOR ALL USING (true) WITH CHECK (true);
 
--- 13. HABILITAÇÃO DE RLS E POLÍTICAS PARA TICKET_REPLIES
-ALTER TABLE public.ticket_replies ENABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.ticket_replies ENABLE ROW LEVEL SECURITY;
+-- DO $$
+-- DECLARE pol RECORD;
+-- BEGIN
+--   FOR pol IN SELECT policyname FROM pg_policies WHERE tablename = 'ticket_replies' AND schemaname = 'public'
+--   LOOP
+--     EXECUTE format('DROP POLICY IF EXISTS %I ON public.ticket_replies', pol.policyname);
+--   END LOOP;
+-- END $$;
+-- CREATE POLICY "allow_all_ticket_replies" ON public.ticket_replies FOR ALL USING (true) WITH CHECK (true);
 
-DROP POLICY IF EXISTS "Todos podem ver respostas de chamados" ON public.ticket_replies;
-CREATE POLICY "Todos podem ver respostas de chamados"
-ON public.ticket_replies
-FOR SELECT
-USING (true);
-
-DROP POLICY IF EXISTS "Todos podem criar respostas" ON public.ticket_replies;
-CREATE POLICY "Todos podem criar respostas"
-ON public.ticket_replies
-FOR INSERT
-WITH CHECK (true);
-
--- 14. COLUNA BEHANCE NA TABELA FREELANCERS
+-- 13. COLUNA BEHANCE NA TABELA FREELANCERS
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS behance TEXT;

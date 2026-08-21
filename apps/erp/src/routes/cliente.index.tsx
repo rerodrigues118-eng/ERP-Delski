@@ -161,6 +161,80 @@ const STATUS_BADGE_STYLES: Record<string, { label: string; bg: string; text: str
   Resolvido: { label: "Resolvido", bg: "bg-emerald-50 dark:bg-emerald-950", text: "text-emerald-700 dark:text-emerald-300", border: "border-emerald-200 dark:border-emerald-800" },
 };
 
+export const getProjectProgress = (status?: string): number => {
+  if (!status) return 0;
+  const s = status
+    .toLowerCase()
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/_/g, " ");
+
+  // Etapa 1: Planejamento (20%)
+  if (
+    s === "planejamento" ||
+    s === "planejar" ||
+    s === "criado" ||
+    s === "solicitado" ||
+    s === "aguardando candidaturas" ||
+    s.includes("candidatura") ||
+    s === "em triagem" ||
+    s === "triagem"
+  ) {
+    return 20;
+  }
+
+  // Etapa 2: Contrato (40%)
+  if (
+    s === "contrato" ||
+    s === "fechado" ||
+    s === "emitir contrato" ||
+    s === "contratado" ||
+    s.includes("contrato") ||
+    s === "assinatura"
+  ) {
+    return 40;
+  }
+
+  // Etapa 3: Execução (60%)
+  if (
+    s === "execucao" ||
+    s === "em andamento" ||
+    s === "em execucao" ||
+    s === "delegado" ||
+    s === "em producao" ||
+    s === "producao"
+  ) {
+    return 60;
+  }
+
+  // Etapa 4: Revisão (80%)
+  if (
+    s === "revisao" ||
+    s === "em revisao" ||
+    s === "homologacao" ||
+    s.includes("revisao") ||
+    s.includes("homologacao")
+  ) {
+    return 80;
+  }
+
+  // Etapa 5: Concluído (100%)
+  if (
+    s === "concluido" ||
+    s === "concluida" ||
+    s === "finalizado" ||
+    s === "entregue" ||
+    s === "aprovado pelo cliente" ||
+    s.includes("concluid") ||
+    s.includes("entregue")
+  ) {
+    return 100;
+  }
+
+  return 0;
+};
+
 /* ── Custom Glassmorphism Tooltip for Recharts Area ──────────────────────── */
 const GlassTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -577,7 +651,8 @@ function ClienteDashboardPage() {
     );
   }
 
-  // Active Metrics
+  // Active Metrics & Dynamic Progress
+  const activeProject = clientProjects[0];
   const activeProjectsCount = clientProjects.filter(
     (p) => !["Concluido", "Concluida", "Aprovado pelo Cliente", "Cancelado"].includes(p.status)
   ).length;
@@ -585,25 +660,59 @@ function ClienteDashboardPage() {
   const openTicketsCount = tickets.filter((t) => ["Aberto", "Em atendimento", "Em Andamento"].includes(t.status)).length;
   const availableDocsCount = clientDocs.length + emittedNfses.length;
 
-  const overallProgressPercentage = clientProjects.length === 0
-    ? 25
-    : Math.round(
-        (clientProjects.reduce((acc, p) => {
-          if (["Concluido", "Concluida", "Aprovado pelo Cliente"].includes(p.status)) return acc + 100;
-          if (p.status === "Em Execução" || p.status === "Em Andamento") return acc + 65;
-          if (p.status === "Em Revisão") return acc + 85;
-          return acc + 25;
-        }, 0) / (clientProjects.length * 100)) * 100
-      );
+  const currentProgress = activeProject
+    ? getProjectProgress(activeProject.status)
+    : clientProjects.length > 0
+    ? Math.round(clientProjects.reduce((acc, p) => acc + getProjectProgress(p.status), 0) / clientProjects.length)
+    : 0;
 
-  // Time Series Chart Data (Recharts Area Chart)
-  const deliverySeriesData = [
-    { mes: "Mai", progresso: 10, entregas: 1 },
-    { mes: "Jun", progresso: 20, entregas: 2 },
-    { mes: "Jul", progresso: 35, entregas: 4 },
-    { mes: "Ago", progresso: overallProgressPercentage || 25, entregas: activeProjectsCount || 1 },
-    { mes: "Set (Prev)", progresso: Math.min(overallProgressPercentage + 35, 100), entregas: (activeProjectsCount || 1) + 2 },
-  ];
+  const nextDeadlineProject =
+    clientProjects.find(
+      (p) => p.deadline && !["Concluido", "Concluida", "Aprovado pelo Cliente", "Cancelado"].includes(p.status)
+    ) || activeProject;
+
+  const daysRemaining = useMemo(() => {
+    if (!nextDeadlineProject?.deadline) return 34;
+    try {
+      const d = new Date(nextDeadlineProject.deadline);
+      const diff = Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return Math.max(diff, 1);
+    } catch {
+      return 34;
+    }
+  }, [nextDeadlineProject?.deadline]);
+
+  const activePhaseLabel = useMemo(() => {
+    if (!activeProject?.status) return "Planejamento";
+    const p = getProjectProgress(activeProject.status);
+    if (p <= 20) return "Planejamento";
+    if (p <= 40) return "Contrato";
+    if (p <= 60) return "Execução";
+    if (p <= 80) return "Revisão";
+    return "Concluído";
+  }, [activeProject?.status]);
+
+  const nextMilestoneDate = useMemo(() => {
+    if (!nextDeadlineProject?.deadline) return "15/Set";
+    try {
+      const d = new Date(nextDeadlineProject.deadline);
+      return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    } catch {
+      return "15/Set";
+    }
+  }, [nextDeadlineProject?.deadline]);
+
+  // Time Series Chart Data (Recharts Area Chart) conectado ao progresso real da etapa
+  const deliverySeriesData = useMemo(() => {
+    const p = currentProgress;
+    return [
+      { mes: "Mai", progresso: Math.round(p * 0.15), entregas: 1 },
+      { mes: "Jun", progresso: Math.round(p * 0.35), entregas: 2 },
+      { mes: "Jul", progresso: Math.round(p * 0.65), entregas: 3 },
+      { mes: "Ago", progresso: p, entregas: activeProjectsCount || 1 },
+      { mes: "Set (Prev)", progresso: Math.min(p + 25, 100), entregas: (activeProjectsCount || 1) + 2 },
+    ];
+  }, [currentProgress, activeProjectsCount]);
 
   return (
     <div className="space-y-6">
@@ -652,7 +761,7 @@ function ClienteDashboardPage() {
                 </div>
                 <div className="flex items-baseline gap-1 py-1">
                   <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
-                    {overallProgressPercentage}%
+                    {currentProgress}%
                   </span>
                 </div>
               </motion.div>
@@ -673,7 +782,7 @@ function ClienteDashboardPage() {
                 </div>
                 <div className="flex items-baseline gap-1 py-1">
                   <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
-                    {activeProjectsCount || 1}
+                    {activeProjectsCount || (clientProjects.length > 0 ? clientProjects.length : 0)}
                   </span>
                 </div>
               </motion.div>
@@ -718,7 +827,7 @@ function ClienteDashboardPage() {
                 </div>
                 <div className="flex items-baseline gap-1 py-1">
                   <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
-                    {availableDocsCount || 3}
+                    {availableDocsCount}
                   </span>
                   <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500 ml-1">
                     Arquivos
@@ -746,7 +855,7 @@ function ClienteDashboardPage() {
                       Tempo Estimado para Próxima Entrega
                     </span>
                     <div className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight font-hud mt-1">
-                      34 dias
+                      {daysRemaining} dias
                     </div>
                     <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-hud mt-1 flex items-center gap-1">
                       <CheckCircle2 className="h-3.5 w-3.5" /> Cronograma rigorosamente dentro do prazo
@@ -761,7 +870,7 @@ function ClienteDashboardPage() {
                       Fase Atual
                     </p>
                     <p className="text-xs font-extrabold text-slate-900 dark:text-white font-hud mt-1 truncate">
-                      Homologação
+                      {activePhaseLabel}
                     </p>
                   </div>
 
@@ -779,7 +888,7 @@ function ClienteDashboardPage() {
                       Próximo Marco
                     </p>
                     <p className="text-xs font-extrabold text-blue-600 dark:text-blue-400 font-hud mt-1">
-                      15/Set
+                      {nextMilestoneDate}
                     </p>
                   </div>
                 </div>

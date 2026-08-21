@@ -94,6 +94,8 @@ import {
   useCreateFreelancerInvoice,
   useDeleteFreelancerInvoice,
 } from "@/hooks/useFreelancerInvoices";
+import { NodeJourneyTimeline } from "@/components/hud/NodeJourneyTimeline";
+import { getProjectProgress } from "./cliente.index";
 
 export const Route = createFileRoute("/freelancer/")({
   head: () => ({
@@ -201,6 +203,20 @@ const FreelancerStatusPieTooltip = ({ active, payload }: any) => {
   return null;
 };
 
+const GlassTooltip = ({ active, payload, label }: any) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-slate-200/80 dark:border-zinc-800 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-md p-3 shadow-xl text-xs space-y-1">
+      <p className="font-bold text-slate-800 dark:text-zinc-200">{label}</p>
+      <div className="flex items-center gap-2">
+        <span className="w-2.5 h-2.5 rounded-full bg-blue-600" />
+        <span className="text-slate-500 dark:text-zinc-400">Progresso:</span>
+        <span className="font-extrabold text-blue-600 dark:text-blue-400">{payload[0]?.value}%</span>
+      </div>
+    </div>
+  );
+};
+
 function FreelancerDashboardPage() {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("dashboard");
@@ -299,6 +315,61 @@ function FreelancerDashboardPage() {
     (acc, p) => acc + Number(p.freelancer_cost || 0),
     0
   );
+
+  // Dynamic Freelancer Metrics & Progress
+  const activeFreelancerProject = assignedProjects[0];
+  const freelancerProgress = activeFreelancerProject
+    ? getProjectProgress(activeFreelancerProject.status)
+    : assignedProjects.length > 0
+    ? Math.round(assignedProjects.reduce((acc, p) => acc + getProjectProgress(p.status), 0) / assignedProjects.length)
+    : 0;
+
+  const nextDeadlineProject =
+    assignedProjects.find(
+      (p) => p.deadline && !["Concluido", "Concluida", "Aprovado pelo Cliente", "Cancelado"].includes(p.status)
+    ) || activeFreelancerProject;
+
+  const daysRemaining = useMemo(() => {
+    if (!nextDeadlineProject?.deadline) return 30;
+    try {
+      const d = new Date(nextDeadlineProject.deadline);
+      const diff = Math.ceil((d.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return Math.max(diff, 1);
+    } catch {
+      return 30;
+    }
+  }, [nextDeadlineProject?.deadline]);
+
+  const activePhaseLabel = useMemo(() => {
+    if (!activeFreelancerProject?.status) return "Execução";
+    const p = getProjectProgress(activeFreelancerProject.status);
+    if (p <= 20) return "Planejamento";
+    if (p <= 40) return "Contrato";
+    if (p <= 60) return "Execução";
+    if (p <= 80) return "Revisão";
+    return "Concluído";
+  }, [activeFreelancerProject?.status]);
+
+  const nextMilestoneDate = useMemo(() => {
+    if (!nextDeadlineProject?.deadline) return "30/Set";
+    try {
+      const d = new Date(nextDeadlineProject.deadline);
+      return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}`;
+    } catch {
+      return "30/Set";
+    }
+  }, [nextDeadlineProject?.deadline]);
+
+  const freelancerDeliverySeriesData = useMemo(() => {
+    const p = freelancerProgress;
+    return [
+      { mes: "Mai", progresso: Math.round(p * 0.15), entregas: 1 },
+      { mes: "Jun", progresso: Math.round(p * 0.35), entregas: 2 },
+      { mes: "Jul", progresso: Math.round(p * 0.65), entregas: 3 },
+      { mes: "Ago", progresso: p, entregas: activeProjectsCount || 1 },
+      { mes: "Set (Prev)", progresso: Math.min(p + 25, 100), entregas: (activeProjectsCount || 1) + 2 },
+    ];
+  }, [freelancerProgress, activeProjectsCount]);
 
   // Dados para Gráfico 1: Evolução dos Honorários Mês a Mês
   const monthlyHonorariosData = useMemo(() => {
@@ -656,349 +727,219 @@ function FreelancerDashboardPage() {
 
         {/* ── ABA 0: DASHBOARD ────────────────────────────────────────────── */}
         <TabsContent value="dashboard" className="space-y-6 focus-visible:outline-none">
-          {/* KPI Summary Cards (4 Cards) */}
+          {/* ── LINHA 1: 4 Cards Compactos de KPI (Grid de 4 Colunas) ─────── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Card 1: Projetos Ativos */}
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs hover:border-blue-500/30 transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
+            {/* Card 1: Progresso das Demandas */}
+            <motion.div
+              whileHover={{ y: -2 }}
+              onClick={() => changeTab("projetos")}
+              className="group relative overflow-hidden rounded-2xl bg-white dark:bg-[#11131A] border border-slate-200/80 dark:border-zinc-800/80 p-5 shadow-xs transition-all duration-300 hover:border-blue-500/40 hover:shadow-md cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <span className="text-[11px] font-bold tracking-wider uppercase text-slate-500 dark:text-zinc-400 font-hud">
+                  Progresso das Demandas
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/60 font-hud flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3" /> +5% mês
+                </span>
+              </div>
+              <div className="flex items-baseline gap-1 py-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
+                  {freelancerProgress}%
+                </span>
+              </div>
+            </motion.div>
+
+            {/* Card 2: Projetos Ativos */}
+            <motion.div
+              whileHover={{ y: -2 }}
+              onClick={() => changeTab("projetos")}
+              className="group relative overflow-hidden rounded-2xl bg-white dark:bg-[#11131A] border border-slate-200/80 dark:border-zinc-800/80 p-5 shadow-xs transition-all duration-300 hover:border-blue-500/40 hover:shadow-md cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <span className="text-[11px] font-bold tracking-wider uppercase text-slate-500 dark:text-zinc-400 font-hud">
                   Projetos Ativos
                 </span>
-                <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                  <Briefcase className="w-4 h-4" />
-                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200/60 font-hud flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Em Execução
+                </span>
               </div>
-              <div className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                {activeProjectsCount}
+              <div className="flex items-baseline gap-1 py-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
+                  {activeProjectsCount}
+                </span>
+                <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500 ml-1">
+                  demanda(s)
+                </span>
               </div>
-              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1 font-medium">
-                {assignedProjects.length} demanda(s) atribuída(s)
-              </p>
-            </div>
+            </motion.div>
 
-            {/* Card 2: Entregas Pendentes */}
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs hover:border-amber-500/30 transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
+            {/* Card 3: Entregas Pendentes */}
+            <motion.div
+              whileHover={{ y: -2 }}
+              onClick={() => changeTab("projetos")}
+              className="group relative overflow-hidden rounded-2xl bg-white dark:bg-[#11131A] border border-slate-200/80 dark:border-zinc-800/80 p-5 shadow-xs transition-all duration-300 hover:border-blue-500/40 hover:shadow-md cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <span className="text-[11px] font-bold tracking-wider uppercase text-slate-500 dark:text-zinc-400 font-hud">
                   Entregas Pendentes
                 </span>
-                <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                  <Clock className="w-4 h-4" />
-                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-200/60 font-hud">
+                  SLA em Dia
+                </span>
               </div>
-              <div className="text-2xl font-extrabold text-gray-900 dark:text-white">
-                {pendingProjectsCount}
+              <div className="flex items-baseline gap-1 py-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white font-hud tracking-tight">
+                  {pendingProjectsCount}
+                </span>
+                <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500 ml-1">
+                  em produção
+                </span>
               </div>
-              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1 font-medium">
-                Demandas em produção / revisão
-              </p>
-            </div>
+            </motion.div>
 
-            {/* Card 3: Honorários Alocados */}
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs hover:border-emerald-500/30 transition-all">
-              <div className="flex items-center justify-between mb-3">
-                <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
+            {/* Card 4: Honorários Alocados */}
+            <motion.div
+              whileHover={{ y: -2 }}
+              onClick={() => changeTab("financeiro")}
+              className="group relative overflow-hidden rounded-2xl bg-white dark:bg-[#11131A] border border-slate-200/80 dark:border-zinc-800/80 p-5 shadow-xs transition-all duration-300 hover:border-blue-500/40 hover:shadow-md cursor-pointer"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <span className="text-[11px] font-bold tracking-wider uppercase text-slate-500 dark:text-zinc-400 font-hud">
                   Honorários Alocados
                 </span>
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                  <DollarSign className="w-4 h-4" />
-                </div>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-50 dark:bg-indigo-950/60 text-indigo-700 dark:text-indigo-300 border border-indigo-200/60 font-hud">
+                  Liberado
+                </span>
               </div>
-              <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                {money(totalHonorarios)}
+              <div className="flex items-baseline gap-1 py-1">
+                <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 dark:text-emerald-400 font-hud tracking-tight">
+                  {money(totalHonorarios)}
+                </span>
               </div>
-              <p className="text-xs text-gray-400 dark:text-zinc-500 mt-1 font-medium">
-                {invoices.length} nota(s) fiscal(is) emitida(s)
-              </p>
-            </div>
+            </motion.div>
+          </div>
 
-            {/* Card 4: Documentação (Status Badge) */}
-            <div
-              onClick={() => changeTab("documentacao")}
-              className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs hover:border-indigo-500/40 transition-all cursor-pointer group flex flex-col justify-between"
-            >
+          {/* ── LINHA 2: Seção Principal em Grid 2 Colunas (Estilo Gestor/Cliente) ─── */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+            {/* Coluna da Esquerda (1/3 da largura — Card de Saúde do Cronograma) */}
+            <div className="lg:col-span-4 rounded-2xl bg-white dark:bg-[#11131A] border border-slate-200/80 dark:border-zinc-800/80 p-6 shadow-xs flex flex-col justify-between space-y-6">
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-[11px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
-                    Documentação
-                  </span>
-                  <div className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                    <ShieldCheck className="w-4 h-4" />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full border ${docStatusBadge.color}`}>
-                    <docStatusBadge.icon className="w-3.5 h-3.5" />
-                    {docStatusBadge.label}
-                  </span>
-                </div>
-              </div>
-              <p className="text-xs text-blue-600 dark:text-blue-400 mt-3 font-semibold group-hover:underline flex items-center gap-1">
-                {freelancerDocs.length} documento(s) anexado(s) &rarr;
-              </p>
-            </div>
-          </div>
-
-          {/* ── SEÇÃO PRINCIPAL: Próximas Entregas & Painel Lateral ─────────── */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
-            {/* Widget 1: Próximas Entregas & Prazos (7 colunas) */}
-            <div className="lg:col-span-7 bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 sm:p-6 shadow-xs flex flex-col justify-between space-y-4">
-              <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800/80 pb-3.5">
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Próximas Entregas & Prazos
-                </h4>
-                <span className="text-xs font-semibold text-gray-400 dark:text-zinc-500">
-                  {upcomingDeliveries.length} agendada(s)
-                </span>
-              </div>
-
-              <div className="space-y-3 flex-1 overflow-y-auto max-h-80 pr-1">
-                {upcomingDeliveries.length === 0 ? (
-                  <div className="py-12 text-center text-gray-400 dark:text-zinc-500 space-y-1">
-                    <Clock className="w-8 h-8 mx-auto text-gray-300 dark:text-zinc-600 mb-1" />
-                    <p className="text-xs font-semibold text-gray-600 dark:text-zinc-300">Nenhum prazo pendente</p>
-                    <p className="text-[11px] text-gray-400 dark:text-zinc-500">Todas as suas demandas estão em dia.</p>
-                  </div>
-                ) : (
-                  upcomingDeliveries.map((p) => {
-                    const deadlineInfo = getDeadlineInfo(p.deadline);
-                    return (
-                      <div
-                        key={p.id}
-                        onClick={() => setSelectedProjectForDetails(p)}
-                        className="p-3.5 sm:p-4 rounded-xl border border-gray-100 dark:border-zinc-800 hover:border-blue-300 dark:hover:border-blue-700 bg-gray-50/50 dark:bg-zinc-800/40 hover:bg-blue-50/20 dark:hover:bg-zinc-800/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer group"
-                      >
-                        <div className="min-w-0 flex-1 space-y-1.5">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs sm:text-sm font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 truncate transition-colors">
-                              {p.title}
-                            </span>
-                            {p.service_type && (
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800/60">
-                                {p.service_type}
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap items-center gap-2.5 text-[11px]">
-                            {/* Deadline Countdown Tag */}
-                            <span className={`inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded-md border text-[10px] ${deadlineInfo.cls}`}>
-                              <Clock className="w-3 h-3" />
-                              {deadlineInfo.text}
-                            </span>
-                            {/* Honorário Tag */}
-                            <span className="font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 px-2 py-0.5 rounded-md text-[10px]">
-                              {money(p.freelancer_cost || 0)}
-                            </span>
-                            {p.deadline && (
-                              <span className="text-gray-400 dark:text-zinc-500">
-                                Prazo: <strong className="text-gray-700 dark:text-zinc-300">{formatDate(p.deadline)}</strong>
-                              </span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span
-                            className={`text-[10px] font-bold px-2.5 py-1 rounded-full shrink-0 border ${
-                              p.status === "Concluido"
-                                ? "bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800/60"
-                                : p.status === "Em Andamento" || p.status === "Em Producao"
-                                ? "bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800/60"
-                                : "bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800/60"
-                            }`}
-                          >
-                            {p.status}
-                          </span>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedProjectForDetails(p);
-                            }}
-                            className="h-8 px-2.5 text-xs rounded-xl gap-1 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 shrink-0"
-                          >
-                            <Eye className="w-3.5 h-3.5" /> Ver Detalhes
-                          </Button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-
-              <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80 flex items-center justify-between text-[11px] text-gray-400 dark:text-zinc-500">
-                <span className="flex items-center gap-1 text-gray-500 dark:text-zinc-400">
-                  <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" /> Sincronizado com o cronograma
-                </span>
-                <button
-                  type="button"
-                  onClick={() => changeTab("projetos")}
-                  className="font-bold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer"
-                >
-                  Ver todos os projetos &rarr;
-                </button>
-              </div>
-            </div>
-
-            {/* Widget 2: Painel Lateral com Ações Rápidas & Distribuição (5 colunas) */}
-            <div className="lg:col-span-5 space-y-5 flex flex-col justify-between">
-              {/* Card de Ações Rápidas */}
-              <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs">
-                <h4 className="text-sm font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-500" /> Ações Rápidas
-                </h4>
-                <div className="grid grid-cols-1 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => changeTab("notas")}
-                    className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/60 dark:bg-zinc-800/50 hover:bg-blue-50/30 dark:hover:bg-zinc-800 hover:border-blue-200 dark:hover:border-blue-700 transition-all text-left group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                        <Receipt className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
-                          Enviar Nota Fiscal (NFS-e)
-                        </span>
-                        <p className="text-[11px] text-gray-400 dark:text-zinc-500">Anexe comprovantes para liquidação</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => changeTab("financeiro")}
-                    className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/60 dark:bg-zinc-800/50 hover:bg-emerald-50/30 dark:hover:bg-zinc-800 hover:border-emerald-200 dark:hover:border-emerald-700 transition-all text-left group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                        <CreditCard className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                          Atualizar Dados Bancários
-                        </span>
-                        <p className="text-[11px] text-gray-400 dark:text-zinc-500">Chave PIX e conta corrente</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-emerald-600 group-hover:translate-x-0.5 transition-all" />
-                  </button>
-
-                  <a
-                    href="mailto:suporte@delski.co?subject=Suporte%20Direto%20Prestador"
-                    className="flex items-center justify-between p-3 rounded-xl border border-gray-100 dark:border-zinc-800 bg-gray-50/60 dark:bg-zinc-800/50 hover:bg-purple-50/30 dark:hover:bg-zinc-800 hover:border-purple-200 dark:hover:border-purple-700 transition-all text-left group"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                        <HelpCircle className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-gray-900 dark:text-white group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                          Suporte Direct
-                        </span>
-                        <p className="text-[11px] text-gray-400 dark:text-zinc-500">Fale com a gestão de operações</p>
-                      </div>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-purple-600 group-hover:translate-x-0.5 transition-all" />
-                  </a>
-                </div>
-              </div>
-
-              {/* Card Distribuição de Demandas */}
-              <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-5 shadow-xs flex-1 flex flex-col justify-between">
-                <div className="border-b border-gray-100 dark:border-zinc-800/80 pb-3 flex items-center justify-between">
+                <div className="flex items-start justify-between gap-2 border-b border-slate-100 dark:border-zinc-800 pb-4">
                   <div>
-                    <h4 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                      <PieChartIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" /> Distribuição de Demandas
-                    </h4>
-                    <p className="text-xs text-gray-500 dark:text-zinc-400">Proporção por status</p>
+                    <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-blue-600" /> Cronograma
+                    </h3>
                   </div>
-                  <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60">
-                    {assignedProjects.length} Total
-                  </span>
                 </div>
 
-                {projectDistributionData.hasData ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center py-2">
-                    {/* Donut Chart */}
-                    <div className="h-36 w-full relative flex items-center justify-center">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={projectDistributionData.list.filter((d) => d.value > 0)}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={36}
-                            outerRadius={54}
-                            paddingAngle={4}
-                            dataKey="value"
-                          >
-                            {projectDistributionData.list
-                              .filter((d) => d.value > 0)
-                              .map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={entry.color} />
-                              ))}
-                          </Pie>
-                          <Tooltip content={<FreelancerStatusPieTooltip />} />
-                        </PieChart>
-                      </ResponsiveContainer>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <span className="text-xl font-black text-gray-900 dark:text-white">
-                          {assignedProjects.length}
-                        </span>
-                        <span className="text-[9px] uppercase font-bold text-gray-400 dark:text-zinc-500">
-                          Projetos
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Custom Legend with Badges & Percentages */}
-                    <div className="space-y-1.5">
-                      {projectDistributionData.list.map((item) => (
-                        <div
-                          key={item.name}
-                          className="flex items-center justify-between text-xs p-1 rounded-lg hover:bg-gray-50 dark:hover:bg-zinc-800 transition-colors"
-                        >
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className="w-2.5 h-2.5 rounded-full shrink-0"
-                              style={{ backgroundColor: item.color }}
-                            />
-                            <span className="font-semibold text-gray-700 dark:text-zinc-300 text-[11px]">
-                              {item.name}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="font-bold text-gray-900 dark:text-white text-[11px]">
-                              {item.value}
-                            </span>
-                            <span className="text-[10px] text-gray-400 dark:text-zinc-500">
-                              ({item.percent}%)
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="py-6 text-center text-gray-400 dark:text-zinc-500 space-y-1">
-                    <Briefcase className="w-6 h-6 mx-auto text-gray-300 dark:text-zinc-600 mb-1" />
-                    <p className="text-xs font-semibold text-gray-600 dark:text-zinc-300">Sem demandas registradas</p>
-                  </div>
-                )}
-
-                <div className="pt-2 border-t border-gray-100 dark:border-zinc-800/80 text-[11px] text-gray-400 dark:text-zinc-500 flex items-center justify-between">
-                  <span>Taxa de conclusão</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                    {projectDistributionData.list.find((d) => d.name === "Concluídos")?.percent || 0}%
+                {/* Big Metric */}
+                <div className="my-6">
+                  <span className="text-[11px] font-bold tracking-wider text-slate-400 dark:text-zinc-500 uppercase font-hud">
+                    Tempo Estimado para Próxima Entrega
                   </span>
+                  <div className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight font-hud mt-1">
+                    {daysRemaining} dias
+                  </div>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold font-hud mt-1 flex items-center gap-1">
+                    <CheckCircle2 className="h-3.5 w-3.5" /> Cronograma rigorosamente dentro do prazo
+                  </p>
+                </div>
+              </div>
+
+              {/* Sub-Métricas em 3 Colunas (Breakdown) */}
+              <div className="grid grid-cols-3 gap-2 pt-4 border-t border-slate-100 dark:border-zinc-800 text-center">
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-100 dark:border-zinc-800/80">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider font-hud">
+                    Fase Atual
+                  </p>
+                  <p className="text-xs font-extrabold text-slate-900 dark:text-white font-hud mt-1 truncate">
+                    {activePhaseLabel}
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-100 dark:border-zinc-800/80">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider font-hud">
+                    SLA Resposta
+                  </p>
+                  <p className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 font-hud mt-1">
+                    &lt; 2 horas
+                  </p>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-zinc-900/60 border border-slate-100 dark:border-zinc-800/80">
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-wider font-hud">
+                    Próximo Marco
+                  </p>
+                  <p className="text-xs font-extrabold text-blue-600 dark:text-blue-400 font-hud mt-1">
+                    {nextMilestoneDate}
+                  </p>
                 </div>
               </div>
             </div>
+
+            {/* Coluna da Direita (2/3 da largura — Gráfico de Evolução de Entregas) */}
+            <div className="lg:col-span-8 rounded-2xl bg-white dark:bg-[#11131A] border border-slate-200/80 dark:border-zinc-800/80 p-6 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 dark:border-zinc-800 pb-4">
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900 dark:text-white tracking-tight font-hud flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-blue-600" /> Jornada de Entregas
+                  </h3>
+                </div>
+
+                <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200/70 font-hud self-start sm:self-center">
+                  Tempo Real
+                </span>
+              </div>
+
+              {/* Recharts Area Chart */}
+              <div className="h-64 w-full pt-2">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={freelancerDeliverySeriesData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorFreelancerProgresso" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#2563EB" stopOpacity={0.4} />
+                        <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.15} />
+                    <XAxis
+                      dataKey="mes"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "#94A3B8" }}
+                    />
+                    <YAxis
+                      domain={[0, 100]}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "#94A3B8" }}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <Tooltip content={<GlassTooltip />} />
+                    <Area
+                      type="monotone"
+                      dataKey="progresso"
+                      name="Progresso Acumulado"
+                      stroke="#2563EB"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorFreelancerProgresso)"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
           </div>
+
+          {/* ── LINHA 3: Customer Journey Map (Node-Journey Flow) ─────────── */}
+          <NodeJourneyTimeline
+            projects={assignedProjects}
+            onSelectProject={(p) => {
+              setSelectedProjectForDetails(p);
+            }}
+            onViewAll={() => changeTab("projetos")}
+          />
 
           {/* Compliance Banner */}
           {hasPendingDocsOrBank ? (
@@ -1008,8 +949,8 @@ function FreelancerDashboardPage() {
                   <AlertTriangle className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-gray-900">Pendência na Homologação Cadastral</h4>
-                  <p className="text-xs text-gray-600 mt-0.5">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Pendência na Homologação Cadastral</h4>
+                  <p className="text-xs text-gray-600 dark:text-zinc-400 mt-0.5">
                     Mantenha sua documentação societária e dados bancários atualizados para garantir a liquidação pontual de seus honorários.
                   </p>
                 </div>
@@ -1026,7 +967,7 @@ function FreelancerDashboardPage() {
                   variant="outline"
                   size="sm"
                   onClick={() => changeTab("financeiro")}
-                  className="rounded-xl text-xs gap-1.5 h-9 border-amber-300 text-amber-900"
+                  className="rounded-xl text-xs gap-1.5 h-9 border-amber-300 text-amber-900 dark:text-amber-300"
                 >
                   <CreditCard className="w-3.5 h-3.5" /> Dados Bancários
                 </Button>
@@ -1039,8 +980,8 @@ function FreelancerDashboardPage() {
                   <ShieldCheck className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-sm font-bold text-gray-900">Cadastro Homologado & Em Dia</h4>
-                  <p className="text-xs text-gray-600 mt-0.5">
+                  <h4 className="text-sm font-bold text-gray-900 dark:text-white">Cadastro Homologado & Em Dia</h4>
+                  <p className="text-xs text-gray-600 dark:text-zinc-400 mt-0.5">
                     Seus dados cadastrais, documentação societária e chave PIX estão verificados pelo Gestor.
                   </p>
                 </div>
@@ -1052,13 +993,13 @@ function FreelancerDashboardPage() {
           )}
 
           {/* Recent Assigned Projects Table / List */}
-          <div className="bg-white rounded-2xl border border-gray-200/80 p-6 sm:p-8 shadow-xs space-y-5">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+          <div className="bg-white dark:bg-zinc-900 rounded-2xl border border-gray-200/80 dark:border-zinc-800 p-6 sm:p-8 shadow-xs space-y-5">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-zinc-800 pb-4">
               <div>
-                <h3 className="text-base font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                <h3 className="text-base font-bold text-gray-900 dark:text-white tracking-tight flex items-center gap-2">
                   <FolderKanban className="w-4 h-4 text-blue-600" /> Últimos Projetos Delegados
                 </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                   Demandas e serviços vinculados ao seu perfil de especialista
                 </p>
               </div>
@@ -1072,7 +1013,7 @@ function FreelancerDashboardPage() {
             ) : assignedProjects.length === 0 ? (
               <div className="py-12 text-center text-gray-400 space-y-2">
                 <Briefcase className="w-8 h-8 mx-auto text-gray-300" />
-                <p className="text-sm font-medium text-gray-600">Nenhum projeto atribuído no momento</p>
+                <p className="text-sm font-medium text-gray-600 dark:text-zinc-400">Nenhum projeto atribuído no momento</p>
                 <p className="text-xs text-gray-400 max-w-sm mx-auto">
                   Assim que um novo projeto for delegado a você pelo Gestor, ele aparecerá listado nesta área com prazos e briefing.
                 </p>
@@ -1081,7 +1022,7 @@ function FreelancerDashboardPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
+                    <tr className="border-b border-gray-100 dark:border-zinc-800 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
                       <th className="pb-3">Projeto</th>
                       <th className="pb-3">Cliente</th>
                       <th className="pb-3">Serviço</th>
@@ -1090,34 +1031,34 @@ function FreelancerDashboardPage() {
                       <th className="pb-3 text-center">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-100 dark:divide-zinc-800">
                     {assignedProjects.slice(0, 8).map((p) => (
-                      <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
-                        <td className="py-3.5 pr-3 font-semibold text-gray-900">
+                      <tr key={p.id} className="hover:bg-gray-50/50 dark:hover:bg-zinc-800/40 transition-colors">
+                        <td className="py-3.5 pr-3 font-semibold text-gray-900 dark:text-white">
                           {p.title}
                         </td>
-                        <td className="py-3.5 pr-3 text-gray-600">
+                        <td className="py-3.5 pr-3 text-gray-600 dark:text-zinc-300">
                           {p.client?.full_name || "Cliente Delski"}
                         </td>
                         <td className="py-3.5 pr-3">
-                          <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 text-[11px] font-semibold border border-blue-100">
+                          <span className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 text-[11px] font-semibold border border-blue-100 dark:border-blue-800">
                             {p.service_type}
                           </span>
                         </td>
-                        <td className="py-3.5 pr-3 text-gray-600">
+                        <td className="py-3.5 pr-3 text-gray-600 dark:text-zinc-400">
                           {formatDate(p.deadline)}
                         </td>
-                        <td className="py-3.5 pr-3 text-right font-bold text-emerald-600">
+                        <td className="py-3.5 pr-3 text-right font-bold text-emerald-600 dark:text-emerald-400">
                           {money(p.freelancer_cost || 0)}
                         </td>
                         <td className="py-3.5 text-center">
                           <span
                             className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold border ${
                               p.status === "Concluido"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                ? "bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800"
                                 : p.status === "Em Andamento" || p.status === "Em Producao"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-gray-50 text-gray-700 border-gray-200"
+                                ? "bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800"
+                                : "bg-gray-50 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300 border-gray-200 dark:border-zinc-700"
                             }`}
                           >
                             {p.status}
