@@ -63,7 +63,6 @@ const NAV_NEGOCIO = [
   { title: "Vendas", url: "/app/vendas", icon: TrendingUp, gestor: true, freelancer: false, cliente: false },
   { title: "Financeiro", url: "/app/finance", icon: DollarSign, gestor: true, freelancer: true, cliente: false },
   { title: "Gerador de Contratos", url: "/app/contract-generator", icon: FileSignature, gestor: true, freelancer: false, cliente: false },
-  { title: "Modelos de Contrato", url: "/app/contract-models", icon: FilePlus, gestor: true, freelancer: false, cliente: false },
 ];
 
 const NAV_SISTEMA = [
