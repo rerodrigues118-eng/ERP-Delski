@@ -83,47 +83,174 @@ export function useCurrentFreelancerProfile(userId?: string, userEmail?: string)
         } catch {}
       }
 
-      // 3. Fallback merge
-      if (!freelancerRow && profileRow) {
-        freelancerRow = {
-          id: profileRow.id,
-          company_name: profileRow.company_name || "",
-          corporate_name: profileRow.corporate_name || "",
-          cnpj: profileRow.cnpj || "",
-          cpf: profileRow.cpf || profileRow.cpf_cnpj || "",
-          segment: profileRow.segment || "",
-          email: profileRow.email,
-          phone: profileRow.phone || "",
-          address: profileRow.address || "",
-          city: profileRow.city || "",
-          state: profileRow.state || "",
-          cep: profileRow.cep || "",
-          role_position: profileRow.cargo || "",
-          instagram: profileRow.instagram || "",
-          linkedin: profileRow.linkedin || "",
-          website: profileRow.website || "",
-          bank_name: profileRow.bank_name || "",
-          pix_type: profileRow.pix_type || "",
-          pix_key: profileRow.pix_key || "",
-          bank_agency: profileRow.bank_agency || "",
-          bank_account: profileRow.bank_account || "",
-          onboarding_completed: profileRow.onboarding_completed || false,
-          status: profileRow.status || "ativo",
-          contract_model: profileRow.contract_model || "Mensal",
-          contract_value: profileRow.contract_value || 0,
-          payment_date: profileRow.payment_date || null,
-          due_date: profileRow.due_date || null,
-          financial_status: profileRow.financial_status || "Pendente",
-          created_at: profileRow.created_at,
-        };
+      // 3. Fetch from localStorage backup
+      let localData: any = {};
+      if (userId) {
+        try {
+          const raw = localStorage.getItem(`freelancer_profile_${userId}`);
+          if (raw) localData = JSON.parse(raw);
+        } catch {}
       }
 
-      if (!freelancerRow && !profileRow) {
+      const pExtra = (profileRow?.contract_field_values as Record<string, any>) || {};
+
+      // 4. Robust merge of all sources (freelancers table, profiles table, profiles.contract_field_values, localStorage)
+      const mergedRow: any = {
+        id: freelancerRow?.id || profileRow?.id || userId,
+        company_name:
+          freelancerRow?.company_name ||
+          profileRow?.company_name ||
+          pExtra.company_name ||
+          localData.company_name ||
+          "",
+        corporate_name:
+          freelancerRow?.corporate_name ||
+          profileRow?.corporate_name ||
+          pExtra.corporate_name ||
+          localData.corporate_name ||
+          "",
+        cnpj:
+          freelancerRow?.cnpj ||
+          profileRow?.cnpj ||
+          profileRow?.cpf_cnpj ||
+          pExtra.cnpj ||
+          localData.cnpj ||
+          "",
+        cpf:
+          freelancerRow?.cpf ||
+          profileRow?.cpf ||
+          pExtra.cpf ||
+          localData.cpf ||
+          (profileRow?.cpf_cnpj && profileRow.cpf_cnpj.length <= 14 ? profileRow.cpf_cnpj : "") ||
+          "",
+        segment:
+          freelancerRow?.segment ||
+          profileRow?.segment ||
+          pExtra.segment ||
+          localData.segment ||
+          "",
+        email:
+          freelancerRow?.email ||
+          profileRow?.email ||
+          pExtra.email ||
+          localData.email ||
+          emailLower ||
+          "",
+        phone:
+          freelancerRow?.phone ||
+          profileRow?.phone ||
+          pExtra.phone ||
+          localData.phone ||
+          "",
+        address:
+          freelancerRow?.address ||
+          profileRow?.address ||
+          pExtra.address ||
+          localData.address ||
+          "",
+        city:
+          freelancerRow?.city ||
+          profileRow?.city ||
+          pExtra.city ||
+          localData.city ||
+          "",
+        state:
+          freelancerRow?.state ||
+          profileRow?.state ||
+          pExtra.state ||
+          localData.state ||
+          "",
+        cep:
+          freelancerRow?.cep ||
+          profileRow?.cep ||
+          pExtra.cep ||
+          localData.cep ||
+          "",
+        role_position:
+          freelancerRow?.role_position ||
+          profileRow?.cargo ||
+          pExtra.role_position ||
+          localData.role_position ||
+          "",
+        instagram:
+          freelancerRow?.instagram ||
+          profileRow?.instagram ||
+          pExtra.instagram ||
+          localData.instagram ||
+          "",
+        linkedin:
+          freelancerRow?.linkedin ||
+          profileRow?.linkedin ||
+          pExtra.linkedin ||
+          localData.linkedin ||
+          "",
+        website:
+          freelancerRow?.website ||
+          profileRow?.website ||
+          pExtra.website ||
+          localData.website ||
+          "",
+        behance:
+          freelancerRow?.behance ||
+          profileRow?.behance ||
+          pExtra.behance ||
+          localData.behance ||
+          "",
+        bank_name:
+          freelancerRow?.bank_name ||
+          profileRow?.bank_name ||
+          pExtra.bank_name ||
+          localData.bank_name ||
+          "",
+        pix_type:
+          freelancerRow?.pix_type ||
+          profileRow?.pix_type ||
+          pExtra.pix_type ||
+          localData.pix_type ||
+          "CNPJ",
+        pix_key:
+          freelancerRow?.pix_key ||
+          profileRow?.pix_key ||
+          pExtra.pix_key ||
+          localData.pix_key ||
+          "",
+        bank_agency:
+          freelancerRow?.bank_agency ||
+          profileRow?.bank_agency ||
+          pExtra.bank_agency ||
+          localData.bank_agency ||
+          "",
+        bank_account:
+          freelancerRow?.bank_account ||
+          profileRow?.bank_account ||
+          pExtra.bank_account ||
+          localData.bank_account ||
+          "",
+        onboarding_completed:
+          freelancerRow?.onboarding_completed ?? profileRow?.onboarding_completed ?? false,
+        status: freelancerRow?.status || profileRow?.status || "ativo",
+        contract_model: freelancerRow?.contract_model || profileRow?.contract_model || "Mensal",
+        contract_value: freelancerRow?.contract_value ?? profileRow?.contract_value ?? 0,
+        payment_date: freelancerRow?.payment_date || profileRow?.payment_date || null,
+        due_date: freelancerRow?.due_date || profileRow?.due_date || null,
+        financial_status:
+          freelancerRow?.financial_status || profileRow?.financial_status || "Pendente",
+        full_name:
+          profileRow?.full_name ||
+          freelancerRow?.full_name ||
+          pExtra.full_name ||
+          localData.full_name ||
+          "Prestador",
+        avatar_url: profileRow?.avatar_url || null,
+        created_at: freelancerRow?.created_at || profileRow?.created_at,
+      };
+
+      if (!freelancerRow && !profileRow && !Object.keys(localData).length) {
         return null;
       }
 
-      // 4. Fetch linked projects
-      const resolvedId = freelancerRow?.id || profileRow?.id || userId;
+      // 5. Fetch linked projects
+      const resolvedId = mergedRow.id || userId;
       let projects: any[] = [];
 
       try {
@@ -162,11 +289,7 @@ export function useCurrentFreelancerProfile(userId?: string, userEmail?: string)
       }
 
       return {
-        ...freelancerRow,
-        id: freelancerRow?.id || profileRow?.id || userId,
-        email: freelancerRow?.email || profileRow?.email || "",
-        full_name: profileRow?.full_name || freelancerRow?.full_name || "Prestador",
-        avatar_url: profileRow?.avatar_url || null,
+        ...mergedRow,
         projects,
       };
     },
@@ -190,59 +313,36 @@ export function useUpdateCurrentFreelancerProfile() {
       const targetId = freelancerId || userId;
       if (!targetId) throw new Error("ID do freelancer não especificado.");
 
-      // 1. Update/Upsert PROFILES table first (satisfaz foreign key freelancers_id_fkey)
+      // 1. Backup em localStorage imediato
+      try {
+        localStorage.setItem(`freelancer_profile_${targetId}`, JSON.stringify(patch));
+      } catch {}
+
+      // 2. Persistência na tabela PROFILES (com contract_field_values como container universal)
       const profilePatch: Record<string, any> = {
         id: targetId,
         role: "freelancer",
+        full_name: patch.full_name || patch.contact_name || undefined,
+        phone: patch.phone || undefined,
+        cpf_cnpj: patch.cnpj || patch.cpf || undefined,
+        cargo: patch.role_position || undefined,
+        contract_field_values: patch,
         updated_at: new Date().toISOString(),
       };
-      if (patch.full_name || patch.contact_name) {
-        profilePatch.full_name = patch.full_name || patch.contact_name;
-      }
-      if (patch.phone) profilePatch.phone = patch.phone;
-      if (patch.cnpj) profilePatch.cpf_cnpj = patch.cnpj;
-      if (patch.cpf) {
-        profilePatch.cpf = patch.cpf;
-        if (!profilePatch.cpf_cnpj) profilePatch.cpf_cnpj = patch.cpf;
-      }
-      if (patch.company_name) profilePatch.company_name = patch.company_name;
-      if (patch.corporate_name) profilePatch.corporate_name = patch.corporate_name;
-      if (patch.segment) profilePatch.segment = patch.segment;
-      if (patch.email) profilePatch.email = patch.email;
-      if (patch.address) profilePatch.address = patch.address;
-      if (patch.city) profilePatch.city = patch.city;
-      if (patch.state) profilePatch.state = patch.state;
-      if (patch.cep) profilePatch.cep = patch.cep;
-      if (patch.role_position) profilePatch.cargo = patch.role_position;
-      if (patch.bank_name) profilePatch.bank_name = patch.bank_name;
-      if (patch.pix_type) profilePatch.pix_type = patch.pix_type;
-      if (patch.pix_key) profilePatch.pix_key = patch.pix_key;
-      if (patch.bank_agency) profilePatch.bank_agency = patch.bank_agency;
-      if (patch.bank_account) profilePatch.bank_account = patch.bank_account;
-      if (typeof patch.onboarding_completed === "boolean") {
-        profilePatch.onboarding_completed = patch.onboarding_completed;
-      }
+
+      Object.keys(profilePatch).forEach(
+        (k) => profilePatch[k] === undefined && delete profilePatch[k]
+      );
 
       try {
-        const { error: pErr } = await (supabaseAdmin.from("profiles") as any).upsert(
-          profilePatch,
-          { onConflict: "id" }
-        );
-        if (pErr) {
-          console.warn("Profiles upsert warning:", pErr.message);
-        }
+        await supabase
+          .from("profiles")
+          .upsert(profilePatch, { onConflict: "id" });
       } catch (pEx) {
-        console.warn("Profiles upsert exception:", pEx);
+        console.warn("Aviso ao salvar profiles:", pEx);
       }
 
-      // 2. Update/Upsert FREELANCERS table via admin (bypassa RLS)
-      const freelancerPayload: Record<string, any> = {
-        id: targetId,
-        ...patch,
-        updated_at: new Date().toISOString(),
-      };
-
-      // Helper: campos que pertencem à tabela freelancers (full_name pertence à tabela profiles)
+      // 3. Persistência na tabela FREELANCERS
       const KNOWN_FREELANCER_COLUMNS = new Set([
         "id", "email", "company_name", "corporate_name", "cnpj", "cpf",
         "segment", "address", "city", "state", "cep", "phone", "role_position",
@@ -250,21 +350,27 @@ export function useUpdateCurrentFreelancerProfile() {
         "bank_account", "pix_type", "pix_key", "status", "contract_model",
         "contract_value", "payment_date", "due_date", "financial_status",
         "onboarding_completed", "skills", "hourly_rate", "created_at", "updated_at",
-        "behance",
+        "behance", "contract_field_values",
       ]);
 
-      let safePayload = Object.fromEntries(
-        Object.entries(freelancerPayload).filter(([k]) => KNOWN_FREELANCER_COLUMNS.has(k))
-      );
+      const safePayload: Record<string, any> = {
+        id: targetId,
+        updated_at: new Date().toISOString(),
+      };
 
-      // Dynamic upsert with auto-stripping of non-existent schema columns
+      Object.entries(patch).forEach(([k, v]) => {
+        if (KNOWN_FREELANCER_COLUMNS.has(k) && v !== undefined) {
+          safePayload[k] = v;
+        }
+      });
+
       let upsertAttempts = 0;
       let lastErr: any = null;
 
-      while (upsertAttempts < 5) {
+      while (upsertAttempts < 6) {
         upsertAttempts++;
         try {
-          const { error: fErr } = await (supabaseAdmin.from("freelancers") as any).upsert(
+          const { error: fErr } = await (supabase.from("freelancers") as any).upsert(
             safePayload,
             { onConflict: "id" }
           );
@@ -277,7 +383,6 @@ export function useUpdateCurrentFreelancerProfile() {
           lastErr = fErr;
           console.warn(`[Freelancer Profile Save] Tentativa ${upsertAttempts} falhou:`, fErr.message);
 
-          // Se for erro de foreign key, já salvamos em profiles
           if (fErr.code === "23503" || fErr.message?.includes("foreign key")) {
             console.warn("Foreign key constraint no freelancers — dados preservados em profiles.");
             lastErr = null;
@@ -285,17 +390,13 @@ export function useUpdateCurrentFreelancerProfile() {
           }
 
           // Detect unknown column from error message
-          const matchSingleQuote = fErr.message.match(/Could not find the '([^']+)' column/i);
-          const matchDoubleQuote = fErr.message.match(/column "([^"]+)" of relation "freelancers"/i);
-          const matchPostgrest = fErr.message.match(/column '([^']+)' does not exist/i);
+          const matchSingleQuote = fErr.message?.match(/Could not find the '([^']+)' column/i);
+          const matchDoubleQuote = fErr.message?.match(/column "([^"]+)" of relation "freelancers"/i);
+          const matchPostgrest = fErr.message?.match(/column '([^']+)' does not exist/i);
           const columnToStrip = matchSingleQuote?.[1] || matchDoubleQuote?.[1] || matchPostgrest?.[1];
 
           if (columnToStrip && safePayload[columnToStrip] !== undefined) {
             delete safePayload[columnToStrip];
-          } else if (safePayload.behance !== undefined) {
-            delete safePayload.behance;
-          } else if (safePayload.full_name !== undefined) {
-            delete safePayload.full_name;
           } else {
             break;
           }
@@ -307,9 +408,14 @@ export function useUpdateCurrentFreelancerProfile() {
 
       return patch;
     },
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
+      const targetId = variables.freelancerId || variables.userId;
       qc.invalidateQueries({ queryKey: ["current-freelancer-profile"] });
       qc.invalidateQueries({ queryKey: ["freelancers"] });
+      qc.invalidateQueries({ queryKey: ["profiles"] });
+      if (targetId) {
+        qc.invalidateQueries({ queryKey: ["current-freelancer-profile", targetId] });
+      }
       toast.success("Dados cadastrais salvos com sucesso!");
     },
     onError: (e: Error) => toast.error(`Erro ao salvar dados: ${e.message}`),

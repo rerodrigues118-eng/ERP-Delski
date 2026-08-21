@@ -442,14 +442,20 @@ function ClientDetailPage() {
                   </Button>
                   <Button
                     variant="destructive"
-                    disabled={deleteClient.isPending}
                     onClick={() => {
-                      deleteClient.mutate(client.id, {
-                        onSuccess: () => {
-                          setOpenDeleteModal(false);
-                          navigate({ to: "/app/clients" });
+                      deleteClient.mutate(
+                        {
+                          id: client.id,
+                          auth_user_id: client.auth_user_id,
+                          email: client.email,
                         },
-                      });
+                        {
+                          onSuccess: () => {
+                            setOpenDeleteModal(false);
+                            navigate({ to: "/app/clients" });
+                          },
+                        }
+                      );
                     }}
                   >
                     {deleteClient.isPending ? "Excluindo..." : "Sim, Excluir Cliente"}

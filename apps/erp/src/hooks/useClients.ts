@@ -67,6 +67,7 @@ export function useClientsList() {
       const profileByEmail = new Map<string, any>();
       const profileById = new Map<string, any>();
       (profilesData ?? []).forEach((p: any) => {
+        if (p.deleted_at || p.status === "inativo" || p.role !== "cliente") return;
         profileById.set(p.id, p);
         if (p.email) {
           profileByEmail.set(p.email.toLowerCase().trim(), p);
@@ -89,11 +90,14 @@ export function useClientsList() {
       const clientMap = new Map<string, ClientItem>();
       const processedEmails = new Set<string>();
 
-      // Populate from clients table first
+      // Populate from clients table first (ignora excluídos/inativos)
       if (!clientsErr && clientsData) {
         (clientsData as any[]).forEach((c) => {
+          if (c.deleted_at || c.status === "inativo") return;
           const normEmail = (c.email || "").toLowerCase().trim();
           const matchedProfile = normEmail ? profileByEmail.get(normEmail) : null;
+          if (matchedProfile?.deleted_at || matchedProfile?.status === "inativo") return;
+
           const resolvedId = c.auth_user_id || matchedProfile?.id || c.id;
 
           const projects = [
@@ -131,6 +135,7 @@ export function useClientsList() {
 
       // Merge profiles with role='cliente' if not already processed by email or id
       (profilesData ?? []).forEach((p: any) => {
+        if (p.deleted_at || p.status === "inativo" || p.role !== "cliente") return;
         const normEmail = (p.email || "").toLowerCase().trim();
         if (normEmail && !processedEmails.has(normEmail)) {
           processedEmails.add(normEmail);
@@ -443,41 +448,139 @@ export function useUpdateClient() {
 export function useDeleteClient() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      // 1. Clean up / unlink all dependent relations to prevent foreign key errors
-      await Promise.allSettled([
-        supabase.from("projects").update({ client_id: null }).eq("client_id", id),
-        (supabase.from("client_documents") as any).delete().eq("client_id", id),
-        (supabase.from("support_tickets") as any).delete().eq("client_id", id),
-        (supabase.from("support_tickets") as any).delete().eq("user_id", id),
-        (supabase.from("notifications") as any).delete().eq("user_id", id),
-        (supabase.from("leads") as any).update({ client_id: null }).eq("client_id", id),
-      ]);
+    mutationFn: async (
+      input: string | { id: string; auth_user_id?: string | null; email?: string | null }
+    ) => {
+      const clientId = typeof input === "string" ? input : input.id;
+      const authUserId = typeof input === "object" ? input.auth_user_id : undefined;
+      const clientEmail = typeof input === "object" ? input.email?.toLowerCase().trim() : undefined;
 
-      // 2. Delete from clients table (by id or auth_user_id)
-      try {
-        await (supabaseAdmin.from("clients") as any)
-          .delete()
-          .or(`id.eq.${id},auth_user_id.eq.${id}`);
-      } catch {}
+      // Coleta todos os identificadores possíveis
+      const idsToUnlink = new Set<string>();
+      if (clientId) idsToUnlink.add(clientId);
+      if (authUserId) idsToUnlink.add(authUserId);
 
-      // 3. Delete from profiles table (via admin)
-      const { error: pErr } = await supabaseAdmin.from("profiles").delete().eq("id", id);
-      if (pErr) {
-        // Fallback: Soft delete if user account has auth constraints
-        await supabaseAdmin
-          .from("profiles")
-          .update({ status: "inativo", deleted_at: new Date().toISOString() })
-          .eq("id", id);
+      // Busca dados adicionais se necessário
+      if (clientId) {
+        try {
+          const { data: cRow } = await (supabase.from("clients") as any)
+            .select("id, auth_user_id, email")
+            .eq("id", clientId)
+            .maybeSingle();
+          if (cRow) {
+            if (cRow.auth_user_id) idsToUnlink.add(cRow.auth_user_id);
+            if (cRow.id) idsToUnlink.add(cRow.id);
+          }
+        } catch {}
       }
+
+      // 1. Desvincular e limpar dependências em paralelo
+      const unlinkPromises: Promise<any>[] = [];
+      idsToUnlink.forEach((targetId) => {
+        unlinkPromises.push(
+          supabase.from("projects").update({ client_id: null }).eq("client_id", targetId),
+          (supabase.from("client_documents") as any).delete().eq("client_id", targetId),
+          (supabase.from("support_tickets") as any).delete().eq("client_id", targetId),
+          (supabase.from("support_tickets") as any).delete().eq("user_id", targetId),
+          (supabase.from("notifications") as any).delete().eq("user_id", targetId),
+          (supabase.from("leads") as any).update({ client_id: null }).eq("client_id", targetId)
+        );
+      });
+      await Promise.allSettled(unlinkPromises);
+
+      // 2. Exclusão da tabela CLIENTS (física + soft-delete)
+      const clientDeletePromises: Promise<any>[] = [];
+      idsToUnlink.forEach((targetId) => {
+        clientDeletePromises.push(
+          (supabase.from("clients") as any).delete().eq("id", targetId),
+          (supabase.from("clients") as any).delete().eq("auth_user_id", targetId),
+          (supabase.from("clients") as any)
+            .update({ status: "inativo", deleted_at: new Date().toISOString() })
+            .eq("id", targetId)
+        );
+      });
+      if (clientEmail) {
+        clientDeletePromises.push(
+          (supabase.from("clients") as any).delete().ilike("email", clientEmail),
+          (supabase.from("clients") as any)
+            .update({ status: "inativo", deleted_at: new Date().toISOString() })
+            .ilike("email", clientEmail)
+        );
+      }
+      await Promise.allSettled(clientDeletePromises);
+
+      // 3. Exclusão / Desativação da tabela PROFILES
+      const profilePromises: Promise<any>[] = [];
+      idsToUnlink.forEach((targetId) => {
+        profilePromises.push(
+          supabase
+            .from("profiles")
+            .delete()
+            .eq("id", targetId)
+            .then(async ({ error }) => {
+              if (error) {
+                await supabase
+                  .from("profiles")
+                  .update({
+                    role: "inativo" as any,
+                    status: "inativo",
+                    deleted_at: new Date().toISOString(),
+                  })
+                  .eq("id", targetId);
+              }
+            })
+        );
+      });
+      if (clientEmail) {
+        profilePromises.push(
+          supabase
+            .from("profiles")
+            .update({
+              role: "inativo" as any,
+              status: "inativo",
+              deleted_at: new Date().toISOString(),
+            })
+            .ilike("email", clientEmail)
+        );
+      }
+      await Promise.allSettled(profilePromises);
+
+      return { clientId, authUserId, clientEmail };
+    },
+    onMutate: async (input) => {
+      const targetId = typeof input === "string" ? input : input.id;
+      const targetEmail = typeof input === "object" ? input.email?.toLowerCase().trim() : undefined;
+
+      await qc.cancelQueries({ queryKey: ["clients-list"] });
+      const previousClients = qc.getQueryData<ClientItem[]>(["clients-list"]);
+
+      if (previousClients) {
+        qc.setQueryData<ClientItem[]>(
+          ["clients-list"],
+          previousClients.filter((c) => {
+            if (c.id === targetId || c.auth_user_id === targetId || c.resolved_id === targetId)
+              return false;
+            if (targetEmail && c.email?.toLowerCase().trim() === targetEmail) return false;
+            return true;
+          })
+        );
+      }
+
+      return { previousClients };
+    },
+    onError: (err: Error, _, context) => {
+      if (context?.previousClients) {
+        qc.setQueryData(["clients-list"], context.previousClients);
+      }
+      toast.error(`Erro ao excluir cliente: ${err.message}`);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients-list"] });
       qc.invalidateQueries({ queryKey: ["clients"] });
+      qc.invalidateQueries({ queryKey: ["profiles"] });
       qc.invalidateQueries({ queryKey: ["projects"] });
       toast.success("Cliente e registros vinculados foram excluídos com sucesso.");
     },
-    onError: (e: Error) => toast.error(`Erro ao excluir cliente: ${e.message}`),
   });
 }
 

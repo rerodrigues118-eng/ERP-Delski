@@ -888,11 +888,16 @@ function ClientsPage() {
                   variant="destructive"
                   disabled={deleteClient.isPending}
                   onClick={() => {
-                    if (deletingClient) {
-                      deleteClient.mutate(deletingClient.id, {
-                        onSuccess: () => setDeletingClient(null),
-                      });
-                    }
+                      deleteClient.mutate(
+                        {
+                          id: deletingClient.id,
+                          auth_user_id: deletingClient.auth_user_id,
+                          email: deletingClient.email,
+                        },
+                        {
+                          onSuccess: () => setDeletingClient(null),
+                        }
+                      );
                   }}
                 >
                   {deleteClient.isPending ? "Excluindo..." : "Sim, Excluir Cliente"}

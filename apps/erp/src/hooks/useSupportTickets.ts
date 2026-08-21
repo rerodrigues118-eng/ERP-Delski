@@ -215,72 +215,92 @@ export function useCreateTicket() {
         // sem auth — continua sem user_id
       }
 
-      const ticketData: any = {
-        client_id: clientId || null,
-        project_id: projectId || null,
-        user_id: authUserId,
-        created_by: authUserId,
-        client_name: clientName,
-        client_email: clientEmail?.toLowerCase().trim() || null,
+      // Payload completo inicial
+      const initialPayload: any = {
         category,
         subject,
         message,
-        priority,
+        priority: priority || "Média",
         responsible_name: "Equipe Delski",
         status: "Aberto",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       };
 
-      if (evidenceUrl) {
-        ticketData.evidence_url = evidenceUrl;
+      if (clientId) initialPayload.client_id = clientId;
+      if (projectId) initialPayload.project_id = projectId;
+      if (authUserId) {
+        initialPayload.user_id = authUserId;
+        initialPayload.created_by = authUserId;
       }
+      if (clientName) initialPayload.client_name = clientName;
+      if (clientEmail) initialPayload.client_email = clientEmail.toLowerCase().trim();
+      if (evidenceUrl) initialPayload.evidence_url = evidenceUrl;
 
       let insertedId: string | null = null;
+      let workingPayload = { ...initialPayload };
+      let attempts = 0;
 
-      // 1. Tenta inserir com o payload completo
-      const { data: inserted, error: insertError } = await (supabase.from("support_tickets") as any)
-        .insert([ticketData])
-        .select("id")
-        .single();
+      while (attempts < 8) {
+        attempts++;
+        const { data: inserted, error: insertError } = await (supabase.from("support_tickets") as any)
+          .insert([workingPayload])
+          .select("id")
+          .single();
 
-      if (insertError) {
-        // Se o erro for de coluna evidence_url inexistente no schema cache
-        const isColumnError =
-          insertError.message?.includes("evidence_url") ||
-          insertError.message?.includes("schema cache") ||
-          insertError.code === "PGRST204";
+        if (!insertError) {
+          insertedId = inserted?.id || null;
+          break;
+        }
 
-        if (isColumnError && ticketData.evidence_url) {
-          // Faz fallback anexando a URL no corpo da mensagem para não perder o anexo
-          const fallbackData = {
-            ...ticketData,
-            message: `${ticketData.message}\n\n📎 Anexo / Evidência: ${ticketData.evidence_url}`,
-          };
-          delete fallbackData.evidence_url;
+        console.warn(`[Support Ticket Insert] Tentativa ${attempts} falhou:`, insertError);
 
-          const { data: fallbackInserted, error: fallbackErr } = await (supabase.from("support_tickets") as any)
-            .insert([fallbackData])
-            .select("id")
-            .single();
-
-          if (fallbackErr) {
-            throw new Error(
-              fallbackErr.code === "42501"
-                ? "Permissão negada pelo banco de dados. Solicite ao gestor que execute o script SQL de configuração de permissões."
-                : `Erro ao abrir chamado: ${fallbackErr.message}`
-            );
-          }
-          insertedId = fallbackInserted?.id || null;
-        } else {
+        // Se for erro de permissão RLS (42501)
+        if (insertError.code === "42501") {
           throw new Error(
-            insertError.code === "42501"
-              ? "Permissão negada pelo banco de dados. Solicite ao gestor que execute o script SQL de configuração de permissões."
-              : `Erro ao abrir chamado: ${insertError.message}`
+            "Permissão negada pelo banco de dados. Solicite ao gestor que execute o script SQL de configuração de permissões."
           );
         }
-      } else {
-        insertedId = inserted?.id || null;
+
+        // Detecta coluna ausente no cache do schema do Supabase (PGRST204 ou similar)
+        const matchSingleQuote = insertError.message?.match(/Could not find the '([^']+)' column/i);
+        const matchDoubleQuote = insertError.message?.match(/column "([^"]+)" of relation/i);
+        const matchPostgrest = insertError.message?.match(/column '([^']+)' does not exist/i);
+        const missingCol = matchSingleQuote?.[1] || matchDoubleQuote?.[1] || matchPostgrest?.[1];
+
+        if (missingCol && workingPayload[missingCol] !== undefined) {
+          const removedVal = workingPayload[missingCol];
+          delete workingPayload[missingCol];
+          // Preserva informação relevante anexando no corpo da mensagem
+          if (missingCol === "evidence_url" && removedVal) {
+            workingPayload.message = `${workingPayload.message}\n\n📎 Anexo / Evidência: ${removedVal}`;
+          } else if (missingCol === "priority" && removedVal) {
+            workingPayload.message = `${workingPayload.message}\n\n🏷️ Prioridade: ${removedVal}`;
+          } else if (missingCol === "client_name" && removedVal) {
+            workingPayload.message = `${workingPayload.message}\n\n👤 Solicitante: ${removedVal}`;
+          }
+        } else {
+          // Se não identificou coluna específica, remove colunas não essenciais
+          if (workingPayload.priority !== undefined) {
+            delete workingPayload.priority;
+          } else if (workingPayload.evidence_url !== undefined) {
+            delete workingPayload.evidence_url;
+          } else if (workingPayload.responsible_name !== undefined) {
+            delete workingPayload.responsible_name;
+          } else if (workingPayload.client_email !== undefined) {
+            delete workingPayload.client_email;
+          } else if (workingPayload.created_by !== undefined) {
+            delete workingPayload.created_by;
+          } else if (workingPayload.user_id !== undefined) {
+            delete workingPayload.user_id;
+          } else if (workingPayload.client_id !== undefined) {
+            delete workingPayload.client_id;
+          } else if (workingPayload.project_id !== undefined) {
+            delete workingPayload.project_id;
+          } else {
+            throw new Error(`Erro ao abrir chamado: ${insertError.message}`);
+          }
+        }
       }
 
       // Invalida caches para ambos gestor e cliente

@@ -113,10 +113,22 @@ ALTER TABLE public.client_documents ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "client_documents_policy" ON public.client_documents;
 CREATE POLICY "client_documents_policy" ON public.client_documents FOR ALL USING (true) WITH CHECK (true);
 
--- 6. CAMPOS DE CPF, BLOQUEIO (STATUS) E SOFT DELETE (CLIENTS, FREELANCERS, PROFILES)
+-- 6. CAMPOS DE CPF, BLOQUEIO (STATUS), SOFT DELETE E PARÂMETROS FINANCEIROS
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';
 ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS contract_model TEXT DEFAULT 'Mensal';
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS contract_value NUMERIC DEFAULT 0;
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS payment_date TEXT;
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS due_date TEXT;
+ALTER TABLE public.freelancers ADD COLUMN IF NOT EXISTS financial_status TEXT DEFAULT 'Pendente';
+
+ALTER TABLE public.freelancers ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "freelancers_all_policy" ON public.freelancers;
+DROP POLICY IF EXISTS "Freelancers podem ver seu próprio perfil" ON public.freelancers;
+DROP POLICY IF EXISTS "Freelancers podem atualizar seu próprio perfil" ON public.freelancers;
+DROP POLICY IF EXISTS "Freelancers podem inserir seu próprio perfil" ON public.freelancers;
+CREATE POLICY "freelancers_all_policy" ON public.freelancers FOR ALL USING (true) WITH CHECK (true);
 
 ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';
 ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
@@ -124,9 +136,31 @@ ALTER TABLE public.clients ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS cpf TEXT;
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ativo';
 ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS contract_model TEXT DEFAULT 'Mensal';
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS contract_value NUMERIC DEFAULT 0;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS payment_date TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS due_date TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS financial_status TEXT DEFAULT 'Pendente';
 
--- 7. SUPORTE A ANEXOS/EVIDÊNCIAS NOS CHAMADOS SAC
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "profiles_all_policy" ON public.profiles;
+CREATE POLICY "profiles_all_policy" ON public.profiles FOR ALL USING (true) WITH CHECK (true);
+
+-- 7. SUPORTE A ANEXOS, PRIORIDADE E CAMPOS COMPLETOS NOS CHAMADOS SAC
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS priority TEXT DEFAULT 'Média';
 ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS evidence_url TEXT;
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS client_email TEXT;
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS client_name TEXT;
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS responsible_name TEXT;
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS created_by UUID;
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS user_id UUID;
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS project_id UUID;
+ALTER TABLE public.support_tickets ADD COLUMN IF NOT EXISTS client_id UUID;
+
+ALTER TABLE public.support_tickets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "support_tickets_all_policy" ON public.support_tickets;
+DROP POLICY IF EXISTS "Clientes e Gestores gerenciam chamados" ON public.support_tickets;
+CREATE POLICY "support_tickets_all_policy" ON public.support_tickets FOR ALL USING (true) WITH CHECK (true);
 
 -- ==============================================================================
 -- Fim do Script de Atualização

@@ -598,6 +598,35 @@ function FreelancerDashboardPage() {
       setBankAccount(freelancer.bank_account || "");
       setPixType(freelancer.pix_type || "CNPJ");
       setPixKey(freelancer.pix_key || "");
+    } else if (user?.id) {
+      try {
+        const raw = localStorage.getItem(`freelancer_profile_${user.id}`);
+        if (raw) {
+          const cached = JSON.parse(raw);
+          if (cached.company_name) setCompanyName(cached.company_name);
+          if (cached.corporate_name) setCorporateName(cached.corporate_name);
+          if (cached.cnpj) setCnpj(formatCNPJ(cached.cnpj));
+          if (cached.cpf) setCpf(formatCPF(cached.cpf));
+          if (cached.segment) setSegment(cached.segment);
+          if (cached.email) setCorporateEmail(cached.email);
+          if (cached.address) setAddress(cached.address);
+          if (cached.city) setCity(cached.city);
+          if (cached.state) setState(cached.state);
+          if (cached.cep) setCep(formatCEP(cached.cep));
+          if (cached.full_name) setContactName(cached.full_name);
+          if (cached.role_position) setRolePosition(cached.role_position);
+          if (cached.phone) setPhone(formatPhone(cached.phone));
+          if (cached.instagram) setInstagram(cached.instagram);
+          if (cached.linkedin) setLinkedin(cached.linkedin);
+          if (cached.website) setWebsite(cached.website);
+          if (cached.behance) setBehance(cached.behance);
+          if (cached.bank_name) setBankName(cached.bank_name);
+          if (cached.bank_agency) setBankAgency(cached.bank_agency);
+          if (cached.bank_account) setBankAccount(cached.bank_account);
+          if (cached.pix_type) setPixType(cached.pix_type);
+          if (cached.pix_key) setPixKey(cached.pix_key);
+        }
+      } catch {}
     }
   }, [freelancer, user, profile]);
 
@@ -1939,7 +1968,7 @@ function FreelancerDashboardPage() {
             <div className="flex items-center justify-between border-b border-border dark:border-zinc-800 pb-3">
               <div>
                 <h2 className="text-xl font-bold text-foreground dark:text-zinc-100 tracking-tight flex items-center gap-2">
-                  <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Condições Comerciais & Pagamentos (Delski)
+                  <DollarSign className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Condições Comerciais & Pagamentos
                 </h2>
                 <p className="text-xs text-muted-foreground dark:text-zinc-400 mt-0.5">
                   Parâmetros de remuneração acordados e comprovantes bancários de liquidação.
