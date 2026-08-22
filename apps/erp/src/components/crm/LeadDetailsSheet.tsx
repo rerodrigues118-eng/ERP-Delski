@@ -29,6 +29,7 @@ import { ServiceType } from "@/mocks/types";
 import { useUpdateCrmLead, useDeleteCrmLead } from "@/hooks/useCrmLeads";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { googleAutomationService } from "@/services/googleAutomation";
 import { toast } from "sonner";
 import {
   MessageSquare,
@@ -201,6 +202,23 @@ export function LeadDetailsSheet({
         const formattedTime = meetingTime || "14:00";
         const targetUserId = user?.id || null;
 
+        // A: Sincroniza com Google Calendar
+        try {
+          const attendeesList = email.trim() ? [email.trim()] : [];
+          if (user?.email && !attendeesList.includes(user.email)) attendeesList.push(user.email);
+
+          googleAutomationService.upsertCalendarEvent({
+            summary: `🤝 Reunião Comercial: ${name.trim()} (${serviceLabel})`,
+            description: `Reunião com Lead: ${name.trim()}\nServiço: ${serviceLabel}\nContato: ${contact}\nSDR/Closer: ${sellerName}\nNotas: ${notes}`,
+            startIso: `${meetingDate}T${formattedTime}:00-03:00`,
+            meetingLink: meetingLink.trim() || undefined,
+            attendees: attendeesList,
+            leadId: lead.id,
+          }).catch((err) => console.warn("[Google Calendar CRM]:", err));
+        } catch (calErr) {
+          console.warn("[Google Calendar Error]:", calErr);
+        }
+
         const meetingNotifications = [
           {
             user_id: targetUserId,
@@ -236,7 +254,7 @@ export function LeadDetailsSheet({
           console.warn("Falha ao sincronizar notificações no Supabase:", notifErr);
         }
 
-        toast.success("Informações do lead salvas e 3 alertas de reunião programados em Notificações!");
+        toast.success("Informações do lead salvas, agendadas no Google Calendar e alertas gerados!");
       } else {
         toast.success("Informações do lead salvas com sucesso!");
       }

@@ -52,6 +52,9 @@ function ContractGeneratorPage() {
   const activeTab = search?.tab === "modelos" || search?.tab === "templates" ? "modelos" : "gerar";
 
   const { profile, isGestor, loading: authLoading } = useAuth();
+  const isVendedor = profile?.role === "vendedor" || profile?.role === "sales" || profile?.role === "closer";
+  const isReadOnly = isVendedor || !isGestor;
+
   const { data: models = [] } = useContractModels();
   const { data: projects = [] } = useProjects();
   const { data: freelancers = [] } = useFreelancers();
@@ -471,13 +474,14 @@ function ContractGeneratorPage() {
                   <ContractValuesForm
                     variableMap={variableMap}
                     values={values}
-                    touched={touched}
                     autoFields={autoFields}
                     onChange={handleFieldChange}
+                    missingCount={missingFieldsCount}
+                    readOnly={isReadOnly}
                   />
                 )}
 
-                {selectedModel && variableMap.length > 0 && (
+                {selectedModel && variableMap.length > 0 && !isReadOnly && (
                   <div className="mt-6 pt-4 border-t border-border flex justify-end">
                     <Button
                       onClick={handleGenerate}
@@ -486,6 +490,13 @@ function ContractGeneratorPage() {
                     >
                       <FileText className="h-4 w-4" /> Gerar Contrato
                     </Button>
+                  </div>
+                )}
+                {selectedModel && variableMap.length > 0 && isReadOnly && (
+                  <div className="mt-6 pt-4 border-t border-border flex justify-end">
+                    <span className="text-xs text-muted-foreground italic">
+                      Perfil com permissão apenas de visualização. Emissão restrita a Gestores.
+                    </span>
                   </div>
                 )}
               </CardContent>

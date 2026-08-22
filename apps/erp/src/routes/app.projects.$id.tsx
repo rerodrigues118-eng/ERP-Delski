@@ -51,6 +51,8 @@ import {
   Trash2,
   Loader2,
   Copy,
+  Paperclip,
+  X,
 } from "lucide-react";
 import { sendTriageInviteEmail, sendDelegationEmail } from "@/integrations/brevo";
 import { calculateFreelancerMatch } from "@/lib/matchmaking";
@@ -91,6 +93,7 @@ export const Route = createFileRoute("/app/projects/$id")({
 
 const taskSchema = z.object({
   title: z.string().min(3, "Título deve ter no mínimo 3 caracteres"),
+  description: z.string().optional(),
   phase: z.string().min(1, "Fase é obrigatória"),
   startDate: z.string().min(1, "Data de início obrigatória"),
   dueDate: z.string().min(1, "Data de término obrigatória"),
@@ -153,6 +156,8 @@ function ProjectDetailPage() {
 
   // Task dialog
   const [showTaskModal, setShowTaskModal] = useState(false);
+  const [taskAttachments, setTaskAttachments] = useState<{ name: string; url: string; size?: number }[]>([]);
+  const [taskAttachmentUploading, setTaskAttachmentUploading] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
 
   // Upload state
@@ -196,6 +201,7 @@ function ProjectDetailPage() {
     resolver: taskResolver,
     defaultValues: {
       title: "",
+      description: "",
       phase: "Fase 1: Alinhamento & Setup",
       startDate: new Date().toISOString().slice(0, 10),
       dueDate: new Date(Date.now() + 7 * 864e5).toISOString().slice(0, 10),
@@ -374,12 +380,43 @@ function ProjectDetailPage() {
     }
   };
 
+  // Task Attachment Upload
+  const handleTaskAttachmentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setTaskAttachmentUploading(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const filePath = `tasks/${project.id}/${Date.now()}_${file.name}`;
+      const { data, error } = await supabase.storage.from("project-attachments").upload(filePath, file);
+      if (error) {
+        // Fallback to contracts bucket
+        const { data: cData, error: cErr } = await supabase.storage.from("contracts").upload(filePath, file);
+        if (cErr) throw cErr;
+        const { data: pubData } = supabase.storage.from("contracts").getPublicUrl(cData.path);
+        setTaskAttachments((prev) => [...prev, { name: file.name, url: pubData.publicUrl, size: file.size }]);
+      } else {
+        const { data: pubData } = supabase.storage.from("project-attachments").getPublicUrl(data.path);
+        setTaskAttachments((prev) => [...prev, { name: file.name, url: pubData.publicUrl, size: file.size }]);
+      }
+      toast.success("Anexo carregado com sucesso!");
+    } catch (err: any) {
+      console.error(err);
+      toast.error("Erro ao enviar anexo: " + (err.message || ""));
+    } finally {
+      setTaskAttachmentUploading(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
   // Task Creation
   const onAddTask = (data: TaskFormData) => {
     createTask.mutate(
       {
         project_id: project.id,
         title: data.title,
+        description: data.description || null,
+        attachments: taskAttachments,
         phase: data.phase,
         status: "Pendente",
         start_date: data.startDate,
@@ -389,6 +426,7 @@ function ProjectDetailPage() {
       {
         onSuccess: () => {
           resetTask();
+          setTaskAttachments([]);
           setShowTaskModal(false);
         },
       },
@@ -1027,7 +1065,28 @@ function ProjectDetailPage() {
                             {task.phase}
                           </Badge>
                         </div>
-                        <div className="text-xs text-muted-foreground flex items-center gap-3">
+                        {task.description && (
+                          <p className="text-xs text-muted-foreground mt-0.5 whitespace-pre-wrap">
+                            {task.description}
+                          </p>
+                        )}
+                        {task.attachments && task.attachments.length > 0 && (
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            {task.attachments.map((att, idx) => (
+                              <a
+                                key={idx}
+                                href={att.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-muted hover:bg-muted/80 text-foreground border border-border transition-colors cursor-pointer"
+                              >
+                                <Paperclip className="h-3 w-3 text-primary" />
+                                <span className="truncate max-w-[150px]">{att.name}</span>
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                        <div className="text-xs text-muted-foreground flex items-center gap-3 pt-1">
                           <span>Início: {task.start_date}</span>
                           <span>Término: {task.due_date}</span>
                           {predecessor && (
@@ -1459,6 +1518,66 @@ function ProjectDetailPage() {
             </div>
 
             <div className="space-y-1">
+              <Label>Descrição / Orientações da Tarefa (Opcional)</Label>
+              <Textarea
+                placeholder="Detalhes, especificações técnicas ou orientações para a execução desta tarefa..."
+                rows={3}
+                className="resize-none text-xs"
+                {...registerTask("description")}
+              />
+            </div>
+
+            {/* Anexos da Tarefa */}
+            <div className="space-y-2 pt-1 border-t border-border">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <Paperclip className="h-3.5 w-3.5 text-primary" /> Anexos da Tarefa (Opcional)
+                </Label>
+                <label className="cursor-pointer">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleTaskAttachmentUpload}
+                    className="hidden"
+                    disabled={taskAttachmentUploading}
+                  />
+                  <span className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline">
+                    {taskAttachmentUploading ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" /> Enviando...
+                      </>
+                    ) : (
+                      <>
+                        <Plus className="h-3.5 w-3.5" /> Adicionar Anexo
+                      </>
+                    )}
+                  </span>
+                </label>
+              </div>
+
+              {taskAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1 max-h-28 overflow-y-auto">
+                  {taskAttachments.map((att, idx) => (
+                    <div
+                      key={idx}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs bg-muted border border-border text-foreground"
+                    >
+                      <Paperclip className="h-3 w-3 text-primary shrink-0" />
+                      <span className="truncate max-w-[180px] font-medium">{att.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setTaskAttachments((prev) => prev.filter((_, i) => i !== idx))}
+                        className="text-muted-foreground hover:text-rose-500 transition-colors ml-1 cursor-pointer"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-1">
               <Label>Fase do Projeto</Label>
               <Input placeholder="Fase 1: Alinhamento & Setup" {...registerTask("phase")} />
             </div>
@@ -1502,10 +1621,10 @@ function ProjectDetailPage() {
               </Button>
               <Button
                 type="submit"
-                disabled={createTask.isPending}
+                disabled={createTask.isPending || taskAttachmentUploading}
                 className="bg-indigo-600 hover:bg-indigo-700 text-white"
               >
-                Criar Tarefa
+                {createTask.isPending ? "Criando..." : "Criar Tarefa"}
               </Button>
             </DialogFooter>
           </form>

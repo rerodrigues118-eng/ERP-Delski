@@ -749,6 +749,7 @@ function FreelancerDashboardPage() {
   }
 
   const displayName = companyName || contactName || "Prestador";
+  const firstName = (contactName || profile?.full_name || displayName).trim().split(" ")[0] || "Prestador";
 
   return (
     <div className="space-y-6">
@@ -757,7 +758,7 @@ function FreelancerDashboardPage() {
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
           Bem-vindo de volta,{" "}
           <span className="text-blue-600 dark:text-blue-400">
-            {contactName || profile?.full_name || "Prestador"}
+            {firstName}
           </span>
         </h1>
       </div>
@@ -1308,18 +1309,32 @@ function FreelancerDashboardPage() {
         {/* ── ABA 1: DADOS CADASTRAIS ──────────────────────────────────────── */}
         <TabsContent value="cadastrais" className="space-y-6 focus-visible:outline-none">
           <div className="bg-card dark:bg-[#11131A] rounded-2xl border border-slate-200/80 dark:border-zinc-800/80 p-6 sm:p-8 shadow-xs space-y-6">
-            <div className="flex items-center justify-between border-b border-border dark:border-zinc-800 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border dark:border-zinc-800 pb-4 gap-3">
               <div>
                 <h2 className="text-xl font-bold text-foreground dark:text-zinc-100 tracking-tight flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Informações Cadastrais
+                  <Building2 className="h-5 w-5 text-blue-600 dark:text-blue-400" /> Informações Cadastrais Homologadas
                 </h2>
                 <p className="text-xs sm:text-sm text-muted-foreground dark:text-zinc-400 mt-0.5">
-                  Mantenha os dados cadastrais da sua empresa atualizados para fins de contrato e faturamento.
+                  Dados cadastrais e jurídicos vinculados ao seu cadastro profissional e contratos ativos.
                 </p>
+              </div>
+              <Badge variant="outline" className="bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 gap-1.5 text-xs font-semibold shrink-0">
+                <ShieldCheck className="h-3.5 w-3.5" /> Edição Restrita à Gestão
+              </Badge>
+            </div>
+
+            {/* Aviso de Dados Homologados */}
+            <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-800 dark:text-amber-300 text-xs flex items-center gap-3">
+              <ShieldCheck className="h-5 w-5 shrink-0 text-amber-500" />
+              <div>
+                <span className="font-bold block text-xs">Dados Cadastrais Homologados</span>
+                <span className="text-[11px] text-amber-700/90 dark:text-amber-300/90">
+                  Suas informações cadastrais estão verificadas pela diretoria da Delski e bloqueadas para alteração direta. Caso necessite atualizar algum dado ou documento, solicite ao suporte ou ao seu gestor responsável.
+                </span>
               </div>
             </div>
 
-            <form onSubmit={handleSaveCadastral} className="space-y-6">
+            <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 <div className="space-y-1.5">
                   <Label htmlFor="f-name" className="text-xs font-semibold text-foreground dark:text-zinc-200">
@@ -1328,9 +1343,9 @@ function FreelancerDashboardPage() {
                   <Input
                     id="f-name"
                     value={companyName}
-                    onChange={(e) => setCompanyName(e.target.value)}
+                    disabled
                     placeholder="Nome comercial ou artístico"
-                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                    className="h-10 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                   />
                 </div>
 
@@ -1341,9 +1356,9 @@ function FreelancerDashboardPage() {
                   <Input
                     id="f-corp"
                     value={corporateName}
-                    onChange={(e) => setCorporateName(e.target.value)}
+                    disabled
                     placeholder="Razão Social completa"
-                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                    className="h-10 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                   />
                 </div>
 
@@ -1354,10 +1369,9 @@ function FreelancerDashboardPage() {
                   <Input
                     id="f-cnpj"
                     value={cnpj}
-                    onChange={(e) => setCnpj(formatCNPJ(e.target.value))}
+                    disabled
                     placeholder="00.000.000/0000-00"
-                    maxLength={18}
-                    className="h-10 font-mono text-sm bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                    className="h-10 font-mono text-sm bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                   />
                 </div>
 
@@ -1368,10 +1382,9 @@ function FreelancerDashboardPage() {
                   <Input
                     id="f-cpf"
                     value={cpf}
-                    onChange={(e) => setCpf(formatCPF(e.target.value))}
+                    disabled
                     placeholder="000.000.000-00"
-                    maxLength={14}
-                    className="h-10 font-mono text-sm bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                    className="h-10 font-mono text-sm bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                   />
                 </div>
 
@@ -1382,15 +1395,15 @@ function FreelancerDashboardPage() {
                   <Input
                     id="f-segment"
                     value={segment}
-                    onChange={(e) => setSegment(e.target.value)}
+                    disabled
                     placeholder="Ex: Tráfego Pago, Desenvolvimento, Design"
-                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                    className="h-10 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                   />
                 </div>
 
                 <div className="space-y-1.5">
                   <Label htmlFor="f-email" className="text-xs font-semibold text-foreground dark:text-zinc-200">
-                    E-mail Corporativo <span className="text-red-500">*</span>
+                    E-mail Corporativo
                   </Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground dark:text-zinc-400 pointer-events-none" />
@@ -1398,10 +1411,9 @@ function FreelancerDashboardPage() {
                       id="f-email"
                       type="email"
                       value={corporateEmail}
-                      onChange={(e) => setCorporateEmail(e.target.value)}
+                      disabled
                       placeholder="prestador@empresa.com"
-                      className="h-10 pl-9 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
-                      required
+                      className="h-10 pl-9 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -1413,9 +1425,9 @@ function FreelancerDashboardPage() {
                   <Input
                     id="f-addr"
                     value={address}
-                    onChange={(e) => setAddress(e.target.value)}
+                    disabled
                     placeholder="Rua, Número, Bairro, Complemento"
-                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                    className="h-10 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                   />
                 </div>
 
@@ -1426,10 +1438,9 @@ function FreelancerDashboardPage() {
                   <Input
                     id="f-cep"
                     value={cep}
-                    onChange={(e) => setCep(formatCEP(e.target.value))}
+                    disabled
                     placeholder="00000-000"
-                    maxLength={9}
-                    className="h-10 font-mono text-sm bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                    className="h-10 font-mono text-sm bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                   />
                 </div>
 
@@ -1441,17 +1452,16 @@ function FreelancerDashboardPage() {
                     <Input
                       id="f-city"
                       value={city}
-                      onChange={(e) => setCity(e.target.value)}
+                      disabled
                       placeholder="Cidade"
-                      className="h-10 flex-1 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                      className="h-10 flex-1 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                     />
                     <Input
                       id="f-state"
                       value={state}
-                      onChange={(e) => setState(e.target.value.toUpperCase())}
+                      disabled
                       placeholder="UF"
-                      maxLength={2}
-                      className="h-10 w-16 text-center font-mono text-sm uppercase bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                      className="h-10 w-16 text-center font-mono text-sm uppercase bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -1463,9 +1473,9 @@ function FreelancerDashboardPage() {
                   <Input
                     id="f-contact"
                     value={contactName}
-                    onChange={(e) => setContactName(e.target.value)}
+                    disabled
                     placeholder="Nome completo"
-                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                    className="h-10 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                   />
                 </div>
 
@@ -1476,9 +1486,9 @@ function FreelancerDashboardPage() {
                   <Input
                     id="f-role"
                     value={rolePosition}
-                    onChange={(e) => setRolePosition(e.target.value)}
+                    disabled
                     placeholder="Ex: Desenvolvedor Senior / Gestor de Tráfego"
-                    className="h-10 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                    className="h-10 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                   />
                 </div>
 
@@ -1491,10 +1501,9 @@ function FreelancerDashboardPage() {
                     <Input
                       id="f-phone"
                       value={phone}
-                      onChange={(e) => setPhone(formatPhone(e.target.value))}
+                      disabled
                       placeholder="(11) 99999-9999"
-                      maxLength={15}
-                      className="h-10 pl-9 font-mono text-sm bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                      className="h-10 pl-9 font-mono text-sm bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -1508,9 +1517,9 @@ function FreelancerDashboardPage() {
                     <Input
                       id="f-site"
                       value={website}
-                      onChange={(e) => setWebsite(e.target.value)}
+                      disabled
                       placeholder="https://meusite.com"
-                      className="h-10 pl-9 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                      className="h-10 pl-9 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -1524,9 +1533,9 @@ function FreelancerDashboardPage() {
                     <Input
                       id="f-insta"
                       value={instagram}
-                      onChange={(e) => setInstagram(e.target.value)}
+                      disabled
                       placeholder="@perfil"
-                      className="h-10 pl-9 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                      className="h-10 pl-9 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -1540,9 +1549,9 @@ function FreelancerDashboardPage() {
                     <Input
                       id="f-link"
                       value={linkedin}
-                      onChange={(e) => setLinkedin(e.target.value)}
+                      disabled
                       placeholder="linkedin.com/in/..."
-                      className="h-10 pl-9 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                      className="h-10 pl-9 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                     />
                   </div>
                 </div>
@@ -1556,30 +1565,21 @@ function FreelancerDashboardPage() {
                     <Input
                       id="f-behance"
                       value={behance}
-                      onChange={(e) => setBehance(e.target.value)}
+                      disabled
                       placeholder="behance.net/..."
-                      className="h-10 pl-9 bg-background dark:bg-zinc-800/80 text-foreground dark:text-white border-input dark:border-zinc-700 placeholder:text-muted-foreground dark:placeholder:text-zinc-500"
+                      className="h-10 pl-9 bg-muted/50 dark:bg-zinc-800/50 text-foreground dark:text-white border-input dark:border-zinc-700 opacity-80 cursor-not-allowed"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4 border-t border-border dark:border-zinc-800">
-                <Button
-                  type="submit"
-                  disabled={updateProfile.isPending}
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 shadow-sm flex items-center gap-2 cursor-pointer"
-                >
-                  {updateProfile.isPending ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" /> Salvando...
-                    </>
-                  ) : (
-                    <>
-                      <Check className="h-4 w-4" /> Salvar Dados Cadastrais
-                    </>
-                  )}
-                </Button>
+              <div className="flex items-center justify-between pt-4 border-t border-border dark:border-zinc-800">
+                <span className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <ShieldCheck className="h-4 w-4 text-emerald-500" /> Cadastro verificado e protegido contra alterações externas.
+                </span>
+                <Badge variant="outline" className="text-xs font-mono bg-muted/60 text-muted-foreground border-border px-3 py-1">
+                  Somente Leitura
+                </Badge>
               </div>
             </form>
           </div>

@@ -537,7 +537,7 @@ export function useDeleteClient() {
 
       const db = supabaseAdmin || supabase;
 
-      // 2. Desvincular e limpar dependências em paralelo
+      // 2. Desvincular e limpar dependências em paralelo (evita violação de Foreign Key no Postgres)
       const unlinkPromises: Promise<any>[] = [];
       idsToUnlink.forEach((targetId) => {
         unlinkPromises.push(
@@ -545,7 +545,12 @@ export function useDeleteClient() {
           (db.from("client_documents") as any).delete().eq("client_id", targetId).then(() => {}).catch(() => {}),
           (db.from("support_tickets") as any).delete().eq("client_id", targetId).then(() => {}).catch(() => {}),
           (db.from("support_tickets") as any).delete().eq("user_id", targetId).then(() => {}).catch(() => {}),
-          (db.from("notifications") as any).delete().eq("user_id", targetId).then(() => {}).catch(() => {})
+          (db.from("notifications") as any).delete().eq("user_id", targetId).then(() => {}).catch(() => {}),
+          (db.from("contract_instances") as any).delete().eq("client_id", targetId).then(() => {}).catch(() => {}),
+          (db.from("contract_variables") as any).delete().eq("client_id", targetId).then(() => {}).catch(() => {}),
+          (db.from("crm_leads") as any).update({ converted_client_id: null }).eq("converted_client_id", targetId).then(() => {}).catch(() => {}),
+          (db.from("financial_transactions") as any).update({ client_id: null }).eq("client_id", targetId).then(() => {}).catch(() => {}),
+          (db.from("client_invoices") as any).delete().eq("client_id", targetId).then(() => {}).catch(() => {})
         );
       });
       await Promise.allSettled(unlinkPromises);

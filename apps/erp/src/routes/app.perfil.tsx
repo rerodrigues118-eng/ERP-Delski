@@ -24,7 +24,9 @@ import {
   Upload,
   Trash2,
   Camera,
+  Zap,
 } from "lucide-react";
+import { GoogleAutomationSection } from "@/components/settings/GoogleAutomationSection";
 
 export const Route = createFileRoute("/app/perfil")({
   head: () => ({
@@ -328,6 +330,12 @@ function GestorProfileSettingsPage() {
             className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs text-muted-foreground transition-all"
           >
             <Settings className="h-4 w-4 text-primary" /> Padrões do Sistema
+          </TabsTrigger>
+          <TabsTrigger
+            value="google"
+            className="flex-1 sm:flex-none gap-2 font-semibold text-xs py-2.5 px-4 rounded-lg data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-xs text-muted-foreground transition-all"
+          >
+            <Zap className="h-4 w-4 text-primary" /> Automação Google
           </TabsTrigger>
         </TabsList>
 
@@ -719,6 +727,11 @@ function GestorProfileSettingsPage() {
               </form>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* TAB 4: AUTOMAÇÃO GOOGLE */}
+        <TabsContent value="google">
+          <GoogleAutomationSection />
         </TabsContent>
       </Tabs>
     </div>

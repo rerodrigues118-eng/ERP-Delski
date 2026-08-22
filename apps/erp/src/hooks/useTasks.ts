@@ -4,10 +4,19 @@ import { toast } from "sonner";
 
 export type TaskStatus = "Pendente" | "Em andamento" | "Em revisao" | "Concluida";
 
+export interface TaskAttachment {
+  name: string;
+  url: string;
+  path?: string;
+  size?: number;
+}
+
 export interface ProjectTask {
   id: string;
   project_id: string;
   title: string;
+  description?: string | null;
+  attachments?: TaskAttachment[] | null;
   phase: string | null;
   status: TaskStatus;
   start_date: string | null;
@@ -19,6 +28,8 @@ export interface ProjectTask {
 export interface CreateTaskInput {
   project_id: string;
   title: string;
+  description?: string | null;
+  attachments?: TaskAttachment[] | null;
   phase?: string;
   status?: TaskStatus;
   start_date?: string;

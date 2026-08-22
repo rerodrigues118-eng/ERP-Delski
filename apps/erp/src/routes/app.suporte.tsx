@@ -332,39 +332,39 @@ function SupportPage() {
           {currentActiveTicket && (
             <>
               {/* Sheet Header */}
-              <SheetHeader className="p-6 border-b border-border bg-muted/20 space-y-3">
+              <SheetHeader className="p-6 border-b border-border bg-muted/30 space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <Badge className={STATUS_BADGE_STYLES[currentActiveTicket.status]}>
                     {currentActiveTicket.status}
                   </Badge>
-                  <span className="text-xs text-stone-400 font-medium flex items-center gap-1">
+                  <span className="text-xs text-muted-foreground font-medium flex items-center gap-1">
                     <Calendar className="h-3 w-3" />
                     {new Date(currentActiveTicket.created_at).toLocaleDateString("pt-BR")}
                   </span>
                 </div>
                 <div>
-                  <SheetTitle className="text-lg font-bold text-stone-900 leading-tight">
+                  <SheetTitle className="text-lg font-bold text-foreground leading-tight">
                     {currentActiveTicket.subject}
                   </SheetTitle>
-                  <SheetDescription className="text-xs text-stone-500 mt-1 flex items-center gap-1.5">
-                    <User className="h-3.5 w-3.5 text-stone-400" />
-                    <span className="font-semibold text-stone-700">
+                  <SheetDescription className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                    <User className="h-3.5 w-3.5 text-muted-foreground" />
+                    <span className="font-semibold text-foreground">
                       {currentActiveTicket.client_name}
                     </span>
                     {currentActiveTicket.client_email && (
-                      <span className="text-stone-400">({currentActiveTicket.client_email})</span>
+                      <span className="text-muted-foreground">({currentActiveTicket.client_email})</span>
                     )}
                   </SheetDescription>
                 </div>
 
                 {/* Status Change Selector */}
-                <div className="flex items-center gap-2 pt-2 border-t border-stone-100">
-                  <span className="text-xs font-semibold text-stone-600">Alterar Status:</span>
+                <div className="flex items-center gap-2 pt-2 border-t border-border/60">
+                  <span className="text-xs font-semibold text-foreground">Alterar Status:</span>
                   <Select
                     value={currentActiveTicket.status}
                     onValueChange={(val) => handleStatusChange(val as TicketStatus)}
                   >
-                    <SelectTrigger className="h-8 text-xs w-40 bg-white border-stone-200">
+                    <SelectTrigger className="h-8 text-xs w-40 bg-background border-border text-foreground">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -377,12 +377,12 @@ function SupportPage() {
               </SheetHeader>
 
               {/* Chat Thread / Messages Content */}
-              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-stone-50/30">
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-muted/10">
                 {/* Original Client Message */}
-                <div className="bg-white border border-stone-200 rounded-lg p-4 shadow-xs space-y-2">
-                  <div className="flex items-center justify-between text-xs text-stone-500 border-b border-stone-100 pb-2">
-                    <span className="font-bold text-stone-900 flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5 text-blue-700" />
+                <div className="bg-card border border-border rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/50 pb-2">
+                    <span className="font-bold text-foreground flex items-center gap-1.5">
+                      <User className="h-3.5 w-3.5 text-primary" />
                       {currentActiveTicket.client_name} (Cliente)
                     </span>
                     <span>
@@ -392,7 +392,7 @@ function SupportPage() {
                       })}
                     </span>
                   </div>
-                  <p className="text-sm text-stone-800 leading-relaxed whitespace-pre-wrap">
+                  <p className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                     {cleanTicketInitialMessage(currentActiveTicket.message)}
                   </p>
                 </div>
@@ -400,20 +400,22 @@ function SupportPage() {
                 {/* Previous Replies */}
                 {currentActiveTicket.replies && currentActiveTicket.replies.length > 0 && (
                   <div className="space-y-3 pt-2">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-stone-400 px-1">
-                      Histórico de Respostas
+                    <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1">
+                      Histórico de Mensagens
                     </p>
                     {currentActiveTicket.replies.map((reply) => (
                       <div
                         key={reply.id}
-                        className={`border rounded-lg p-4 shadow-xs space-y-1.5 ${
+                        className={`border rounded-xl p-4 shadow-xs space-y-1.5 ${
                           reply.sender_role === "gestor"
-                            ? "bg-blue-50/60 border-blue-200 ml-4"
-                            : "bg-white border-stone-200 mr-4"
+                            ? "bg-primary/10 border-primary/25 ml-4 text-foreground"
+                            : "bg-card border-border mr-4 text-foreground"
                         }`}
                       >
-                        <div className="flex items-center justify-between text-xs text-stone-500 border-b border-blue-100/50 pb-1.5">
-                          <span className="font-bold text-blue-900">{reply.sender_name}</span>
+                        <div className="flex items-center justify-between text-xs text-muted-foreground border-b border-border/40 pb-1.5">
+                          <span className={`font-bold ${reply.sender_role === "gestor" ? "text-primary" : "text-foreground"}`}>
+                            {reply.sender_name}
+                          </span>
                           <span>
                             {formatDate(reply.created_at, {
                               hour: "2-digit",
@@ -421,7 +423,7 @@ function SupportPage() {
                             })}
                           </span>
                         </div>
-                        <p className="text-sm text-stone-800 leading-relaxed whitespace-pre-wrap">
+                        <p className="text-xs sm:text-sm text-foreground leading-relaxed whitespace-pre-wrap">
                           {reply.message}
                         </p>
                       </div>
@@ -431,22 +433,22 @@ function SupportPage() {
               </div>
 
               {/* Reply Form Footer */}
-              <div className="p-4 border-t border-stone-200 bg-white space-y-3">
+              <div className="p-4 border-t border-border bg-card space-y-3">
                 <Textarea
                   placeholder="Escreva a resposta para o cliente..."
-                  className="min-h-[90px] text-sm bg-white border-stone-200 focus-visible:ring-blue-900 resize-none"
+                  className="min-h-[90px] text-xs sm:text-sm bg-background border-border text-foreground placeholder:text-muted-foreground focus-visible:ring-primary resize-none"
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
                 />
                 <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] text-stone-400">
+                  <span className="text-[11px] text-muted-foreground">
                     Ao responder, o chamado irá para &quot;Em Andamento&quot;.
                   </span>
                   <Button
                     size="sm"
                     onClick={handleSendReply}
                     disabled={sendReplyMutation.isPending || !replyMessage.trim()}
-                    className="bg-gradient-to-r from-blue-700 to-blue-500 hover:from-blue-800 hover:to-blue-600 text-white font-medium shadow-sm h-9 px-4"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm h-9 px-4 cursor-pointer"
                   >
                     {sendReplyMutation.isPending ? (
                       <>

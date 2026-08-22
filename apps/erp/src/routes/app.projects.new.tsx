@@ -19,6 +19,7 @@ import { useCreateProject, type ServiceType } from "@/hooks/useProjects";
 import { useClients } from "@/hooks/useProfiles";
 import { supabase } from "@/integrations/supabase/client";
 import { sendClientInvite } from "@/integrations/brevo";
+import { googleAutomationService } from "@/services/googleAutomation";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { ProjectContractFieldsSection } from "@/components/ProjectContractFieldsSection";
@@ -30,6 +31,7 @@ const newProjectSchema = z.object({
   }),
   briefing_content: z.string().min(10, "Descreva brevemente o projeto (mín. 10 caracteres)"),
   budget: z.coerce.number().min(100, "Orçamento deve ser no mínimo R$ 100"),
+  setup_fee: z.coerce.number().min(0, "Setup deve ser maior ou igual a zero").optional(),
   freelancer_cost: z.coerce.number().min(0, "Custo do freelancer deve ser válido"),
   deadline: z.string().min(1, "Selecione o prazo de entrega"),
   google_drive_link: z.string().url("Informe uma URL válida do Google Drive").or(z.literal("")),
@@ -68,6 +70,7 @@ function NewProjectPage() {
       service_type: "" as any,
       briefing_content: "",
       budget: 5000,
+      setup_fee: 0,
       freelancer_cost: 1800,
       deadline: new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10),
       google_drive_link: "",
@@ -98,6 +101,7 @@ function NewProjectPage() {
         service_type: data.service_type as ServiceType,
         briefing_content: data.briefing_content,
         budget: data.budget,
+        setup_fee: data.setup_fee || 0,
         freelancer_cost: data.freelancer_cost,
         deadline: data.deadline,
         status: "Criado",
@@ -109,30 +113,97 @@ function NewProjectPage() {
         contract_fields_status: isContractFieldsComplete ? "completo" : "pendente",
       },
       {
-        onSuccess: async (newProj) => {
-          // If requested, send client invite via Brevo
+        onSuccess: async (newProj: any) => {
+          const projId = newProj?.id;
+
+          // 1. Automações Google (Drive, Calendar, Sheets)
+          try {
+            // Busca nome do cliente se houver
+            let clientName = data.title;
+            if (data.client_id) {
+              const matchedClient = clients.find((c) => (c.auth_user_id || c.id) === data.client_id);
+              if (matchedClient?.full_name) clientName = matchedClient.full_name;
+            }
+
+            // A: Cria estrutura no Google Drive
+            googleAutomationService.createDriveFolders({
+              clientId: data.client_id,
+              clientName,
+              projectId: projId,
+              projectName: data.title,
+            }).catch((err) => console.warn("[Google Drive Automação]:", err));
+
+            // B: Agenda prazo no Google Calendar
+            if (data.deadline) {
+              googleAutomationService.upsertCalendarEvent({
+                summary: `🚀 Kickoff / Entrega: ${data.title}`,
+                description: `Projeto ${data.title} (${data.service_type})\nOrçamento: R$ ${data.budget}${data.setup_fee ? ` + Setup R$ ${data.setup_fee}` : ""}\nBriefing: ${data.briefing_content.slice(0, 150)}...`,
+                startIso: `${data.deadline}T09:00:00-03:00`,
+                projectId: projId,
+              }).catch((err) => console.warn("[Google Calendar Automação]:", err));
+            }
+
+            // C: Registra na Planilha Mestra (Google Sheets)
+            googleAutomationService.appendSheetsData({
+              sheetName: "Projetos Ativos",
+              rowValues: [
+                projId,
+                new Date().toLocaleDateString("pt-BR"),
+                data.title,
+                clientName,
+                data.service_type,
+                data.budget,
+                data.freelancer_cost || 0,
+                "Criado",
+              ],
+            }).catch((err) => console.warn("[Google Sheets Automação]:", err));
+          } catch (autoErr) {
+            console.warn("[Automação Google]:", autoErr);
+          }
+
+          // 2. Envio de convite ao cliente via Brevo se solicitado
           if (sendClientAccess && data.client_id) {
             try {
-              const { data: clientData } = await supabase
-                .from("profiles")
-                .select("full_name,email")
-                .eq("id", data.client_id)
+              let clientEmail = "";
+              let clientFullName = "Cliente";
+
+              // Busca primeiro na tabela clients
+              const { data: clientRecord } = await (supabase.from("clients") as any)
+                .select("full_name, email")
+                .or(`id.eq.${data.client_id},auth_user_id.eq.${data.client_id}`)
                 .maybeSingle();
-              const client = clientData as any;
-              if (client?.email) {
-                const link = `${window.location.origin}/p/${publicToken}`;
+
+              if (clientRecord?.email) {
+                clientEmail = clientRecord.email;
+                clientFullName = clientRecord.full_name || clientFullName;
+              } else {
+                // Fallback para profiles
+                const { data: profileRecord } = await supabase
+                  .from("profiles")
+                  .select("full_name, email")
+                  .eq("id", data.client_id)
+                  .maybeSingle();
+                if (profileRecord?.email) {
+                  clientEmail = profileRecord.email;
+                  clientFullName = profileRecord.full_name || clientFullName;
+                }
+              }
+
+              if (clientEmail) {
+                const link = `${window.location.origin}/auth?email=${encodeURIComponent(clientEmail)}`;
                 await sendClientInvite({
-                  to: { name: client.full_name || "Cliente", email: client.email },
+                  to: { name: clientFullName, email: clientEmail },
                   projectTitle: data.title,
                   projectLink: link,
                 });
+                toast.success(`Convite de acesso enviado para ${clientEmail}!`);
               }
             } catch (e) {
               console.warn("Erro ao enviar convite para o cliente:", e);
             }
           }
 
-          navigate({ to: "/app/projects/$id", params: { id: (newProj as any).id } });
+          navigate({ to: "/app/projects/$id", params: { id: projId } });
         },
       },
     );
@@ -312,12 +383,22 @@ function NewProjectPage() {
           )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="space-y-2">
-            <Label className="text-xs font-semibold">Orçamento Bruto (R$)</Label>
+            <Label className="text-xs font-semibold">Orçamento Mensal / Bruto (R$)</Label>
             <Input type="number" placeholder="5000" {...register("budget")} className="bg-card" />
             {errors.budget && (
               <p className="text-xs text-destructive">{errors.budget.message}</p>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs font-semibold flex items-center gap-1">
+              Taxa de Setup (R$) <span className="text-[10px] text-muted-foreground font-normal">(Opcional)</span>
+            </Label>
+            <Input type="number" placeholder="0" {...register("setup_fee")} className="bg-card" />
+            {errors.setup_fee && (
+              <p className="text-xs text-destructive">{errors.setup_fee.message}</p>
             )}
           </div>
 

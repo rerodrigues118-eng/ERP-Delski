@@ -12,6 +12,7 @@ export interface Project {
   service_type: ServiceType;
   status: ProjectStatus;
   budget: number;
+  setup_fee?: number;
   freelancer_cost: number;
   additional_costs?: number;
   deadline: string | null;
@@ -33,6 +34,7 @@ export interface CreateProjectInput {
   service_type: ServiceType;
   status?: ProjectStatus;
   budget: number;
+  setup_fee?: number;
   freelancer_cost: number;
   deadline?: string;
   briefing_content?: string;

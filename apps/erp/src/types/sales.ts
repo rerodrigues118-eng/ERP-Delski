@@ -15,6 +15,7 @@ export interface Sale {
   client_name: string;
   service_name: string;
   service_id?: string | null;
+  project_id?: string | null;
   amount: number;
   status: SaleStatus;
   channel: SalesChannel;

@@ -577,7 +577,7 @@ function ClienteFinanceView({ user }: { user: any }) {
   const { data: clientNfses = [] } = useEmittedServiceInvoices();
 
   const totalBudget = useMemo(() => {
-    return projects.reduce((a, p) => a + Number(p.budget || 0), 0);
+    return projects.reduce((a, p) => a + Number(p.budget || 0) + Number(p.setup_fee || 0), 0);
   }, [projects]);
 
   if (isLoading) return <FinanceSkeleton />;
@@ -659,7 +659,8 @@ function ClienteFinanceView({ user }: { user: any }) {
                   <th className="text-left px-4 py-3">Projeto</th>
                   <th className="text-left px-4 py-3">Modalidade</th>
                   <th className="text-left px-4 py-3">Status do Projeto</th>
-                  <th className="text-right px-4 py-3">Investimento Contratado</th>
+                  <th className="text-right px-4 py-3">Mensalidade</th>
+                  <th className="text-right px-4 py-3">Setup</th>
                   <th className="text-right px-4 py-3">Situação</th>
                 </tr>
               </thead>
@@ -680,6 +681,9 @@ function ClienteFinanceView({ user }: { user: any }) {
                     <td className="px-4 py-3.5 text-right font-extrabold text-emerald-600 dark:text-emerald-400">
                       {money(Number(p.budget || 0))}
                     </td>
+                    <td className="px-4 py-3.5 text-right font-semibold text-foreground">
+                      {p.setup_fee ? money(Number(p.setup_fee)) : "—"}
+                    </td>
                     <td className="px-4 py-3.5 text-right">
                       <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30 text-xs">
                         Acordo Ativo
@@ -689,7 +693,7 @@ function ClienteFinanceView({ user }: { user: any }) {
                 ))}
                 {projects.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={6} className="py-8 text-center text-sm text-muted-foreground">
                       Nenhum projeto registrado no seu perfil.
                     </td>
                   </tr>
@@ -1028,14 +1032,18 @@ function GestorFinanceView() {
     () =>
       projects.map((p) => {
         const budget = Number(p.budget || 0);
+        const setupFee = Number(p.setup_fee || 0);
+        const totalProjectRevenue = budget + setupFee;
         const freelancerCost = Number(p.freelancer_cost || 0);
         const directExpenses = combinedExpenses.filter((e) => e.projectId === p.id);
         const directExpensesTotal = directExpenses.reduce((a, b) => a + Number(b.amount || 0), 0);
         const totalCost = freelancerCost + directExpensesTotal;
-        const profit = budget - totalCost;
-        const margin = budget > 0 ? (profit / budget) * 100 : 0;
+        const profit = totalProjectRevenue - totalCost;
+        const margin = totalProjectRevenue > 0 ? (profit / totalProjectRevenue) * 100 : 0;
         return {
           ...p,
+          setupFee,
+          totalProjectRevenue,
           freelancerCost,
           directExpensesTotal,
           directExpenses,
@@ -1048,15 +1056,14 @@ function GestorFinanceView() {
   );
 
   const totals = useMemo(() => {
-    // 1. Receita Total Estrita dos Projetos Ativos (/projetos)
-    // Regra: Considera exclusivamente os orçamentos (budget) dos projetos listados no sistema ou vendas concluídas.
-    // Leads em aberto no CRM (propostas/qualificação) NÃO somam na Receita do Financeiro.
+    // 1. Receita Total Estrita dos Projetos Ativos (/projetos) incluindo Taxa de Setup
     const projectsBudget = projects.reduce((a, p) => a + Number(p.budget || 0), 0);
+    const totalSetupFees = projects.reduce((a, p) => a + Number(p.setup_fee || 0), 0);
     const completedSalesRevenue = sales
       .filter((s) => s.status === "concluida")
       .reduce((a, s) => a + Number(s.amount || 0), 0);
 
-    const revenue = projects.length > 0 ? projectsBudget : completedSalesRevenue;
+    const revenue = projects.length > 0 ? projectsBudget + totalSetupFees : completedSalesRevenue;
 
     // 2. Custos com Freelancers (Repasses acordados dos projetos)
     const freelancerCosts = projects.reduce((a, p) => a + Number(p.freelancer_cost || 0), 0);
@@ -1069,13 +1076,13 @@ function GestorFinanceView() {
     const totalExpenses = combinedExpenses.reduce((a, e) => a + Number(e.amount || 0), 0);
 
     // 4. Lucro Real Consolidado e Margem Líquida
-    // Cálculo: (Receita Total dos Projetos) - (Custos com Freelancers + Despesas Operacionais)
     const totalCosts = freelancerCosts + totalExpenses;
     const realProfit = revenue - totalCosts;
     const profitMargin = revenue > 0 ? (realProfit / revenue) * 100 : 0;
 
     return {
       revenue,
+      totalSetupFees,
       freelancerCosts,
       totalExpenses,
       projectExpensesTotal,

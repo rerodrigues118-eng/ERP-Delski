@@ -9,9 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCreateSale } from "@/hooks/useSales";
+import { useProjects } from "@/hooks/useProjects";
 import { SaleStatus, SalesChannel } from "@/types/sales";
 import { toast } from "sonner";
-import { DollarSign, User, CreditCard } from "lucide-react";
+import { DollarSign, User, CreditCard, FolderKanban } from "lucide-react";
 
 export const SALE_SERVICES = [
   "Automação IA",
@@ -28,6 +29,7 @@ const newSaleSchema = z.object({
   channel: z.enum(["inbound", "sdr_whatsapp", "indicacao", "parceiros", "outbound", "outro"] as const),
   payment_terms: z.string().min(1, "Condição de pagamento é obrigatória"),
   seller_name: z.string().min(2, "Nome do closer é obrigatório"),
+  project_id: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -45,6 +47,7 @@ interface NewSaleModalProps {
 
 export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallback }: NewSaleModalProps) {
   const createSaleMutation = useCreateSale();
+  const { data: projects = [] } = useProjects();
 
   const {
     register,
@@ -63,6 +66,7 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
       channel: "inbound",
       payment_terms: "À vista (PIX)",
       seller_name: "Gestor Comercial",
+      project_id: "",
       notes: "",
     },
   });
@@ -92,6 +96,7 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
         channel: initialValues.channel ?? "inbound",
         payment_terms: initialValues.payment_terms ?? "À vista (PIX)",
         seller_name: initialValues.seller_name ?? "Gestor Comercial",
+        project_id: (initialValues as any).project_id ?? "",
         notes: initialValues.notes ?? "",
       });
     }
@@ -100,6 +105,7 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
   const selectedService = watch("service_name");
   const selectedStatus = watch("status");
   const selectedChannel = watch("channel");
+  const selectedProjectId = watch("project_id");
 
   const onSubmit = async (data: NewSaleFormValues) => {
     try {
@@ -267,6 +273,42 @@ export function NewSaleModal({ open, onOpenChange, initialValues, onSuccessCallb
               {errors.payment_terms && (
                 <p className="text-xs text-destructive font-medium">{errors.payment_terms.message}</p>
               )}
+            </div>
+
+            {/* Vincular a Projeto */}
+            <div className="space-y-1.5 sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-xs font-semibold flex items-center gap-1.5">
+                  <FolderKanban className="h-3.5 w-3.5 text-primary" /> + Vincular a Projeto (Opcional)
+                </Label>
+                {selectedProjectId && (
+                  <button
+                    type="button"
+                    onClick={() => setValue("project_id", "")}
+                    className="text-[11px] text-muted-foreground hover:text-rose-500 transition-colors cursor-pointer"
+                  >
+                    Desvincular
+                  </button>
+                )}
+              </div>
+              <Select
+                value={selectedProjectId || "none"}
+                onValueChange={(val) => setValue("project_id", val === "none" ? "" : val)}
+              >
+                <SelectTrigger className="text-xs">
+                  <SelectValue placeholder="Selecione um projeto para vincular a esta venda..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-56">
+                  <SelectItem value="none" className="text-xs text-muted-foreground">
+                    Nenhum projeto vinculado
+                  </SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.id} value={p.id} className="text-xs">
+                      {p.title} {p.client?.full_name ? `— ${p.client.full_name}` : ""} ({p.service_type || "Geral"})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Observações */}

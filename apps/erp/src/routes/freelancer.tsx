@@ -12,6 +12,7 @@ import {
   Receipt,
   Sparkles,
   FolderKanban,
+  Search,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -24,6 +25,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useCurrentFreelancerProfile } from "@/hooks/useFreelancerPortal";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { CommandPalette } from "@/components/CommandPalette";
 
 export const Route = createFileRoute("/freelancer")({
   component: FreelancerLayout,
@@ -45,6 +47,19 @@ function FreelancerLayout() {
   const navigate = useNavigate();
 
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+
+  // Keyboard shortcut ⌘K / Ctrl+K for Global Search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen((open) => !open);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   const { data: freelancerData } = useCurrentFreelancerProfile(
     user?.id,
@@ -191,8 +206,22 @@ function FreelancerLayout() {
             })}
           </nav>
 
-          {/* LADO DIREITO: Tema & Avatar Dropdown */}
+          {/* LADO DIREITO: Busca, Tema & Avatar Dropdown */}
           <div className="flex items-center gap-2.5 shrink-0">
+            {/* Botão Buscar no ERP */}
+            <button
+              type="button"
+              onClick={() => setCommandPaletteOpen(true)}
+              className="hidden md:flex items-center gap-2 bg-slate-100 dark:bg-zinc-800/80 hover:bg-slate-200 dark:hover:bg-zinc-700/80 border border-slate-200 dark:border-zinc-700/80 rounded-full px-3 py-1.5 w-44 lg:w-56 text-xs text-slate-500 dark:text-zinc-400 transition-all cursor-pointer text-left"
+              title="Buscar no ERP (⌘K)"
+            >
+              <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+              <span className="truncate">Buscar no ERP...</span>
+              <span className="ml-auto text-[10px] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 px-1.5 py-0.5 rounded font-mono font-medium shadow-2xs">
+                ⌘K
+              </span>
+            </button>
+
             {/* Mobile / Tablet Nav Trigger */}
             <div className="xl:hidden">
               <DropdownMenu>
@@ -258,6 +287,9 @@ function FreelancerLayout() {
           </div>
         </header>
       </div>
+
+      {/* Modal de Busca Global */}
+      <CommandPalette open={commandPaletteOpen} onOpenChange={setCommandPaletteOpen} />
 
       {/* Main Freelancer Content */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">

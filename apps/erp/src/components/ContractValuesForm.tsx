@@ -12,6 +12,7 @@ export interface ContractValuesFormProps {
   autoFields: Record<string, boolean>;
   onChange: (name: string, value: string) => void;
   missingCount: number;
+  readOnly?: boolean;
 }
 
 const ACRONYMS: Record<string, string> = {
@@ -115,7 +116,14 @@ export function ContractValuesForm({
   return (
     <div className="space-y-6">
       {/* Validation status header */}
-      {missingCount > 0 ? (
+      {readOnly ? (
+        <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-700 dark:text-amber-400 font-medium">
+          <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
+          <span>
+            <strong>Modo Visualização (Perfil Comercial)</strong>. Você possui acesso de leitura aos contratos e modelos. A emissão e edição de cláusulas são restritas aos Gestores.
+          </span>
+        </div>
+      ) : missingCount > 0 ? (
         <div className="flex items-center gap-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 p-3.5 text-xs text-amber-700 dark:text-amber-400 font-medium">
           <AlertCircle className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <span>
@@ -181,11 +189,14 @@ export function ContractValuesForm({
                       <Textarea
                         id={`field-${variable.name}`}
                         value={fieldValue}
+                        disabled={readOnly}
                         onChange={(e) => onChange(variable.name, e.target.value)}
                         placeholder={`Preencha ${titleLabel.toLowerCase()}`}
                         rows={3}
                         className={
-                          isEmpty
+                          readOnly
+                            ? "bg-muted/50 opacity-80 cursor-not-allowed"
+                            : isEmpty
                             ? "border-red-500/80 focus-visible:ring-red-500/50 bg-red-500/[0.03] transition-colors"
                             : "transition-colors"
                         }
@@ -194,17 +205,20 @@ export function ContractValuesForm({
                       <Input
                         id={`field-${variable.name}`}
                         value={fieldValue}
+                        disabled={readOnly}
                         onChange={(e) => onChange(variable.name, e.target.value)}
                         placeholder={`Preencha ${titleLabel.toLowerCase()}`}
                         className={
-                          isEmpty
+                          readOnly
+                            ? "bg-muted/50 opacity-80 cursor-not-allowed"
+                            : isEmpty
                             ? "border-red-500/80 focus-visible:ring-red-500/50 bg-red-500/[0.03] transition-colors"
                             : "transition-colors"
                         }
                       />
                     )}
 
-                    {isEmpty && (
+                    {!readOnly && isEmpty && (
                       <p className="text-[11px] font-medium text-red-500">
                         Campo obrigatório não preenchido
                       </p>

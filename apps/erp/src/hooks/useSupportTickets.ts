@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -166,6 +167,32 @@ async function fetchRepliesMap(): Promise<Map<string, TicketReply[]>> {
 
 // ── Query: Gestor — vê TODOS os chamados ──────────────────────────────────────
 export function useSupportTickets() {
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("gestor_support_tickets_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "support_tickets" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ticket_replies" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   return useQuery({
     queryKey: ["support_tickets"],
     staleTime: 1000,
@@ -195,6 +222,33 @@ export function useSupportTickets() {
 // ── Query: Cliente — vê APENAS seus próprios chamados ─────────────────────────
 export function useClientSupportTickets(clientId?: string, clientEmail?: string) {
   const emailLower = clientEmail?.toLowerCase().trim() || "";
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!clientId && !emailLower) return;
+    const channel = supabase
+      .channel(`client_support_realtime_${clientId || emailLower}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "support_tickets" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "ticket_replies" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ["support_tickets"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, clientId, emailLower]);
+
   return useQuery({
     queryKey: ["support_tickets", "client", clientId || emailLower],
     enabled: !!(clientId || emailLower),
